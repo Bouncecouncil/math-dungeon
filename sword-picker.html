@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Math Dungeon — Pick Your Sword</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:#05070f;color:#dbe6ff;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  header{padding:22px 24px 6px;text-align:center;}
+  h1{margin:0;font-size:30px;letter-spacing:1px;color:#7fd4ff;text-shadow:0 0 20px rgba(60,160,255,.5);}
+  .sub{color:#8fa0d0;font-size:14px;margin-top:4px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:18px 24px 10px;}
+  .card{background:rgba(18,26,56,.65);border:2px solid rgba(120,170,255,.25);border-radius:14px;overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s,box-shadow .15s;}
+  .card:hover{transform:translateY(-3px);border-color:rgba(120,170,255,.7);}
+  .card.on{border-color:#3ce8b0;box-shadow:0 0 0 2px rgba(60,232,176,.35),0 0 26px rgba(60,232,176,.3);}
+  .card canvas{display:block;width:100%;height:320px;background:#080b16;}
+  .meta{padding:10px 13px 13px;}
+  .nm{font-weight:800;font-size:17px;color:#fff;}
+  .bl{font-size:13px;color:#8fa0d0;margin-top:2px;}
+  .tag{display:inline-block;margin-top:8px;font-size:11px;font-weight:800;letter-spacing:1px;color:#3ce8b0;opacity:0;transition:opacity .15s;}
+  .card.on .tag{opacity:1;}
+  footer{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(5,7,15,0),#05070f 40%);padding:22px 24px 26px;text-align:center;}
+  .go{display:inline-block;background:linear-gradient(180deg,#6f52ff,#3f2bb0);color:#fff;font-weight:800;font-size:20px;text-decoration:none;padding:15px 38px;border:0;border-radius:11px;box-shadow:0 4px 0 #241a63;cursor:pointer;}
+  .go:active{transform:translateY(3px);box-shadow:0 1px 0 #241a63;}
+  .note{color:#6f7fa8;font-size:12.5px;margin-top:10px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>PICK YOUR SWORD</h1>
+  <div class="sub">Each one is shown exactly as it sits in your hand in the game, mid-swing every second or so. Click one, then Play.</div>
+</header>
+<div class="grid" id="grid"></div>
+<footer>
+  <button class="go" id="playBtn">▶ PLAY WITH THIS SWORD</button>
+  <div class="note">Your pick is saved and the game switches to it the next time the blade is drawn.</div>
+</footer>
+<script src="three.min.js"></script>
+<script src="models.js"></script>
+<script>
+const matCache={};
+function mk(hex){ return matCache[hex]||(matCache[hex]=new THREE.MeshLambertMaterial({color:hex})); }
+let sel=MODELS.swordChoice();
+function stage(canvas){
+  const r=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false}); r.setPixelRatio(Math.min(2,devicePixelRatio||1));
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x080b16);
+  const cam=new THREE.PerspectiveCamera(42,1,0.01,40);
+  scene.add(new THREE.AmbientLight(0x6c7ea8,1.35));
+  const key=new THREE.DirectionalLight(0xffe6c0,2.1); key.position.set(1.2,1.7,1.5); scene.add(key);
+  const rim=new THREE.DirectionalLight(0x6fb4ff,1.3); rim.position.set(-1.5,0.7,-1.3); scene.add(rim);
+  const fill=new THREE.DirectionalLight(0xffffff,0.7); fill.position.set(-0.4,-0.9,1.1); scene.add(fill);
+  return {r,scene,cam};
+}
+const stages=[];
+MODELS.swords.forEach(sw=>{
+  const el=document.createElement("div"); el.className="card"+(sel===sw.id?" on":"");
+  el.innerHTML='<canvas></canvas><div class="meta"><div class="nm"></div><div class="bl"></div><div class="tag">✓ SELECTED</div></div>';
+  el.querySelector(".nm").textContent=sw.name; el.querySelector(".bl").textContent=sw.blurb;
+  document.getElementById("grid").appendChild(el);
+  const st=stage(el.querySelector("canvas"));
+  // the viewmodel is authored in camera space: put the camera at the origin
+  // looking down -Z and it frames itself exactly as in the game
+  const built=MODELS.buildWeapon("blade",mk,0x39d5ff,sw.id);
+  st.scene.add(built.group); st.cam.position.set(0,0,0); st.cam.lookAt(0,0,-1);
+  el.onclick=()=>{ sel=sw.id; localStorage.setItem("mathDungeonSword",sel);
+    [...document.querySelectorAll(".card")].forEach(c=>c.classList.remove("on")); el.classList.add("on"); };
+  stages.push({st,built});
+});
+let swingT=0;
+function loop(ms){
+  const t=ms/1000; swingT+=1/60;
+  if(swingT>1.6){ swingT=0; stages.forEach(s=>s.built.swing()); }
+  for(const s of stages){
+    const cv=s.st.r.domElement, w=cv.clientWidth, h=cv.clientHeight;
+    if(cv.width!==w||cv.height!==h){ s.st.r.setSize(w,h,false); s.st.cam.aspect=w/h; s.st.cam.updateProjectionMatrix(); }
+    s.built.update(t,0.3,{}); s.st.r.render(s.st.scene,s.st.cam);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+document.getElementById("playBtn").onclick=()=>{ location.href="math-dungeon-3d.html"; };
+</script>
+</body>
+</html>

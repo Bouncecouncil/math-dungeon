@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Math Dungeon 3D model check</title>
+<style>html,body{margin:0;background:#0b0e18;color:#dbe6ff;font:14px system-ui}#c{display:block;width:100vw;height:100vh}#hud{position:fixed;left:12px;top:10px;background:rgba(0,0,0,.5);padding:8px 12px;border-radius:8px}</style></head>
+<body><canvas id="c"></canvas><div id="hud">loading…</div>
+<script src="three.min.js"></script><script src="GLTFLoader.js"></script>
+<script>
+const url=new URLSearchParams(location.search).get('m')||'models3d/gloop.glb';
+const r=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true});r.setPixelRatio(1);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b0e18);
+const cam=new THREE.PerspectiveCamera(40,1,0.01,100);
+scene.add(new THREE.HemisphereLight(0x8899cc,0x241d16,1.2));
+const key=new THREE.DirectionalLight(0xffe0b0,1.6);key.position.set(1,2,2);scene.add(key);
+const fill=new THREE.DirectionalLight(0x6fb4ff,0.8);fill.position.set(-2,1,-1);scene.add(fill);
+const pivot=new THREE.Group();scene.add(pivot);
+let info={};
+new THREE.GLTFLoader().load(url,g=>{
+  const root=g.scene; const box=new THREE.Box3().setFromObject(root); const size=box.getSize(new THREE.Vector3()); const ctr=box.getCenter(new THREE.Vector3());
+  root.position.sub(ctr); const s=1/Math.max(size.x,size.y,size.z); root.scale.setScalar(s); pivot.add(root);
+  let tris=0,mats=new Set(),texd=0; root.traverse(o=>{if(o.isMesh){const g=o.geometry;tris+=(g.index?g.index.count:g.attributes.position.count)/3; const ms=Array.isArray(o.material)?o.material:[o.material]; ms.forEach(m=>{mats.add(m.type); if(m.map)texd++;});}});
+  info={triangles:Math.round(tris),materials:[...mats],texturedMeshes:texd,size:size.toArray().map(v=>+v.toFixed(3))};
+  document.getElementById('hud').textContent=JSON.stringify(info);
+  window.__modelInfo=info;
+},undefined,e=>{document.getElementById('hud').textContent='LOAD FAILED '+e.message;window.__modelInfo={error:String(e.message)};});
+cam.position.set(0,0.25,2.2);cam.lookAt(0,0,0);
+function frame(t){const w=innerWidth,h=innerHeight; if(r.domElement.width!==w||r.domElement.height!==h){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();} pivot.rotation.y=(window.__spin==null?t/1600:window.__spin); r.render(scene,cam); requestAnimationFrame(frame);} requestAnimationFrame(frame);
+</script></body></html>
