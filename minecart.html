@@ -32,11 +32,19 @@
   #msg.show{opacity:1}
   #flash{position:absolute;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .35s;
     background:radial-gradient(ellipse at center,transparent 35%,rgba(225,30,45,.65) 100%);}
+  /* the four answers sit at the bottom, in the same left-to-right order as the lanes */
+  #answers{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:min(96vw,860px);
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;z-index:9;pointer-events:none;box-sizing:border-box;}
+  #answers.hide{display:none}
+  .ans{background:rgba(8,12,34,.88);border:2px solid #3a4a9a;border-radius:12px;padding:8px 4px;text-align:center;
+    font-size:22px;font-weight:800;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.45);transition:border-color .12s,transform .12s;}
+  .ans .lane{display:block;font-size:10px;font-weight:800;color:#8fa0d0;letter-spacing:1px}
+  .ans.in{border-color:#ffd23f;background:rgba(58,44,10,.9);transform:translateY(-4px)}
   #steer{position:absolute;left:0;right:0;bottom:0;height:42%;display:flex;z-index:7;}
   #steer div{flex:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;
     font-size:40px;color:rgba(190,215,255,.5);}
   #steer.hide{display:none}
-  #helpBtn{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;
+  #helpBtn{position:absolute;left:50%;bottom:76px;transform:translateX(-50%);z-index:8;
     background:linear-gradient(180deg,#4fc3ff,#1d7fc0);color:#06121b;border:none;border-radius:12px;
     padding:9px 18px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #0e4f7a;}
   #helpBtn.hide{display:none}
@@ -66,6 +74,8 @@
     .panel h1{font-size:22px} .panel p{font-size:13px}
     .big{font-size:16px;padding:9px 18px}
     #helpBtn{font-size:14px;padding:6px 14px;bottom:6px}
+    .ans{font-size:16px;padding:5px 3px}
+    #answers{bottom:6px;gap:5px}
   }
 </style>
 </head>
@@ -83,6 +93,7 @@
   <div id="msg"></div>
   <div id="flash"></div>
   <div id="steer" class="hide"><div>◀</div><div>▶</div></div>
+  <div id="answers" class="hide"></div>
   <button id="helpBtn" class="hide">📖 Help me solve it (🪙10)</button>
 
   <div id="startOv" class="overlay">
@@ -126,7 +137,7 @@ const HALF_W = 7.6;                  // tunnel half width
 const CEIL = 7;                      // tunnel height
 const SEG = 20;                      // length of one tunnel segment
 const SEGS = 14;                     // recycled segments = how far you can see
-const GATE_GAP = 78;                 // distance between gates
+const GATE_GAP = 165;                // distance between gates: long enough to read, choose and enjoy the ride
 const SIGN_LEAD = 34;                // the question sign stands this far before its gate
 const GATES = 8;                     // gates to the station
 const SPEED0 = 9.5, SPEED_MAX = 14, SPEED_STEP = 0.45;   // slow enough to read the sign and choose
@@ -143,8 +154,11 @@ let camShakeSeed = 0;
    makes the cart pick up speed) or a BANK (the tunnel leans over) carved
    just ahead every time he answers right. Both fade out and the cart
    settles back to its normal medium speed. */
-const hills = [];      // {z, depth} dips carved by right answers
-const banks = [];       // {z, dir}  leaned sections carved by right answers
+/* Hills and banked curves belong to the TRACK, not to a right answer: they
+   are laid down when a gate is built, far enough ahead that he sees them
+   coming and can read the bend before he answers. */
+const hills = [];      // {z, depth}
+const banks = [];      // {z, dir}
 const bell = (d, w) => Math.exp(-(d*d)/(w*w));            // smooth bump, 1 at the centre
 function trackY(z){
   let y = Math.sin(z*0.010)*2.8 + Math.sin(z*0.026)*1.3;  // the rolling mine floor
@@ -383,6 +397,9 @@ function spawnGate(index){
   const beam = new THREE.Mesh(new THREE.BoxGeometry(13.4,0.3,0.3), mat.wood);
   beam.position.set(0,3.5,0); group.add(beam);
 
+  // the stretch AFTER this gate: a dip and a banked curve, both visible long before they arrive
+  hills.push({z: z + GATE_GAP*0.34, depth: 5.5});
+  banks.push({z: z + GATE_GAP*0.70, dir: (index % 2) ? 1 : -1});
   scene.add(group);
   gates.push({z, qd, group, banners, done:false, index});
 }
@@ -454,15 +471,30 @@ function currentGate(){
   for (const g of gates) if (!g.done && g.z > S.z) return g;
   return null;
 }
+let shownGate = null;
 function updateQuestionUI(){
   const g = currentGate();
-  const box = $("qbox");
-  if (!g || g.z - S.z > SIGN_LEAD + 60){ box.classList.add("hide"); $("helpBtn").classList.add("hide"); return; }
-  box.classList.remove("hide");
-  $("qkind").textContent = ({reading:"📖 READING", other:"🧪 OTHER"}[S.subject] || "🔢 MATH")
-    + "  ·  GATE " + (g.index+1) + " / " + GATES;
-  $("qtext").textContent = g.qd.q;
-  $("helpBtn").classList.toggle("hide", !helperNumbers(g.qd.q, g.qd.kind));
+  const box = $("qbox"), row = $("answers");
+  if (!g){ box.classList.add("hide"); row.classList.add("hide"); $("helpBtn").classList.add("hide"); shownGate = null; return; }
+  // as soon as one gate is done the next question is already on screen
+  if (g !== shownGate){
+    shownGate = g;
+    box.classList.remove("hide"); row.classList.remove("hide");
+    $("qkind").textContent = ({reading:"📖 READING", other:"🧪 OTHER"}[S.subject] || "🔢 MATH")
+      + "  ·  GATE " + (g.index+1) + " / " + GATES;
+    $("qtext").textContent = g.qd.q;
+    row.innerHTML = "";
+    g.qd.choices.forEach((c,i) => {
+      const d = document.createElement("div");
+      d.className = "ans"; d.dataset.i = i;
+      d.innerHTML = "<span class='lane'>LANE " + (i+1) + "</span>" + c;
+      row.appendChild(d);
+    });
+    $("helpBtn").classList.toggle("hide", !helperNumbers(g.qd.q, g.qd.kind));
+  }
+  // light up the answer he is currently lined up with
+  const lane = LANES.reduce((best,lx,i) => Math.abs(lx-S.x) < Math.abs(LANES[best]-S.x) ? i : best, 0);
+  [...row.children].forEach((d,i) => d.classList.toggle("in", i === lane));
 }
 
 /* ============================ input ============================ */
@@ -505,7 +537,7 @@ function start(){
   $("steer").classList.remove("hide");
   S.running = true; S.ended = false; S.z = 0; S.x = 0; S.speed = SPEED0;
   S.hearts = 5; S.score = 0; S.gate = 0; S.right = 0; S.asked = 0; S.steerTo = null;
-  gates.forEach(clearGate); gates = [];
+  gates.forEach(clearGate); gates = []; hills.length = 0; banks.length = 0; shownGate = null;
   for (let i=0;i<3;i++) spawnGate(S.gate++);
   hud(); last = performance.now();
 }
@@ -521,6 +553,7 @@ $("subjRow").onclick = e => {
 function endRun(won){
   S.running = false; S.ended = true;
   $("steer").classList.add("hide"); $("qbox").classList.add("hide"); $("helpBtn").classList.add("hide");
+  $("answers").classList.add("hide"); shownGate = null;
   $("endTitle").textContent = won ? "🏁 STATION!" : "💥 THE CART STOPPED";
   $("endLine").innerHTML = `You got <b>${S.right}</b> of <b>${S.asked}</b> right`
     + ` · <b>${S.score}</b> points · <b>🪙 ${S.coins}</b> coins`
@@ -538,14 +571,7 @@ function judge(g){
     S.score += 100 + Math.round(S.speed*2);
     S.coins += 5;
     S.speed = Math.min(SPEED_MAX, S.speed + SPEED_STEP);
-    // the reward: either a plunge down a dip or a big banked curve, just ahead
-    if (Math.random() < 0.55){
-      hills.push({z:S.z + 34, depth:5.5});
-      flashMsg("✅ YES! DOWNHILL! 🛒💨", "#3ddc84");
-    } else {
-      banks.push({z:S.z + 34, dir:Math.random() < 0.5 ? 1 : -1});
-      flashMsg("✅ YES! HANG ON! ↩️", "#3ddc84");
-    }
+    flashMsg("✅ YES! +" + (100 + Math.round(S.speed*2)), "#3ddc84");
     if (hasBank()) MathBank.record(true, g.qd.kind);
   } else {
     S.hearts--;
