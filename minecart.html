@@ -129,8 +129,8 @@ const SEGS = 14;                     // recycled segments = how far you can see
 const GATE_GAP = 78;                 // distance between gates
 const SIGN_LEAD = 34;                // the question sign stands this far before its gate
 const GATES = 8;                     // gates to the station
-const SPEED0 = 16, SPEED_MAX = 30, SPEED_STEP = 1.1;
-const STEER = 9;                     // sideways speed
+const SPEED0 = 9.5, SPEED_MAX = 14, SPEED_STEP = 0.45;   // slow enough to read the sign and choose
+const STEER = 7.5;                   // sideways speed
 const COST_OPEN = 10, COST_HINT = 3;
 
 /* ============================ state ============================ */
@@ -139,6 +139,29 @@ const S = {
   subject:"math", gate:0, right:0, asked:0, invT:0, shakeT:0, paused:false, ended:false
 };
 let camShakeSeed = 0;
+/* The track rolls: gentle hills everywhere, plus a DIVE (a deep dip that
+   makes the cart pick up speed) or a BANK (the tunnel leans over) carved
+   just ahead every time he answers right. Both fade out and the cart
+   settles back to its normal medium speed. */
+const hills = [];      // {z, depth} dips carved by right answers
+const banks = [];       // {z, dir}  leaned sections carved by right answers
+const bell = (d, w) => Math.exp(-(d*d)/(w*w));            // smooth bump, 1 at the centre
+function trackY(z){
+  let y = Math.sin(z*0.010)*2.8 + Math.sin(z*0.026)*1.3;  // the rolling mine floor
+  for (const h of hills) y -= h.depth * bell(z - h.z, 26);
+  return y;
+}
+function slope(z){ return (trackY(z+2) - trackY(z-2)) / 4; }
+function bankRoll(z){
+  let r = 0;
+  for (const b of banks) r += b.dir * 0.38 * bell(z - b.z, 24);
+  return r;
+}
+function boostAt(z){                                      // gravity down the dip
+  let b = 0;
+  for (const h of hills) b += h.depth * 0.62 * bell(z - h.z - 12, 22);
+  return b;
+}
 
 /* ============================ three.js scene ============================ */
 const scene = new THREE.Scene();
@@ -339,6 +362,7 @@ function spawnGate(index){
   const qd = nextQuestion();
   const group = new THREE.Group();
   group.position.z = z;
+  group.userData.onHill = true;
   const kindLabel = {reading:"📖 READING", other:"🧪 OTHER"}[S.subject] || "🔢 MATH";
 
   // the question itself rides in the top bar: an in-world board would block the track
@@ -514,7 +538,14 @@ function judge(g){
     S.score += 100 + Math.round(S.speed*2);
     S.coins += 5;
     S.speed = Math.min(SPEED_MAX, S.speed + SPEED_STEP);
-    flashMsg("✅ YES! +" + (100 + Math.round(S.speed*2)), "#3ddc84");
+    // the reward: either a plunge down a dip or a big banked curve, just ahead
+    if (Math.random() < 0.55){
+      hills.push({z:S.z + 34, depth:5.5});
+      flashMsg("✅ YES! DOWNHILL! 🛒💨", "#3ddc84");
+    } else {
+      banks.push({z:S.z + 34, dir:Math.random() < 0.5 ? 1 : -1});
+      flashMsg("✅ YES! HANG ON! ↩️", "#3ddc84");
+    }
     if (hasBank()) MathBank.record(true, g.qd.kind);
   } else {
     S.hearts--;
@@ -536,7 +567,10 @@ function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now;
 
   if (S.running && !S.paused){
-    S.z += S.speed * dt;
+    S.z += (S.speed + boostAt(S.z)) * dt;
+    for (const g of gates) g.group.position.y = trackY(g.z);
+    while (hills.length && hills[0].z < S.z - 80) hills.shift();
+    while (banks.length && banks[0].z < S.z - 80) banks.shift();
     // steering: the helper can point the cart at a lane, otherwise the player drives
     if (S.steerTo !== null && S.steerTo !== undefined){
       const d = S.steerTo - S.x;
@@ -555,17 +589,23 @@ function frame(now){
     updateQuestionUI();
   }
 
-  // recycle tunnel segments so the tunnel never ends
+  // recycle tunnel segments so the tunnel never ends, and sit each one on the hill
   for (const s of segments){
     if (s.position.z < S.z - SEG*2) s.position.z += SEG*SEGS;
+    s.position.y = trackY(s.position.z);
+    s.rotation.x = -Math.atan(slope(s.position.z));
+    s.rotation.z = bankRoll(s.position.z);
   }
 
   // camera rides just behind and above the cart
-  cart.position.set(S.x, 0, S.z);
+  const roll = bankRoll(S.z);
+  cart.position.set(S.x, trackY(S.z), S.z);
   const sway = Math.sin(now/90) * 0.04 + (S.shakeT>0 ? (Math.random()-0.5)*0.25 : 0);
-  cart.rotation.z = readSteer()*0.07 + sway*0.3;
-  camera.position.set(S.x*0.8, 4.4 + sway, S.z - 11);
-  camera.lookAt(S.x*0.9, 2.4, S.z + 16);
+  cart.rotation.z = readSteer()*0.07 + sway*0.3 + roll;
+  cart.rotation.x = -Math.atan(slope(S.z));
+  camera.position.set(S.x*0.8, trackY(S.z-11) + 4.4 + sway, S.z - 11);
+  camera.up.set(Math.sin(roll*0.8), Math.cos(roll*0.8), 0);   // the whole view leans through a banked curve
+  camera.lookAt(S.x*0.9, trackY(S.z+16) + 2.4, S.z + 16);
   if (S.shakeT > 0){
     S.shakeT -= dt;
     camera.position.x += (Math.random()-0.5)*0.5;
