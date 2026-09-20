@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Rune Door</title>
+<style>
+:root{
+  --bg:#141a22; --stone:#2b3843; --stone2:#1f2a33; --chalk:#f4f1e8; --dim:#8a97a3;
+  --gold:#ffd23f; --good:#3ddc84; --bad:#ff4d5e; --blue:#4fc3ff;
+  --t:48px;            /* tile size, recomputed in JS */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk);overflow:hidden;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+.accent{color:var(--gold)}
+
+#app{display:flex;flex-direction:column;height:100%;width:100%}
+
+/* ---------- HUD ---------- */
+#hud{display:flex;align-items:center;gap:10px;padding:6px 12px;font-weight:800;font-size:15px;
+  text-shadow:0 2px 4px #000;background:linear-gradient(180deg,rgba(6,10,16,.9),rgba(6,10,16,0));flex:0 0 auto;z-index:6}
+#hud .sp{flex:1}
+#coinBox{color:var(--gold)}
+#coinBox.spend{animation:spend .5s}
+@keyframes spend{30%{transform:scale(1.18);color:var(--bad)}}
+#scoreBox{color:var(--chalk)}
+#doorBox{color:var(--blue)}
+#muteBtn{cursor:pointer;margin-left:2px;font-size:16px}
+
+/* ---------- clue ---------- */
+#clue{flex:0 0 auto;margin:0 auto;width:min(96vw,760px);background:#0c1117;border:2px solid #2b3843;border-radius:12px;
+  padding:7px 14px;text-align:center;font-size:clamp(15px,2.6vw,21px);font-weight:700;line-height:1.3}
+#sub{flex:0 0 auto;text-align:center;font-size:13px;font-weight:700;color:var(--dim);min-height:17px;margin-top:3px}
+#sub.bad{color:var(--bad)} #sub.good{color:var(--good)} #sub.hint{color:var(--blue)}
+
+/* ---------- stage + door ---------- */
+#stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 8px;position:relative}
+#door{position:relative;height:100%;width:min(96vw,620px);border-radius:46% 46% 10px 10px / 22% 22% 10px 10px;overflow:hidden;
+  background:#0a0d12;box-shadow:0 0 0 4px #4a5a68,0 0 0 8px #232e38,0 12px 26px rgba(0,0,0,.65)}
+#glow{position:absolute;inset:0;background:radial-gradient(circle at 50% 62%,#fff3c4 0%,#ffc94f 24%,#c8790c 48%,#4a2f06 74%,#0a0d12 100%);opacity:0}
+#door.open #glow{opacity:1;transition:opacity .5s ease .25s}
+.half{position:absolute;top:0;bottom:0;width:50%;
+  background:
+    repeating-linear-gradient(0deg,rgba(0,0,0,.42) 0 3px,rgba(0,0,0,0) 3px 54px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.34) 0 3px,rgba(0,0,0,0) 3px 108px),
+    radial-gradient(ellipse at 50% 18%,#4b5b69 0%,#33414c 40%,#242f39 70%,#18212a 100%);
+  background-color:#2a3641;
+  transition:transform .75s cubic-bezier(.5,0,.2,1)}
+#doorL{left:0;border-right:3px solid #0a0d12}
+#doorR{right:0;border-left:3px solid #0a0d12;background-position:0 27px,54px 0,0 0}
+#door.open #doorL{transform:translateX(-101%)}
+#door.open #doorR{transform:translateX(101%)}
+#door.shake{animation:shake .45s}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+/* iron handle rings at the seam */
+.ring{position:absolute;top:66%;width:26px;height:26px;border:4px solid #55636f;border-radius:50%;z-index:2;
+  box-shadow:0 2px 4px rgba(0,0,0,.6)}
+#ringL{right:50%;margin-right:10px}
+#ringR{left:50%;margin-left:10px}
+#door.open .ring{opacity:0;transition:opacity .3s}
+
+#slotWrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;
+  transition:opacity .35s;padding:0 8px}
+#door.open #slotWrap{opacity:0}
+#slots{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;
+  background:rgba(4,7,11,.72);border:3px solid #7a6526;border-radius:14px;padding:8px 10px;
+  box-shadow:inset 0 3px 10px rgba(0,0,0,.8),0 0 0 2px rgba(0,0,0,.5)}
+#runes{position:absolute;left:0;right:0;top:9%;text-align:center;color:#7d8d9c;font-size:15px;letter-spacing:10px;z-index:2}
+#door.open #runes{color:var(--gold);text-shadow:0 0 12px rgba(255,210,63,.9)}
+
+/* ---------- tiles ---------- */
+.tile{width:var(--t);height:var(--t);border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:calc(var(--t)*.56);font-weight:800;font-family:"Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif;
+  background:linear-gradient(180deg,#5c6a77,#39464f);color:var(--chalk);
+  box-shadow:0 4px 0 #1b242c,inset 0 1px 0 rgba(255,255,255,.18);touch-action:none;cursor:grab;flex:0 0 auto}
+.tile.sel{background:linear-gradient(180deg,#7a3a44,#4a222a);box-shadow:0 0 0 3px var(--bad),0 4px 0 #1b242c;color:#fff}
+.tile.gone{visibility:hidden}
+.tile.back{animation:backjump .45s}
+@keyframes backjump{0%{transform:translateY(-26px) scale(1.15)}60%{transform:translateY(4px)}100%{transform:none}}
+.slot{width:var(--t);height:var(--t);border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.45);border:3px dashed #6d7d8c;flex:0 0 auto;position:relative}
+.slot.drop{border-color:var(--bad);border-style:dashed;animation:glowdrop 1s ease-in-out infinite}
+@keyframes glowdrop{50%{box-shadow:0 0 18px rgba(255,77,94,.8);background:rgba(255,77,94,.16)}}
+.slot.full{border-style:solid;border-color:transparent;background:transparent;padding:0}
+.slot .tile{box-shadow:0 3px 0 #1b242c,inset 0 1px 0 rgba(255,255,255,.18)}
+.slot.full .tile{background:linear-gradient(180deg,#e9bd35,#b8860d);color:#241a02;text-shadow:none}
+.slot.lock .tile{background:linear-gradient(180deg,#ffd76b,#d19a10);box-shadow:0 0 14px rgba(255,210,63,.75),0 3px 0 #1b242c;cursor:default}
+.slot.pop .tile{animation:pop .45s}
+@keyframes pop{40%{transform:scale(1.35)}}
+.slot.wrong .tile{background:linear-gradient(180deg,#b34b56,#6d222b);color:#fff}
+
+/* ---------- rack ---------- */
+#rackWrap{flex:0 0 auto;padding:4px 8px 2px}
+#rack{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#232e38,#161e26);border:2px solid #313f4b;border-radius:14px;padding:8px;
+  min-height:calc(var(--t) + 18px);width:min(96vw,760px);margin:0 auto}
+
+/* ---------- buttons ---------- */
+#btns{flex:0 0 auto;display:flex;gap:10px;align-items:center;justify-content:center;padding:6px 8px 10px}
+.btn{background:#2b3843;font-size:16px;font-weight:800;padding:12px 16px;border-radius:12px;box-shadow:0 4px 0 #111820;min-height:44px}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+.btn.blue{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
+.btn.blue:active{box-shadow:0 1px 0 #1d6f99}
+.btn.gold{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
+.btn.gold:active{box-shadow:0 1px 0 #a3830f}
+.btn.ghost{color:var(--dim);font-size:14px}
+
+/* ---------- overlays ---------- */
+.screen{position:fixed;inset:0;background:rgba(10,14,20,.94);display:none;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:16px;z-index:20}
+.screen.on{display:flex}
+.screen h1{font-size:clamp(26px,6vw,44px);margin:0 0 6px;color:var(--gold)}
+.screen p{margin:4px 0;font-size:clamp(14px,2.6vw,18px);color:var(--dim);line-height:1.45;max-width:640px}
+.big{font-size:60px;line-height:1;margin-bottom:6px}
+.bigbtn{background:var(--blue);color:#06121b;font-size:21px;font-weight:800;padding:14px 26px;border-radius:14px;
+  margin:12px 6px 0;box-shadow:0 5px 0 #1d6f99;min-height:52px}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #1d6f99}
+.bigbtn.gold{background:var(--gold);color:#1a1405;box-shadow:0 5px 0 #a3830f}
+.bigbtn.gold:active{box-shadow:0 2px 0 #a3830f}
+
+#ghost{position:fixed;pointer-events:none;z-index:50;display:none;transform:translate(-50%,-50%)}
+#ghost .tile{box-shadow:0 8px 18px rgba(0,0,0,.7);opacity:.95}
+
+/* ---------- phone held sideways ---------- */
+@media (max-height:430px){
+  #hud{font-size:12px;padding:3px 10px;gap:8px}
+  #muteBtn{font-size:13px}
+  #clue{padding:4px 10px;font-size:15px;border-width:2px;border-radius:9px}
+  #sub{font-size:11px;min-height:14px;margin-top:1px}
+  #stage{padding:3px 6px}
+  #runes{font-size:11px;top:5%;letter-spacing:7px}
+  #door{box-shadow:0 0 0 3px #4a5a68,0 0 0 6px #232e38,0 8px 16px rgba(0,0,0,.6)}
+  #slots{padding:5px 7px;border-width:2px;border-radius:10px}
+  .ring{width:18px;height:18px;border-width:3px}
+  #rackWrap{padding:2px 6px 0}
+  #rack{padding:5px;gap:6px;border-radius:10px;min-height:calc(var(--t) + 12px)}
+  #slots{gap:5px}
+  #btns{padding:4px 6px 5px;gap:8px}
+  .btn{font-size:14px;padding:9px 12px;min-height:38px;border-radius:10px}
+  .btn.ghost{font-size:12px;padding:9px 8px}
+  .big{font-size:38px}
+  .bigbtn{font-size:17px;padding:10px 18px;min-height:42px;margin-top:8px}
+  .screen p{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="hud">
+    <span id="heartBox">❤️❤️❤️❤️❤️</span>
+    <span class="sp"></span>
+    <span id="doorBox">DOOR 1/5</span>
+    <span id="coinBox">🪙 55</span>
+    <span id="scoreBox">SCORE 0</span>
+    <span id="muteBtn" title="Sound on / off">🔊</span>
+  </div>
+
+  <div id="clue">Loading the rune door…</div>
+  <div id="sub"></div>
+
+  <div id="stage">
+    <div id="door">
+      <div id="glow"></div>
+      <div id="doorL" class="half"></div>
+      <div id="doorR" class="half"></div>
+      <div class="ring" id="ringL"></div>
+      <div class="ring" id="ringR"></div>
+      <div id="runes">✦ ✧ ✦ ✧ ✦</div>
+      <div id="slotWrap"><div id="slots"></div></div>
+    </div>
+  </div>
+
+  <div id="rackWrap"><div id="rack"></div></div>
+
+  <div id="btns">
+    <button class="btn blue" id="hintBtn">💡 Hint (🪙3)</button>
+    <button class="btn" id="clearBtn">↩︎ Take all back</button>
+    <button class="btn ghost" id="quitBtn">✖ Leave the door</button>
+  </div>
+</div>
+
+<!-- START -->
+<div class="screen on" id="startScreen">
+  <div class="big">🚪</div>
+  <h1>RUNE DOOR</h1>
+  <p>A stone door blocks the hall. The carved letters fell off the door and landed on the rack.
+     Put them back in the right order and the door grinds open.</p>
+  <p>Drag a letter into a slot, or tap the letter then tap the slot. 5 doors, 5 hearts.
+     A hint costs 🪙3 and carves one letter into the right place for you.</p>
+  <button class="bigbtn gold" id="startBtn">Open the first door</button>
+</div>
+
+<!-- WIN -->
+<div class="screen" id="winScreen">
+  <div class="big">🏆</div>
+  <h1>ALL 5 DOORS OPEN</h1>
+  <p id="winLine"></p>
+  <button class="bigbtn" id="winBtn">Play again</button>
+</div>
+
+<!-- OUT OF HEARTS -->
+<div class="screen" id="overScreen">
+  <div class="big">💀</div>
+  <h1>THE DOOR HOLDS</h1>
+  <p id="overLine"></p>
+  <button class="bigbtn" id="overBtn">Try again</button>
+</div>
+
+<div id="ghost"></div>
+
+<script src="math-bank.js"></script>
+<script src="story-bank.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   RUNE DOOR: a word-scramble room for the math dungeon.
+   Words come from the shared question bank (math-bank.js + story-bank.js)
+   via MathBank.ask(tier, {rawTier:true, only:[...]}). For a spelling
+   question the answer IS the word; for a vocabulary question the answer
+   is the word and the question is its meaning, so the question text
+   works as the clue either way.
+   ===================================================================== */
+
+const COST_HINT = 3, DOORS = 5, HEARTS = 5, START_COINS = 55;
+const FAIL_SFX = ["01-oof","10-bruh","30-violin-screech","58-record-scratch-1","67-ba-dun-dun","70-sorry-bro"];
+
+/* ---------- embed contract (copied from multiply-helper.html) ---------- */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get("embed") === "1";
+const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
+
+/* ---------- sound ---------- */
+const Snd = (function(){
+  let on = true;
+  try { on = localStorage.getItem("rune_mute") !== "1"; } catch (e) { on = true; }
+  const cache = {};
+  function file(name, vol){
+    if (!on || !name) return;
+    try {
+      const a = cache[name] || (cache[name] = new Audio("sfx/" + name + ".mp3"));
+      a.currentTime = 0;
+      a.volume = (typeof vol === "number" && vol >= 0 && vol <= 1) ? vol : 0.7;
+      const p = a.play();
+      if (p && typeof p.catch === "function") p.catch(function(){ /* autoplay blocked */ });
+    } catch (e) { /* never let audio break the game */ }
+  }
+  function toggle(){
+    on = !on;
+    try { localStorage.setItem("rune_mute", on ? "0" : "1"); } catch (e) { /* private mode */ }
+    return on;
+  }
+  return { file: file, toggle: toggle, isOn: function(){ return on; } };
+})();
+
+/* ---------- dom ---------- */
+const $ = id => document.getElementById(id);
+const slotsEl = $("slots"), rackEl = $("rack"), doorEl = $("door"), ghostEl = $("ghost");
+
+/* ---------- state ---------- */
+const S = {
+  door: 0,            // 0-based index of the door being worked on
+  word: "",           // the word to spell, UPPERCASE
+  clue: "",           // clue html shown above the door
+  kind: "",           // which bank family it came from
+  tiles: [],          // [{id, ch, where:"rack"|"slot", slot:index|-1, locked:bool}]
+  slots: [],          // slot index -> tile id or null
+  hearts: HEARTS,
+  coins: START_COINS,
+  score: 0,
+  missed: false,      // got this door wrong at least once
+  locked: false,      // input frozen (animation running / run over)
+  running: false,
+  hintsUsed: 0
+};
+
+/* ---------- word source ---------- */
+const FAMS_EASY = ["spellEasy","vocabEasy"];
+const FAMS_ALL  = ["spellEasy","spellHard","vocabEasy","vocabHard"];
+const FAMS_HARD = ["spellHard","vocabHard"];
+/* door 1..5 -> {tier, families}. Tier starts at 1 and rises to 3. */
+const PLAN = [
+  { tier:1, fams:FAMS_EASY },
+  { tier:1, fams:FAMS_EASY },
+  { tier:2, fams:FAMS_ALL  },
+  { tier:2, fams:FAMS_ALL  },
+  { tier:3, fams:FAMS_HARD }
+];
+/* used only if the bank scripts fail to load (file:// with no server, etc.) */
+const FALLBACK = [
+  { w:"TORCH",  c:"🔥 A stick with fire on the end." },
+  { w:"CASTLE", c:"🏰 A huge stone home with towers and walls." },
+  { w:"RIDDLE", c:"❓ A puzzle question with a tricky answer." },
+  { w:"DRAGON", c:"🐉 A giant scaly beast that breathes fire." },
+  { w:"SHIELD", c:"🛡️ You hold it up to block a hit." }
+];
+
+const WORD_RE = /^[A-Za-z]{3,11}$/;
+
+function drawWord(plan, avoid){
+  if (typeof MathBank !== "undefined" && MathBank && typeof MathBank.ask === "function"){
+    for (let i = 0; i < 60; i++){
+      let r = null;
+      try { r = MathBank.ask(plan.tier, { rawTier:true, only: plan.fams }); }
+      catch (e) { r = null; }
+      if (!r || typeof r.a !== "string") continue;
+      const w = r.a.trim();
+      if (!WORD_RE.test(w)) continue;
+      const up = w.toUpperCase();
+      if (avoid && avoid.indexOf(up) !== -1) continue;
+      return { word: up, clue: clueFor(r, up), kind: r.kind || "bank" };
+    }
+  }
+  const f = FALLBACK[(S.door + Math.floor(Math.random()*FALLBACK.length)) % FALLBACK.length];
+  return { word: f.w, clue: f.c, kind: "fallback" };
+}
+
+/* The bank question is the clue. Spelling questions ask "which word is
+   spelled correctly?", which on a scrambled rack reads exactly right;
+   vocabulary questions carry the meaning. */
+function clueFor(r, up){
+  let q = String(r.q || "").trim();
+  if (!q) q = "Spell the word.";
+  if ((r.kind === "spellEasy" || r.kind === "spellHard")){
+    q = "✏️ Build the word that is spelled <span class='accent'>correctly</span>.";
+  }
+  return q + " <span style='color:#8a97a3'>(" + up.length + " letters)</span>";
+}
+
+/* ---------- tile helpers ---------- */
+const VOWELS = "AEIOU".split(""), CONS = "BCDFGHKLMNPRSTW".split("");
+let tid = 0;
+
+function decoyLetters(word){
+  const n = word.length <= 5 ? 1 : 2;
+  const have = new Set(word.split(""));
+  const out = [];
+  const pool = CONS.concat(VOWELS).filter(c => !have.has(c));
+  for (let i = 0; i < n; i++){
+    if (pool.length){
+      const j = Math.floor(Math.random() * pool.length);
+      out.push(pool.splice(j,1)[0]);
+    } else {
+      out.push(CONS[Math.floor(Math.random()*CONS.length)]);
+    }
+  }
+  return out;
+}
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+const tileById = id => S.tiles.find(t => t.id === id) || null;
+
+/* ---------- build a door ---------- */
+function loadDoor(){
+  const plan = PLAN[Math.min(S.door, PLAN.length-1)];
+  const avoid = [S.word];
+  const pickd = drawWord(plan, avoid);
+  S.word = pickd.word; S.clue = pickd.clue; S.kind = pickd.kind;
+  S.missed = false; S.locked = false;
+  S.slots = new Array(S.word.length).fill(null);
+  S.tiles = shuffle(S.word.split("").concat(decoyLetters(S.word)))
+              .map(ch => ({ id: ++tid, ch: ch, where:"rack", slot:-1, locked:false }));
+  sel = null;
+  doorEl.classList.remove("open","shake");
+  $("clue").innerHTML = S.clue;
+  say("", "");
+  renderAll();
+  fitTiles();
+}
+
+/* ---------- render ---------- */
+function renderAll(){
+  // slots
+  slotsEl.innerHTML = "";
+  for (let i = 0; i < S.slots.length; i++){
+    const d = document.createElement("div");
+    d.className = "slot";
+    d.dataset.slot = String(i);
+    const id = S.slots[i];
+    d.setAttribute("role", "button");
+    if (id !== null){
+      const t = tileById(id);
+      d.classList.add("full");
+      if (t && t.locked) d.classList.add("lock");
+      const e = document.createElement("div");
+      e.className = "tile";
+      e.dataset.id = String(id);
+      e.textContent = t ? t.ch : "";
+      e.setAttribute("role", "button");
+      e.setAttribute("aria-label", "letter " + t.ch + " in slot " + (i+1) + (t.locked ? ", carved in place" : ""));
+      d.appendChild(e);
+      d.setAttribute("aria-label", "slot " + (i+1) + " holds " + t.ch);
+    } else {
+      d.setAttribute("aria-label", "empty slot " + (i+1));
+    }
+    slotsEl.appendChild(d);
+  }
+  // rack (placed tiles stay in the DOM but hidden, so nothing jumps around)
+  rackEl.innerHTML = "";
+  S.tiles.forEach(t => {
+    const e = document.createElement("div");
+    e.className = "tile" + (t.where === "slot" ? " gone" : "") + (sel === t.id ? " sel" : "");
+    e.dataset.id = String(t.id);
+    e.textContent = t.ch;
+    e.setAttribute("role", "button");
+    e.setAttribute("aria-label", "rack letter " + t.ch);
+    if (t.where === "slot") e.setAttribute("aria-hidden", "true");
+    rackEl.appendChild(e);
+  });
+  markDrops();
+  hud();
+}
+
+function markDrops(){
+  const on = sel !== null;
+  slotsEl.querySelectorAll(".slot").forEach(d => d.classList.toggle("drop", on && !d.classList.contains("lock")));
+}
+/* selection only: repaint classes instead of rebuilding the board, so
+   nothing flickers and element identity survives a pick-up */
+function paintSel(){
+  rackEl.querySelectorAll(".tile").forEach(e => e.classList.toggle("sel", sel !== null && parseInt(e.dataset.id,10) === sel));
+  markDrops();
+}
+
+function hud(){
+  $("heartBox").textContent = "❤️".repeat(Math.max(0,S.hearts)) + "🖤".repeat(Math.max(0, HEARTS - S.hearts));
+  $("coinBox").textContent = "🪙 " + S.coins;
+  $("scoreBox").textContent = "SCORE " + S.score;
+  $("doorBox").textContent = "DOOR " + Math.min(S.door+1, DOORS) + "/" + DOORS;
+  $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
+}
+function say(t, cls){ const m = $("sub"); m.innerHTML = t; m.className = cls || ""; }
+
+/* tile size: fit the longest row (slots or rack) across the screen,
+   and never taller than a slice of the viewport height */
+/* Widest tile that lets `n` tiles sit in `avail` pixels, wrapping onto
+   more rows rather than shrinking below `minT` (a 7-year-old's finger
+   needs a real target, so we wrap before we shrink). */
+function rowFit(n, avail, gap, minT, maxT){
+  const perRowMax = Math.max(1, Math.floor((avail + gap) / (minT + gap)));
+  const rows = Math.max(1, Math.ceil(n / perRowMax));
+  const perRow = Math.ceil(n / rows);
+  return Math.floor(Math.min(maxT, (avail - (perRow-1)*gap) / perRow));
+}
+
+function fitTiles(){
+  const nRack = Math.max(S.tiles.length, 1), nSlot = Math.max(S.slots.length, 1);
+  const short = window.innerHeight <= 430;
+  const gap = short ? 5 : 6;
+  const minT = 40, absCap = short ? 46 : 64;
+  const hCap = Math.floor(window.innerHeight * (short ? 0.135 : 0.17));
+  const setT = v => document.documentElement.style.setProperty("--t", v + "px");
+
+  // pass 1: the rack row sets the first guess, which decides how much
+  // vertical room is left for the door
+  const wRack = Math.max(240, rackEl.clientWidth || window.innerWidth) - 20;
+  let t = Math.max(30, Math.min(rowFit(nRack, wRack, gap+2, minT, absCap), hCap, absCap));
+  setT(t);
+
+  // pass 2: the slots live inside the door plate (3px border + 10px pad a side).
+  // ONE row beats big tiles here: a word split across two rows is hard to read
+  // back, so shrink the tiles (down to 30px) before letting them wrap.
+  const capW = Math.min(window.innerWidth * 0.96, short ? 720 : 620);
+  const oneRow = Math.floor((capW - 52 - (nSlot-1)*gap) / nSlot);
+  t = Math.max(30, Math.min(t, Math.max(oneRow, 30)));
+  setT(t);
+
+  // the door is exactly as wide as the word needs, but never a skinny sliver
+  const sh = Math.max(120, $("stage").clientHeight);
+  const need = nSlot*t + (nSlot-1)*gap + 52;
+  const dw = Math.round(Math.max(280, Math.min(capW, Math.max(need, sh * 1.2))));
+  doorEl.style.width = dw + "px";
+}
+window.addEventListener("resize", fitTiles);
+window.addEventListener("orientationchange", () => setTimeout(fitTiles, 120));
+
+/* ---------- coins ---------- */
+function spend(n){
+  // never blocked when coins are low: spend down to 0 and keep working
+  const real = Math.min(S.coins, n);
+  S.coins = Math.max(0, S.coins - n);
+  if (EMBED) toGame({ type:"spend", n: real });
+  hud();
+  const b = $("coinBox"); b.classList.remove("spend"); void b.offsetWidth; b.classList.add("spend");
+}
+
+/* ---------- moving tiles ---------- */
+function toRack(id, animate){
+  const t = tileById(id); if (!t) return;
+  if (t.where === "slot" && t.slot >= 0) S.slots[t.slot] = null;
+  t.where = "rack"; t.slot = -1; t.locked = false;
+  renderAll();
+  if (animate){
+    const e = rackEl.querySelector('.tile[data-id="' + id + '"]');
+    if (e){ e.classList.remove("back"); void e.offsetWidth; e.classList.add("back"); }
+  }
+}
+
+function placeTile(id, slot, locked){
+  const t = tileById(id);
+  if (!t || slot < 0 || slot >= S.slots.length) return false;
+  const holder = S.slots[slot];
+  if (holder !== null && holder !== id){
+    const h = tileById(holder);
+    if (h && h.locked){                     // a hinted letter cannot be pushed out
+      say("That <b>" + h.ch + "</b> is carved in. Build around it.", "hint");
+      sel = null; paintSel();
+      return false;
+    }
+    if (h){ h.where = "rack"; h.slot = -1; }
+  }
+  if (t.where === "slot" && t.slot >= 0 && t.slot !== slot) S.slots[t.slot] = null;
+  S.slots[slot] = id;
+  t.where = "slot"; t.slot = slot; t.locked = !!locked;
+  sel = null;
+  renderAll();
+  const d = slotsEl.querySelector('.slot[data-slot="' + slot + '"]');
+  if (d){ d.classList.remove("pop"); void d.offsetWidth; d.classList.add("pop"); }
+  maybeCheck();
+  return true;
+}
+
+/* place by LETTER (test hook + hint use this) */
+function placeLetter(ch, slot, locked){
+  ch = String(ch || "").toUpperCase();
+  let t = S.tiles.find(x => x.ch === ch && x.where === "rack");
+  if (!t) t = S.tiles.find(x => x.ch === ch && x.where === "slot" && !x.locked && S.word[x.slot] !== x.ch);
+  if (!t) return false;
+  return placeTile(t.id, slot, locked);
+}
+
+/* ---------- checking ---------- */
+function maybeCheck(){
+  if (S.slots.indexOf(null) !== -1) return;
+  S.locked = true;
+  setTimeout(check, 180);
+}
+
+function check(){
+  const built = S.slots.map(id => { const t = tileById(id); return t ? t.ch : "?"; }).join("");
+  if (built === S.word){ win(); return; }
+
+  // wrong: one heart, the misplaced tiles jump back to the rack
+  S.hearts = Math.max(0, S.hearts - 1);
+  S.missed = true;
+  Snd.file(FAIL_SFX[Math.floor(Math.random()*FAIL_SFX.length)], 0.7);
+  const bad = [];
+  S.slots.forEach((id, i) => {
+    const t = tileById(id);
+    if (!t) return;
+    if (t.ch !== S.word[i]) bad.push({ id: id, slot: i });
+  });
+  bad.forEach(b => {
+    const d = slotsEl.querySelector('.slot[data-slot="' + b.slot + '"]');
+    if (d) d.classList.add("wrong");
+  });
+  doorEl.classList.remove("shake"); void doorEl.offsetWidth; doorEl.classList.add("shake");
+  say("The door does not budge. The wrong letters fall off. ❤️ −1", "bad");
+  hud();
+  setTimeout(() => {
+    bad.forEach(b => {
+      const t = tileById(b.id);
+      if (t){ S.slots[b.slot] = null; t.where = "rack"; t.slot = -1; t.locked = false; }
+    });
+    renderAll();
+    bad.forEach(b => {
+      const e = rackEl.querySelector('.tile[data-id="' + b.id + '"]');
+      if (e){ e.classList.remove("back"); void e.offsetWidth; e.classList.add("back"); }
+    });
+    if (S.hearts <= 0){ gameOver(); return; }
+    S.locked = false;
+  }, 620);
+}
+
+function win(){
+  S.locked = true;
+  Snd.file("50-ta-daaa", 0.7);
+  doorEl.classList.add("open");
+  const gained = 100 + (S.missed ? 0 : 50);
+  S.score += gained;
+  say("<b style='color:#3ddc84'>" + S.word + "!</b> The door grinds open. +" + gained, "good");
+  hud();
+  setTimeout(() => {
+    S.door++;
+    if (S.door >= DOORS){ runWon(); return; }
+    loadDoor();
+  }, 1400);
+}
+
+function runWon(){
+  S.running = false;
+  $("winLine").innerHTML = "You opened all 5 doors with <b>" + S.hearts + "</b> " +
+    (S.hearts === 1 ? "heart" : "hearts") + " left.<br><b>SCORE " + S.score + "</b> · 🪙 " + S.coins + " coins left" +
+    (S.hintsUsed ? " · " + S.hintsUsed + " hint" + (S.hintsUsed===1?"":"s") + " used" : " · no hints used");
+  $("winScreen").classList.add("on");
+  $("winBtn").textContent = EMBED ? "⚔️ Back to the dungeon" : "Play again";
+}
+
+function gameOver(){
+  S.locked = true; S.running = false;
+  $("overLine").innerHTML = "You opened <b>" + S.door + "</b> of " + DOORS + " doors. The word was <b>" +
+    S.word + "</b>.<br><b>SCORE " + S.score + "</b>";
+  $("overScreen").classList.add("on");
+  $("overBtn").textContent = EMBED ? "⚔️ Back to the dungeon" : "Try again";
+}
+
+/* ---------- hint: carve ONE correct letter into place ---------- */
+function hint(){
+  if (!S.running || S.locked) return false;
+  // slots that are empty or hold the wrong letter
+  const open = [];
+  for (let i = 0; i < S.slots.length; i++){
+    const t = tileById(S.slots[i]);
+    if (!t || t.ch !== S.word[i]) open.push(i);
+  }
+  if (!open.length){ say("Every letter is already in the right place.", "hint"); return false; }
+  const slot = open[Math.floor(Math.random()*open.length)];
+  const ch = S.word[slot];
+  spend(COST_HINT);
+  S.hintsUsed++;
+  const ok = placeLetter(ch, slot, true);
+  if (!ok){
+    // the only tile with that letter is locked correct elsewhere: cannot happen
+    // with a rack built from the word, but never leave the kid stuck.
+    say("💡 The letter in slot " + (slot+1) + " is <b>" + ch + "</b>.", "hint");
+    return false;
+  }
+  say("💡 The <b>" + ch + "</b> is carved into slot " + (slot+1) + ". It stays put.", "hint");
+  return true;
+}
+
+/* ---------- pointer input: drag AND tap, mouse AND touch ---------- */
+let sel = null;          // selected tile id (tap mode)
+let drag = null;         // {id, x0, y0, moved}
+
+function slotAt(x, y){
+  const pad = 14;
+  const list = slotsEl.querySelectorAll(".slot");
+  for (let i = 0; i < list.length; i++){
+    const r = list[i].getBoundingClientRect();
+    if (x > r.left-pad && x < r.right+pad && y > r.top-pad && y < r.bottom+pad) return parseInt(list[i].dataset.slot, 10);
+  }
+  return -1;
+}
+function overRack(x, y){
+  const r = rackEl.getBoundingClientRect();
+  const pad = 18;
+  return x > r.left-pad && x < r.right+pad && y > r.top-pad && y < r.bottom+pad;
+}
+
+function onDown(e){
+  if (!S.running || S.locked) return;
+  const tileEl = e.target.closest ? e.target.closest(".tile") : null;
+  const slotEl = e.target.closest ? e.target.closest(".slot") : null;
+
+  if (tileEl){
+    const id = parseInt(tileEl.dataset.id, 10);
+    const t = tileById(id);
+    if (!t) return;
+    if (t.locked) return;                       // hinted letters stay put
+    e.preventDefault();
+    drag = { id: id, x0: e.clientX, y0: e.clientY, moved: false };
+    ghostEl.innerHTML = '<div class="tile">' + t.ch + "</div>";
+    return;
+  }
+  if (slotEl && sel !== null){                  // tap an empty slot with a tile picked up
+    e.preventDefault();
+    placeTile(sel, parseInt(slotEl.dataset.slot, 10), false);
+  }
+}
+
+function onMove(e){
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0) > 8){
+    drag.moved = true;
+    ghostEl.style.display = "block";
+    const src = document.querySelector('.tile[data-id="' + drag.id + '"]');
+    if (src) src.style.opacity = ".25";
+  }
+  if (drag.moved){ ghostEl.style.left = e.clientX + "px"; ghostEl.style.top = e.clientY + "px"; }
+}
+
+function onUp(e){
+  if (!drag) return;
+  const d = drag; drag = null;
+  ghostEl.style.display = "none";
+  const src = document.querySelector('.tile[data-id="' + d.id + '"]');
+  if (src) src.style.opacity = "";
+  const t = tileById(d.id);
+  if (!t || S.locked) return;
+
+  if (!d.moved){                                 // TAP
+    if (t.where === "slot"){ sel = null; toRack(d.id, true); return; }
+    sel = (sel === d.id) ? null : d.id;
+    paintSel();
+    return;
+  }
+  // DRAG
+  const s = slotAt(e.clientX, e.clientY);
+  if (s >= 0){ placeTile(d.id, s, false); return; }
+  if (t.where === "slot"){ sel = null; toRack(d.id, true); return; }
+  sel = null; paintSel();
+}
+
+document.addEventListener("pointerdown", onDown, { passive:false });
+window.addEventListener("pointermove", onMove, { passive:true });
+window.addEventListener("pointerup", onUp, { passive:true });
+window.addEventListener("pointercancel", () => {
+  if (!drag) return;
+  const src = document.querySelector('.tile[data-id="' + drag.id + '"]');
+  if (src) src.style.opacity = "";
+  drag = null; ghostEl.style.display = "none";
+});
+
+/* keyboard: type the letters (handy on a laptop, harmless on a phone) */
+window.addEventListener("keydown", e => {
+  if (!S.running || S.locked) return;
+  if (/^[a-zA-Z]$/.test(e.key)){
+    const next = S.slots.indexOf(null);
+    if (next >= 0) placeLetter(e.key.toUpperCase(), next, false);
+  } else if (e.key === "Backspace"){
+    for (let i = S.slots.length-1; i >= 0; i--){
+      const t = tileById(S.slots[i]);
+      if (t && !t.locked){ toRack(t.id, true); break; }
+    }
+  }
+});
+
+/* ---------- buttons ---------- */
+$("hintBtn").onclick = hint;
+$("clearBtn").onclick = () => {
+  if (!S.running || S.locked) return;
+  S.tiles.forEach(t => { if (t.where === "slot" && !t.locked){ S.slots[t.slot] = null; t.where = "rack"; t.slot = -1; } });
+  sel = null; renderAll(); fitTiles();
+  say("", "");
+};
+$("quitBtn").onclick = () => { if (EMBED) toGame({ type:"close" }); else backToStart(); };
+$("muteBtn").onclick = () => { Snd.toggle(); hud(); };
+
+$("startBtn").onclick = () => { $("startScreen").classList.remove("on"); start(); };
+$("winBtn").onclick = () => {
+  $("winScreen").classList.remove("on");
+  if (EMBED) toGame({ type:"solved", doors: DOORS, score: S.score });
+  else start();
+};
+$("overBtn").onclick = () => {
+  $("overScreen").classList.remove("on");
+  if (EMBED) toGame({ type:"close" });
+  else start();
+};
+function backToStart(){
+  S.running = false; S.locked = true;
+  $("startScreen").classList.add("on");
+}
+
+/* ---------- run control ---------- */
+function start(){
+  S.door = 0; S.hearts = HEARTS; S.score = 0; S.hintsUsed = 0;
+  if (!EMBED) S.coins = START_COINS;
+  S.running = true; S.locked = false;
+  $("winScreen").classList.remove("on");
+  $("overScreen").classList.remove("on");
+  $("startScreen").classList.remove("on");
+  loadDoor();
+  hud();
+}
+
+/* ---------- embed boot ---------- */
+if (EMBED){
+  const c = parseInt(QS.get("coins"), 10);
+  if (isFinite(c) && c >= 0) S.coins = c;
+  $("quitBtn").textContent = "✖ Back to the dungeon";
+  start();
+} else {
+  hud();
+  fitTiles();
+}
+
+/* ---------- test hook ---------- */
+window.RUNE = {
+  start: start,
+  loadDoor: loadDoor,                 // reroll the current door (tests / layout checks)
+  state: S,
+  get word(){ return S.word; },
+  get built(){ return S.slots.map(id => { const t = tileById(id); return t ? t.ch : "."; }).join(""); },
+  get rack(){ return S.tiles.filter(t => t.where === "rack").map(t => t.ch); },
+  place: placeLetter,                 // place(letter, slotIndex[, locked])
+  placeTile: placeTile,
+  toRack: toRack,
+  hint: hint,
+  tiles: () => S.tiles.map(t => ({ id:t.id, ch:t.ch, where:t.where, slot:t.slot, locked:t.locked })),
+  solve: function(){ for (let i = 0; i < S.word.length; i++) placeLetter(S.word[i], i, false); return this.built; },
+  fillWrong: function(){        // deliberately build a WRONG word (test helper)
+    // hinted letters are carved in, so only the free slots can be filled
+    const open = [];
+    for (let i = 0; i < S.slots.length; i++){
+      const t = tileById(S.slots[i]);
+      if (!t || !t.locked) open.push(i);
+    }
+    const need = open.map(i => S.word[i]);
+    let bad = null;
+    // rotate until the arrangement really differs (DELIGHTED starts and ends
+    // with D, so a plain first/last swap would rebuild the correct word)
+    for (let k = 1; k < need.length && !bad; k++){
+      const cand = need.slice(k).concat(need.slice(0,k));
+      if (cand.join("") !== need.join("")) bad = cand;
+    }
+    if (!bad) bad = need.slice().reverse();        // every free letter identical
+    open.forEach((s, i) => placeLetter(bad[i], s, false));
+    return this.built;
+  },
+  fit: fitTiles
+};
+})();
+</script>
+</body>
+</html>

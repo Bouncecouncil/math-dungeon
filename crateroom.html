@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crate Room">
+<title>Crate Room</title>
+<style>
+:root{
+  --bg:#141a22; --board:#1f2a33; --chalk:#f4f1e8; --dim:#8a97a3;
+  --gold:#ffd23f; --good:#3ddc84; --bad:#ff4d5e; --blue:#4fc3ff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk);overflow:hidden;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;}
+button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+
+#wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+
+/* ---------------- HUD ---------------- */
+#hud{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 12px;width:100%;
+  background:linear-gradient(180deg,#0c1117,rgba(12,17,23,0));z-index:6;font-weight:800;line-height:1}
+.chip{display:flex;align-items:center;gap:6px;background:#0c1117;border:2px solid #2b3843;
+  border-radius:999px;padding:6px 12px;font-size:15px;white-space:nowrap}
+.chip .lbl{font-size:10px;letter-spacing:1px;color:var(--dim)}
+.chip .val{font-size:19px}
+#targetChip{border-color:#5a4a12;background:#1d1804}
+#targetChip .val{color:var(--gold)}
+#sumChip .val{color:var(--chalk)}
+#sumChip.hit{border-color:#1d6b3f;background:#071a10}
+#sumChip.hit .val{color:var(--good)}
+#sumChip.over{border-color:#5a1b22;background:#1d0709}
+#sumChip.over .val{color:var(--bad)}
+#movesChip .val{color:var(--blue)}
+#coinChip{border-color:#3a3113}
+#coinChip .val{color:var(--gold)}
+#coinChip.spend{animation:spend .5s}
+@keyframes spend{30%{transform:scale(1.18)}}
+#coinChip.earn{animation:earn .6s}
+@keyframes earn{30%{transform:scale(1.25)}}
+#sp{flex:1 1 auto;min-width:0}
+#roomChip{color:var(--dim)}
+#muteBtn{background:#0c1117;border:2px solid #2b3843;border-radius:999px;font-size:16px;
+  width:40px;height:36px;display:flex;align-items:center;justify-content:center}
+
+/* ---------------- stage ---------------- */
+#stage{flex:1 1 auto;position:relative;min-height:0;touch-action:none}
+canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;
+  border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.6)}
+
+/* ---------------- D-pad ---------------- */
+#dpad{position:absolute;left:10px;bottom:10px;z-index:7;
+  display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:5px}
+#dpad button{width:52px;height:52px;border-radius:12px;background:rgba(43,56,67,.92);
+  font-size:22px;font-weight:800;color:var(--chalk);box-shadow:0 4px 0 #111820;display:flex;
+  align-items:center;justify-content:center}
+#dpad button:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+#dpad .gap{visibility:hidden}
+
+/* ---------------- side buttons ---------------- */
+#tools{position:absolute;right:10px;bottom:10px;z-index:7;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.tool{min-width:132px;height:48px;border-radius:12px;background:rgba(43,56,67,.92);color:var(--chalk);
+  font-size:16px;font-weight:800;padding:0 14px;box-shadow:0 4px 0 #111820;display:flex;
+  align-items:center;justify-content:center;gap:6px}
+.tool:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+.tool.blue{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
+.tool:disabled{opacity:.35;box-shadow:0 4px 0 #111820}
+
+/* ---------------- toast ---------------- */
+#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:8;pointer-events:none;
+  background:rgba(12,17,23,.92);border:2px solid #2b3843;border-radius:12px;padding:7px 16px;
+  font-size:17px;font-weight:800;opacity:0;transition:opacity .2s;max-width:80%;text-align:center}
+#toast.show{opacity:1}
+#toast.good{border-color:#1d6b3f;color:var(--good)}
+#toast.bad{border-color:#5a1b22;color:var(--bad)}
+#toast.gold{border-color:#5a4a12;color:var(--gold)}
+
+/* ---------------- overlays ---------------- */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(10,14,20,.92);
+  display:flex;align-items:center;justify-content:center;padding:14px}
+.overlay.hide{display:none}
+.panel{width:100%;max-width:600px;max-height:100%;overflow:auto;text-align:center;
+  background:var(--board);border:2px solid #2b3843;border-radius:18px;padding:20px 22px;
+  box-shadow:0 0 44px rgba(0,0,0,.7)}
+.panel h1{margin:0 0 6px;font-size:clamp(26px,6vw,38px);color:var(--gold);letter-spacing:1px}
+.panel p{margin:7px 0;font-size:16px;line-height:1.45;color:#cfd8e0}
+.panel p.small{font-size:13px;color:var(--dim)}
+.bigbtn{background:var(--blue);color:#06121b;font-size:21px;font-weight:800;padding:14px 26px;
+  border-radius:14px;margin:8px 6px 0;box-shadow:0 5px 0 #1d6f99}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #1d6f99}
+.bigbtn.gold{background:var(--gold);color:#1a1405;box-shadow:0 5px 0 #a3830f}
+.bigbtn.grey{background:#2b3843;color:var(--chalk);box-shadow:0 5px 0 #111820;font-size:17px;padding:12px 20px}
+.rooms{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.rooms button{background:#2b3843;color:var(--chalk);font-size:16px;font-weight:800;
+  min-width:48px;height:46px;padding:0 12px;border-radius:12px}
+.rooms button.done{background:#1d6b3f;color:#eafff2}
+.rooms button.on{background:var(--gold);color:#1a1405;box-shadow:0 0 0 3px #fff3c4}
+.legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0 2px;font-size:14px;color:#cfd8e0}
+.legend b{color:var(--gold)}
+
+/* ---------------- phone held sideways ---------------- */
+@media (max-height:430px){
+  #hud{padding:4px 8px;gap:5px}
+  .chip{padding:3px 9px;border-width:2px;font-size:12px;gap:4px}
+  .chip .lbl{font-size:8px;letter-spacing:.5px}
+  .chip .val{font-size:15px}
+  #muteBtn{width:32px;height:28px;font-size:13px}
+  #roomChip{display:none}
+  #dpad{left:6px;bottom:6px;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px);gap:4px}
+  #dpad button{width:46px;height:46px;font-size:19px}
+  #tools{right:6px;bottom:6px;gap:6px}
+  .tool{min-width:104px;height:44px;font-size:14px;padding:0 10px}
+  #toast{font-size:14px;padding:5px 12px;top:4px}
+  .panel{padding:12px 16px}
+  .panel h1{font-size:23px;margin-bottom:2px}
+  .panel p{font-size:13px;margin:4px 0}
+  .panel p.small{font-size:11px}
+  .bigbtn{font-size:17px;padding:10px 18px;margin:6px 4px 0}
+  .bigbtn.grey{font-size:14px;padding:9px 14px}
+  .rooms{gap:6px;margin-top:8px}
+  .rooms button{min-width:44px;height:44px;font-size:15px}
+  .legend{font-size:12px;gap:10px;margin:7px 0 0}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <div id="hud">
+    <div class="chip" id="targetChip"><span class="lbl">DOOR</span><span class="val" id="targetV">0</span></div>
+    <div class="chip" id="sumChip"><span class="lbl">ON PADS</span><span class="val" id="sumV">0</span></div>
+    <div class="chip" id="movesChip"><span class="lbl">MOVES</span><span class="val" id="movesV">0</span></div>
+    <div class="chip" id="coinChip"><span class="val">🪙 <span id="coinV">55</span></span></div>
+    <span id="sp"></span>
+    <div class="chip" id="roomChip"><span class="lbl">ROOM</span><span class="val" id="roomV">1/5</span></div>
+    <button id="muteBtn" title="Sound on / off">🔊</button>
+  </div>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="dpad">
+      <button class="gap"></button><button data-d="U">▲</button><button class="gap"></button>
+      <button data-d="L">◀</button><button class="gap"></button><button data-d="R">▶</button>
+      <button class="gap"></button><button data-d="D">▼</button><button class="gap"></button>
+    </div>
+    <div id="tools">
+      <button class="tool blue" id="undoBtn">↩ Undo</button>
+      <button class="tool" id="resetBtn">🔄 Reset (🪙<span class="costReset">1</span>)</button>
+      <button class="tool" id="closeBtn">✖ Close</button>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+</div>
+
+<!-- START -->
+<div class="overlay" id="startOv">
+  <div class="panel">
+    <h1>📦 CRATE ROOM</h1>
+    <p>Push the numbered crates onto the glowing pads.<br>
+       The door opens when the crates on the pads <b style="color:var(--gold)">add up to the door number</b>.</p>
+    <div class="legend">
+      <span>🧍 you</span><span>📦 crate</span><span>⭕ pad</span><span><b>Some crates are wrong on purpose.</b></span>
+    </div>
+    <p class="small">Move: arrow keys, W A S D, the D-pad, or swipe.<br>
+       You can only PUSH a crate, never pull it. Undo is free. Finish under the move target for 🪙10.</p>
+    <div class="rooms" id="roomPick"></div>
+    <button class="bigbtn gold" id="goBtn">ENTER THE ROOM ▶</button>
+  </div>
+</div>
+
+<!-- ROOM SOLVED -->
+<div class="overlay hide" id="winOv">
+  <div class="panel">
+    <h1 id="winTitle">🚪 DOOR OPEN!</h1>
+    <p id="winLine"></p>
+    <p id="winCoins" style="color:var(--gold);font-weight:800;font-size:20px"></p>
+    <button class="bigbtn gold" id="nextBtn">NEXT ROOM ▶</button>
+    <button class="bigbtn grey" id="replayBtn">↻ Play it again</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================================================================
+   CRATE ROOM  -  a push-the-crates (sokoban) math door.
+   Standalone test page for the 3D dungeon. Drop-in contract at the
+   bottom matches multiply-helper.html: ?embed=1&coins=NN and
+   postMessage {mdHelper:true, type:"spend"|"solved"|"close"}.
+   ================================================================ */
+
+/* ---------------- levels ----------------
+   rows: # wall, . floor, P pressure pad, @ hero start, $ crate
+   vals: crate numbers in READING ORDER (top row left-to-right, then down)
+   sol : a recorded, verified solution path (U D L R). Replaying it from
+         a fresh load always opens the door - this is how each room is
+         proven solvable, and window.CRATE.play(sol) runs it.
+   par : move target. Finish at or under par and the room pays 10 coins. */
+const LEVELS = [
+  { name:"Room 1", target:10, par:12,
+    rows:["######",
+          "#@...#",
+          "#$$$.#",
+          "#....#",
+          "#PP..#",
+          "######"],
+    vals:[4,6,7],
+    sol:"DDUURDD" },                                   /* 7 moves, 4 + 6 = 10 */
+
+  { name:"Room 2", target:12, par:26,
+    rows:["#######",
+          "#@....#",
+          "#.$.$.#",
+          "#..#..#",
+          "#.$.$.#",
+          "#P...P#",
+          "#######"],
+    vals:[3,9,5,8],
+    sol:"RRDLULDDDUUURRDRURDDD" },                     /* 21 moves, 3 + 9 = 12 */
+
+  { name:"Room 3", target:15, par:27,
+    rows:["########",
+          "#@.....#",
+          "#.$.$..#",
+          "#...#..#",
+          "#.$.$..#",
+          "#P.P.P.#",
+          "########"],
+    vals:[3,4,8,9],
+    sol:"RRDLULDDDRURDUURURDDD" },                     /* 21 moves, 3 + 8 + 4 = 15 */
+
+  { name:"Room 4", target:20, par:40,
+    rows:["#########",
+          "#@......#",
+          "#.$.$.$.#",
+          "#.......#",
+          "#..#.#..#",
+          "#.$...$.#",
+          "#P..P..P#",
+          "#########"],
+    vals:[4,6,10,2,9],
+    sol:"RRDLULDDDDUUUURRRDDDDUUURRURDDDD" },          /* 32 moves, 4 + 6 + 10 = 20 */
+
+  { name:"Room 5", target:24, par:55,
+    rows:["##########",
+          "#@.......#",
+          "#.$.$.$..#",
+          "#........#",
+          "#.#...#..#",
+          "#.$.$.$..#",
+          "#P.P.P.P.#",
+          "##########"],
+    vals:[3,5,7,9,2,11],
+    sol:"RRDLULDDDDRLUURRDDUURRURURDDDDUULLLLURURDDDD" }
+                                                       /* 44 moves, 3 + 9 + 7 + 5 = 24 */
+];
+
+const COST_RESET = 10 - 9;   /* 1 coin, kept as a named cost so the dungeon can tune it */
+const REWARD_PAR = 10;       /* at or under par */
+const REWARD_OVER = 2;       /* over par, still finished */
+
+/* ---------------- embed contract (identical shape to multiply-helper.html) --------- */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get("embed") === "1";
+const toGame = msg => {
+  try { if (window.parent && window.parent !== window) window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); }
+  catch (e) { /* standalone: nobody is listening, and that is fine */ }
+};
+let coins = 55;
+if (EMBED){ const c = parseInt(QS.get("coins"), 10); if (isFinite(c) && c >= 0) coins = c; }
+
+/* ---------------- tiny safe storage ---------------- */
+function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+
+/* ---------------- sound ----------------
+   Crate pushes and wall bonks are synthesised so nothing has to load.
+   The three one-shots are real files in ./sfx. Every call is guarded:
+   audio must never be able to break the game.                        */
+const Snd = (function(){
+  let ctx = null, on = lsGet("crate_snd","1") === "1";
+  const cache = {};
+  function init(){
+    if (ctx) return ctx;
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ ctx = null; }
+    return ctx;
+  }
+  function blip(type, freq, endFreq, vol, dur, filterType, filterHz){
+    if (!on) return;
+    try{
+      const c = init(); if (!c) return;
+      const t = c.currentTime;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t);
+      if (endFreq) o.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), t + dur);
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      let last = o;
+      if (filterType){
+        const f = c.createBiquadFilter(); f.type = filterType; f.frequency.value = filterHz; f.Q.value = 3;
+        o.connect(f); last = f;
+      }
+      last.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + dur + 0.02);
+    }catch(e){}
+  }
+  function noise(vol, dur, hz){
+    if (!on) return;
+    try{
+      const c = init(); if (!c) return;
+      const t = c.currentTime, len = Math.max(1, Math.floor(c.sampleRate * dur));
+      const buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random()*2 - 1) * (1 - i/len);
+      const s = c.createBufferSource(); s.buffer = buf;
+      const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = hz; f.Q.value = 1.2;
+      const g = c.createGain(); g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      s.connect(f); f.connect(g); g.connect(c.destination);
+      s.start(t); s.stop(t + dur + 0.02);
+    }catch(e){}
+  }
+  return {
+    start(){ try{ const c = init(); if (c && c.state === "suspended") c.resume(); }catch(e){} },
+    /* heavy crate sliding one tile: a short wooden click plus grit */
+    push(){ blip("square", 150, 70, 0.16, 0.07, "bandpass", 700); noise(0.13, 0.10, 1500); },
+    /* the hero's own footstep: quieter, higher */
+    step(){ noise(0.045, 0.045, 2600); },
+    /* nothing moved (wall or a crate that cannot go) */
+    bonk(){ blip("sine", 90, 55, 0.22, 0.13); },
+    /* undo */
+    rewind(){ blip("triangle", 300, 620, 0.12, 0.10); },
+    file(name, vol){
+      if (!on) return;
+      try{
+        const a = cache[name] || (cache[name] = new Audio("sfx/" + name + ".mp3"));
+        a.currentTime = 0;
+        a.volume = vol === undefined ? 0.7 : vol;
+        const p = a.play(); if (p && p.catch) p.catch(function(){});
+      }catch(e){}
+    },
+    isOn(){ return on; },
+    toggle(){ on = !on; lsSet("crate_snd", on ? "1" : "0"); return on; }
+  };
+})();
+
+/* ---------------- DOM ---------------- */
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx2d = cv.getContext("2d");
+const stage = $("stage");
+
+/* ---------------- state ---------------- */
+const S = {
+  li: 0,                 // level index
+  W: 0, H: 0,
+  wall: [], pad: [],     // boolean grids, indexed [y][x]
+  crates: [],            // {x,y,n,ax,ay}   ax/ay = animated (drawn) position
+  px: 0, py: 0, pax: 0, pay: 0, face: "D",
+  moves: 0,
+  hist: [],              // full move history for undo
+  target: 0,
+  open: false,
+  locked: true,          // input off until the room is entered
+  solvedSet: {},         // levels already beaten this session
+  shakeT: 0
+};
+try{
+  const saved = JSON.parse(lsGet("crate_done","{}"));
+  if (saved && typeof saved === "object") S.solvedSet = saved;
+}catch(e){ S.solvedSet = {}; }
+
+const DIRS = { U:[0,-1], D:[0,1], L:[-1,0], R:[1,0] };
+const normDir = d => {
+  if (!d) return null;
+  const s = String(d).toUpperCase();
+  if (DIRS[s]) return s;
+  if (s === "UP") return "U"; if (s === "DOWN") return "D";
+  if (s === "LEFT") return "L"; if (s === "RIGHT") return "R";
+  return null;
+};
+
+/* ---------------- level loading ---------------- */
+function loadLevel(n){
+  const idx = Math.max(0, Math.min(LEVELS.length - 1, (n|0)));
+  const L = LEVELS[idx];
+  S.li = idx;
+  S.H = L.rows.length;
+  S.W = L.rows[0].length;
+  S.wall = []; S.pad = []; S.crates = [];
+  let vi = 0;
+  for (let y = 0; y < S.H; y++){
+    S.wall[y] = []; S.pad[y] = [];
+    const row = L.rows[y];
+    for (let x = 0; x < S.W; x++){
+      const ch = row[x] || "#";
+      S.wall[y][x] = (ch === "#");
+      S.pad[y][x]  = (ch === "P");
+      if (ch === "@"){ S.px = x; S.py = y; S.pax = x; S.pay = y; }
+      if (ch === "$"){ S.crates.push({x:x, y:y, n: L.vals[vi] !== undefined ? L.vals[vi] : 1, ax:x, ay:y}); vi++; }
+    }
+  }
+  S.target = L.target;
+  S.moves = 0;
+  S.hist = [];
+  S.open = false;
+  S.face = "D";
+  S.shakeT = 0;
+  clearTimeout(winT); winT = null;      /* a fast reset must not let the old win panel pop up */
+  $("winOv").classList.add("hide");
+  fitCanvas();
+  syncHud();
+  return true;
+}
+
+/* ---------------- rules ---------------- */
+function crateAt(x, y){
+  for (let i = 0; i < S.crates.length; i++) if (S.crates[i].x === x && S.crates[i].y === y) return i;
+  return -1;
+}
+function blocked(x, y){
+  return x < 0 || y < 0 || x >= S.W || y >= S.H || S.wall[y][x];
+}
+function sumOnPads(){
+  let s = 0;
+  for (let i = 0; i < S.crates.length; i++){
+    const c = S.crates[i];
+    if (S.pad[c.y] && S.pad[c.y][c.x]) s += c.n;
+  }
+  return s;
+}
+function padsFilled(){
+  let n = 0;
+  for (let i = 0; i < S.crates.length; i++){
+    const c = S.crates[i];
+    if (S.pad[c.y] && S.pad[c.y][c.x]) n++;
+  }
+  return n;
+}
+
+/* one move. Returns "move" | "push" | "blocked" | "off" */
+function move(dirIn){
+  const dir = normDir(dirIn);
+  if (!dir) return "off";
+  if (S.locked || S.open) return "off";
+  const d = DIRS[dir];
+  const prevFace = S.face;
+  S.face = dir;
+  const nx = S.px + d[0], ny = S.py + d[1];
+  if (blocked(nx, ny)){ bump(); return "blocked"; }
+
+  const ci = crateAt(nx, ny);
+  let pushed = -1;
+  if (ci >= 0){
+    const bx = nx + d[0], by = ny + d[1];
+    /* a crate can only move into free floor: not a wall, not another crate */
+    if (blocked(bx, by) || crateAt(bx, by) >= 0){ bump(); return "blocked"; }
+    const c = S.crates[ci];
+    const wasOnPad = !!(S.pad[c.y] && S.pad[c.y][c.x]);
+    S.hist.push({px:S.px, py:S.py, ci:ci, cx:c.x, cy:c.y, face:prevFace});
+    c.x = bx; c.y = by;
+    pushed = ci;
+    S.px = nx; S.py = ny;
+    S.moves++;
+    Snd.push();
+    const nowOnPad = !!(S.pad[by] && S.pad[by][bx]);
+    if (nowOnPad && !wasOnPad) Snd.file("62-toasty", 0.55);
+  } else {
+    S.hist.push({px:S.px, py:S.py, ci:-1, cx:0, cy:0, face:prevFace});
+    S.px = nx; S.py = ny;
+    S.moves++;
+    Snd.step();
+  }
+  syncHud();
+  checkDoor();
+  return pushed >= 0 ? "push" : "move";
+}
+
+function bump(){
+  S.shakeT = 0.18;
+  Snd.bonk();
+}
+
+function undo(){
+  if (S.open || S.locked) return false;
+  const h = S.hist.pop();
+  if (!h) return false;
+  S.px = h.px; S.py = h.py; S.face = h.face || S.face;
+  if (h.ci >= 0){ S.crates[h.ci].x = h.cx; S.crates[h.ci].y = h.cy; }
+  S.moves++;                       /* an undo is still time spent: par stays honest */
+  Snd.rewind();
+  syncHud();
+  return true;
+}
+
+function resetRoom(charge){
+  if (charge !== false && coins > 0) spend(COST_RESET);
+  Snd.file("58-record-scratch-1", 0.6);
+  loadLevel(S.li);
+  S.locked = false;
+  toast("Room reset", "bad");
+  return true;
+}
+
+let winT = null;
+function checkDoor(){
+  if (S.open) return false;
+  if (sumOnPads() !== S.target) return false;
+  S.open = true;
+  S.locked = true;
+  Snd.file("50-ta-daaa", 0.75);
+  const L = LEVELS[S.li];
+  const underPar = S.moves <= L.par;
+  const reward = underPar ? REWARD_PAR : REWARD_OVER;
+  earn(reward);
+  S.solvedSet[S.li] = true;
+  lsSet("crate_done", JSON.stringify(S.solvedSet));
+  toGame({type:"solved", level:S.li + 1, moves:S.moves, par:L.par, reward:reward, target:S.target});
+  clearTimeout(winT);
+  winT = setTimeout(function(){
+    $("winTitle").textContent = "🚪 DOOR OPEN!";
+    $("winLine").innerHTML = crateLine() +
+      "<br>" + S.moves + " moves &nbsp;·&nbsp; move target " + L.par +
+      (underPar ? " &nbsp;<b style='color:var(--good)'>UNDER!</b>" : "");
+    $("winCoins").textContent = "+ 🪙" + reward + (underPar ? "  under the move target!" : "  nice work");
+    $("nextBtn").textContent = (S.li + 1 < LEVELS.length) ? "NEXT ROOM ▶" : (EMBED ? "⚔️ Back to the dungeon" : "🏆 All rooms done");
+    $("winOv").classList.remove("hide");
+  }, 900);
+  return true;
+}
+function crateLine(){
+  const parts = [];
+  for (let i = 0; i < S.crates.length; i++){
+    const c = S.crates[i];
+    if (S.pad[c.y] && S.pad[c.y][c.x]) parts.push(c.n);
+  }
+  return parts.join(" + ") + " = <b style='color:var(--gold)'>" + S.target + "</b>";
+}
+
+/* ---------------- coins ---------------- */
+function spend(n){
+  n = Math.max(0, n|0);
+  if (!n) return;
+  coins = Math.max(0, coins - n);
+  if (EMBED) toGame({type:"spend", n:n});
+  const b = $("coinChip"); b.classList.remove("spend"); void b.offsetWidth; b.classList.add("spend");
+  syncHud();
+}
+function earn(n){
+  n = Math.max(0, n|0);
+  coins += n;
+  const b = $("coinChip"); b.classList.remove("earn"); void b.offsetWidth; b.classList.add("earn");
+  syncHud();
+}
+
+/* ---------------- HUD ---------------- */
+function syncHud(){
+  const s = sumOnPads();
+  $("targetV").textContent = S.target;
+  $("sumV").textContent = s;
+  $("movesV").textContent = S.moves;
+  $("coinV").textContent = coins;
+  $("roomV").textContent = (S.li + 1) + "/" + LEVELS.length;
+  const sc = $("sumChip");
+  sc.classList.toggle("hit", s === S.target && s > 0);
+  sc.classList.toggle("over", s > S.target);
+  $("undoBtn").disabled = S.hist.length === 0 || S.open;
+}
+let toastT = null;
+function toast(txt, cls){
+  const t = $("toast");
+  t.textContent = txt;
+  t.className = "show " + (cls || "");
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ t.className = ""; }, 1400);
+}
+
+/* ---------------- canvas sizing ---------------- */
+let TS = 48;
+function fitCanvas(){
+  const w = stage.clientWidth || window.innerWidth;
+  const h = stage.clientHeight || window.innerHeight;
+  if (!S.W || !S.H) return;
+  /* Keep the board clear of the controls: measure the D-pad and the tool
+     column and centre the canvas in the space BETWEEN them. On a screen too
+     narrow for that (a phone held upright) fall back to full width and let
+     the controls float over the board, which is what they are sized for. */
+  const gl = ($("dpad").offsetWidth || 0) + 20;
+  const gr = ($("tools").offsetWidth || 0) + 20;
+  let left = gl, usableW = w - gl - gr;
+  if (usableW < 220){ left = 8; usableW = Math.max(120, w - 16); }
+  const usableH = Math.max(120, h - 16);
+  TS = Math.floor(Math.min(usableW / S.W, usableH / S.H));
+  TS = Math.max(20, Math.min(76, TS));
+  const cssW = TS * S.W, cssH = TS * S.H;
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  cv.style.left = Math.round(left + usableW / 2) + "px";
+  cv.style.width = cssW + "px";
+  cv.style.height = cssH + "px";
+  cv.width = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", fitCanvas);
+window.addEventListener("orientationchange", function(){ setTimeout(fitCanvas, 120); });
+
+/* ---------------- drawing ---------------- */
+const TORCH = [];           /* torch positions, recomputed per level */
+function torches(){
+  TORCH.length = 0;
+  for (let x = 0; x < S.W; x++){
+    if (S.wall[0] && S.wall[0][x] && x % 3 === 1) TORCH.push({x:x, y:0});
+    if (S.wall[S.H-1] && S.wall[S.H-1][x] && x % 3 === 2) TORCH.push({x:x, y:S.H-1});
+  }
+}
+let lastLi = -1;
+
+function roundRect(g, x, y, w, h, r){
+  const rr = Math.min(r, w/2, h/2);
+  g.beginPath();
+  g.moveTo(x+rr, y);
+  g.arcTo(x+w, y, x+w, y+h, rr);
+  g.arcTo(x+w, y+h, x, y+h, rr);
+  g.arcTo(x, y+h, x, y, rr);
+  g.arcTo(x, y, x+w, y, rr);
+  g.closePath();
+}
+
+let t0 = performance.now();
+function frame(now){
+  const dt = Math.min(0.05, (now - t0) / 1000);
+  t0 = now;
+  /* ease the hero and crates toward their true tiles so movement reads smoothly */
+  const k = Math.min(1, dt * 16);
+  S.pax += (S.px - S.pax) * k;
+  S.pay += (S.py - S.pay) * k;
+  for (let i = 0; i < S.crates.length; i++){
+    const c = S.crates[i];
+    c.ax += (c.x - c.ax) * k;
+    c.ay += (c.y - c.ay) * k;
+  }
+  if (S.shakeT > 0) S.shakeT = Math.max(0, S.shakeT - dt);
+  draw(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+function draw(time){
+  const g = ctx2d;
+  const W = S.W * TS, H = S.H * TS;
+  if (S.li !== lastLi){ torches(); lastLi = S.li; }
+
+  g.save();
+  if (S.shakeT > 0){
+    const a = S.shakeT * 22;
+    g.translate(Math.sin(time*60)*a, Math.cos(time*70)*a*0.6);
+  }
+
+  g.fillStyle = "#0c1117";
+  g.fillRect(0, 0, W, H);
+
+  /* ---- floor ---- */
+  for (let y = 0; y < S.H; y++){
+    for (let x = 0; x < S.W; x++){
+      if (S.wall[y][x]) continue;
+      const px = x*TS, py = y*TS;
+      g.fillStyle = ((x + y) % 2 === 0) ? "#242f3a" : "#1c252d";
+      g.fillRect(px, py, TS, TS);
+      g.strokeStyle = "rgba(0,0,0,.35)";
+      g.lineWidth = 1;
+      g.strokeRect(px + 0.5, py + 0.5, TS - 1, TS - 1);
+      /* a couple of chipped stones so the floor is not flat */
+      if ((x*7 + y*13) % 5 === 0){
+        g.fillStyle = "rgba(255,255,255,.035)";
+        g.fillRect(px + TS*0.18, py + TS*0.62, TS*0.22, TS*0.12);
+      }
+    }
+  }
+
+  /* ---- walls ---- */
+  for (let y = 0; y < S.H; y++){
+    for (let x = 0; x < S.W; x++){
+      if (!S.wall[y][x]) continue;
+      const px = x*TS, py = y*TS;
+      g.fillStyle = "#151b22";
+      g.fillRect(px, py, TS, TS);
+      /* two stacked blocks, lit from above, with a dark mortar line */
+      g.fillStyle = "#6b7885";
+      g.fillRect(px + 2, py + 2, TS - 4, TS*0.44);
+      g.fillStyle = "#586573";
+      g.fillRect(px + 2, py + TS*0.52, TS - 4, TS*0.42);
+      g.fillStyle = "rgba(255,255,255,.14)";
+      g.fillRect(px + 2, py + 2, TS - 4, Math.max(1, TS*0.09));
+      g.fillRect(px + 2, py + TS*0.52, TS - 4, Math.max(1, TS*0.09));
+      g.fillStyle = "rgba(0,0,0,.30)";
+      g.fillRect(px + 2, py + TS*0.38, TS - 4, Math.max(1, TS*0.07));
+      g.strokeStyle = "#0d1218"; g.lineWidth = 2;
+      g.strokeRect(px + 1, py + 1, TS - 2, TS - 2);
+    }
+  }
+
+  /* ---- pads ---- */
+  const pulse = 0.5 + 0.5 * Math.sin(time * 3);
+  for (let y = 0; y < S.H; y++){
+    for (let x = 0; x < S.W; x++){
+      if (!S.pad[y][x]) continue;
+      const cxp = x*TS + TS/2, cyp = y*TS + TS/2;
+      const filled = crateAt(x, y) >= 0;
+      const col = filled ? "255,210,63" : "79,195,255";
+      const grad = g.createRadialGradient(cxp, cyp, TS*0.05, cxp, cyp, TS*0.6);
+      grad.addColorStop(0, "rgba(" + col + "," + (0.30 + 0.18*pulse) + ")");
+      grad.addColorStop(1, "rgba(" + col + ",0)");
+      g.fillStyle = grad;
+      g.fillRect(x*TS - TS*0.2, y*TS - TS*0.2, TS*1.4, TS*1.4);
+      g.strokeStyle = "rgba(" + col + "," + (0.75 + 0.25*pulse) + ")";
+      g.lineWidth = Math.max(2, TS*0.06);
+      g.beginPath();
+      g.arc(cxp, cyp, TS*0.30, 0, Math.PI*2);
+      g.stroke();
+      g.strokeStyle = "rgba(" + col + ",.35)";
+      g.lineWidth = Math.max(1, TS*0.03);
+      g.beginPath();
+      g.arc(cxp, cyp, TS*0.40, 0, Math.PI*2);
+      g.stroke();
+    }
+  }
+
+  /* ---- torch glow ---- */
+  for (let i = 0; i < TORCH.length; i++){
+    const t = TORCH[i];
+    const flick = 0.82 + 0.18 * Math.sin(time * 9 + i * 2.1) + 0.06 * Math.sin(time * 23 + i);
+    const cxp = t.x*TS + TS/2, cyp = t.y*TS + TS/2;
+    const grad = g.createRadialGradient(cxp, cyp, TS*0.1, cxp, cyp, TS*2.6*flick);
+    grad.addColorStop(0, "rgba(255,170,60,.34)");
+    grad.addColorStop(0.5, "rgba(255,140,40,.12)");
+    grad.addColorStop(1, "rgba(255,120,30,0)");
+    g.fillStyle = grad;
+    g.fillRect(cxp - TS*2.8, cyp - TS*2.8, TS*5.6, TS*5.6);
+    /* the torch itself */
+    g.fillStyle = "#6b4a22";
+    g.fillRect(cxp - TS*0.06, cyp - TS*0.02, TS*0.12, TS*0.30);
+    g.fillStyle = "rgba(255,190,70," + (0.75 + 0.25*flick) + ")";
+    g.beginPath();
+    g.ellipse(cxp, cyp - TS*0.10, TS*0.11, TS*0.17*flick, 0, 0, Math.PI*2);
+    g.fill();
+  }
+
+  /* ---- the door ---- */
+  drawDoor(g, time);
+
+  /* ---- crates ---- */
+  for (let i = 0; i < S.crates.length; i++) drawCrate(g, S.crates[i], time);
+
+  /* ---- hero ---- */
+  drawHero(g, S.pax * TS, S.pay * TS, time);
+
+  g.restore();
+}
+
+function drawDoor(g, time){
+  const dw = Math.min(2, S.W - 2);
+  const dx = Math.floor((S.W - dw) / 2) * TS;
+  const dy = 0, dh = TS;
+  g.save();
+  if (S.open){
+    /* opened: the two halves have slid aside and light pours through */
+    const glow = g.createLinearGradient(0, dy, 0, dy + dh*1.6);
+    glow.addColorStop(0, "rgba(255,210,63,.55)");
+    glow.addColorStop(1, "rgba(255,210,63,0)");
+    g.fillStyle = "#0a0d12";
+    g.fillRect(dx, dy, dw*TS, dh);
+    g.fillStyle = glow;
+    g.fillRect(dx - TS*0.4, dy, dw*TS + TS*0.8, dh*1.8);
+    g.fillStyle = "#3a2a10";
+    g.fillRect(dx, dy, TS*0.22, dh);
+    g.fillRect(dx + dw*TS - TS*0.22, dy, TS*0.22, dh);
+  } else {
+    g.fillStyle = "#5b4322";
+    g.fillRect(dx, dy, dw*TS, dh);
+    g.fillStyle = "#6d5129";
+    for (let i = 0; i < dw*3; i++){
+      g.fillRect(dx + i*(dw*TS/(dw*3)) + 2, dy + 3, (dw*TS/(dw*3)) - 4, dh - 6);
+    }
+    g.strokeStyle = "#2a1d0c"; g.lineWidth = 3;
+    g.strokeRect(dx + 1.5, dy + 1.5, dw*TS - 3, dh - 3);
+    /* the target number, carved on the door */
+    const s = sumOnPads();
+    g.fillStyle = (s === S.target) ? "#3ddc84" : "#ffd23f";
+    g.font = "800 " + Math.round(TS*0.52) + "px 'Trebuchet MS',sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 4;
+    g.fillText(String(S.target), dx + dw*TS/2, dy + dh/2 + 1);
+    g.shadowBlur = 0;
+  }
+  g.restore();
+}
+
+function drawCrate(g, c, time){
+  const x = c.ax * TS, y = c.ay * TS;
+  const onPad = !!(S.pad[c.y] && S.pad[c.y][c.x]);
+  const m = TS*0.07;
+  g.save();
+  /* shadow */
+  g.fillStyle = "rgba(0,0,0,.45)";
+  roundRect(g, x + m + 2, y + m + 3, TS - m*2, TS - m*2, TS*0.14);
+  g.fill();
+  /* body */
+  const grad = g.createLinearGradient(x, y, x, y + TS);
+  if (onPad){ grad.addColorStop(0, "#c08b1e"); grad.addColorStop(1, "#8a6110"); }
+  else { grad.addColorStop(0, "#9a6b3a"); grad.addColorStop(1, "#6d4824"); }
+  g.fillStyle = grad;
+  roundRect(g, x + m, y + m, TS - m*2, TS - m*2, TS*0.12);
+  g.fill();
+  /* planks */
+  g.strokeStyle = onPad ? "rgba(255,225,140,.45)" : "rgba(0,0,0,.28)";
+  g.lineWidth = Math.max(1, TS*0.035);
+  g.beginPath();
+  g.moveTo(x + m, y + m); g.lineTo(x + TS - m, y + TS - m);
+  g.moveTo(x + TS - m, y + m); g.lineTo(x + m, y + TS - m);
+  g.stroke();
+  /* frame */
+  g.strokeStyle = onPad ? "#ffd23f" : "#4a3018";
+  g.lineWidth = Math.max(2, TS*0.07);
+  roundRect(g, x + m, y + m, TS - m*2, TS - m*2, TS*0.12);
+  g.stroke();
+  /* number plate */
+  g.fillStyle = onPad ? "rgba(26,20,5,.82)" : "rgba(12,17,23,.72)";
+  roundRect(g, x + TS*0.19, y + TS*0.24, TS*0.62, TS*0.52, TS*0.10);
+  g.fill();
+  g.fillStyle = onPad ? "#ffd23f" : "#f4f1e8";
+  g.font = "800 " + Math.round(TS*0.40) + "px 'Trebuchet MS',sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText(String(c.n), x + TS*0.5, y + TS*0.51);
+  g.restore();
+}
+
+function drawHero(g, x, y, time){
+  const cxp = x + TS/2, cyp = y + TS/2;
+  const bob = Math.sin(time * 5) * TS * 0.02;
+  g.save();
+  g.fillStyle = "rgba(0,0,0,.42)";
+  g.beginPath();
+  g.ellipse(cxp, y + TS*0.84, TS*0.28, TS*0.11, 0, 0, Math.PI*2);
+  g.fill();
+  /* cloak / body */
+  g.fillStyle = "#2f7fbf";
+  roundRect(g, cxp - TS*0.22, cyp - TS*0.08 + bob, TS*0.44, TS*0.44, TS*0.12);
+  g.fill();
+  g.fillStyle = "#4fc3ff";
+  roundRect(g, cxp - TS*0.22, cyp - TS*0.08 + bob, TS*0.44, TS*0.16, TS*0.10);
+  g.fill();
+  /* head */
+  g.fillStyle = "#f2c9a0";
+  g.beginPath();
+  g.arc(cxp, cyp - TS*0.20 + bob, TS*0.17, 0, Math.PI*2);
+  g.fill();
+  /* hair / helmet */
+  g.fillStyle = "#3a2a18";
+  g.beginPath();
+  g.arc(cxp, cyp - TS*0.23 + bob, TS*0.17, Math.PI, Math.PI*2);
+  g.fill();
+  /* eyes, facing the way he last moved */
+  const fx = (S.face === "L" ? -1 : S.face === "R" ? 1 : 0) * TS*0.06;
+  const fy = (S.face === "U" ? -1 : S.face === "D" ? 1 : 0) * TS*0.035;
+  if (S.face !== "U"){
+    g.fillStyle = "#1a2029";
+    g.beginPath(); g.arc(cxp - TS*0.06 + fx, cyp - TS*0.19 + fy + bob, TS*0.030, 0, Math.PI*2); g.fill();
+    g.beginPath(); g.arc(cxp + TS*0.06 + fx, cyp - TS*0.19 + fy + bob, TS*0.030, 0, Math.PI*2); g.fill();
+  }
+  /* mitts, out front in the push direction */
+  const d = DIRS[S.face] || [0,1];
+  g.fillStyle = "#f2c9a0";
+  g.beginPath();
+  g.arc(cxp + d[0]*TS*0.26 - d[1]*TS*0.12, cyp + d[1]*TS*0.24 - d[0]*TS*0.12 + bob, TS*0.075, 0, Math.PI*2);
+  g.fill();
+  g.beginPath();
+  g.arc(cxp + d[0]*TS*0.26 + d[1]*TS*0.12, cyp + d[1]*TS*0.24 + d[0]*TS*0.12 + bob, TS*0.075, 0, Math.PI*2);
+  g.fill();
+  g.restore();
+}
+
+/* ---------------- input ---------------- */
+function tryMove(d){
+  Snd.start();
+  const r = move(d);
+  if (r === "blocked") toast("That will not budge", "bad");
+  return r;
+}
+
+window.addEventListener("keydown", function(e){
+  const map = {ArrowUp:"U", ArrowDown:"D", ArrowLeft:"L", ArrowRight:"R",
+               w:"U", a:"L", s:"D", d:"R", W:"U", A:"L", S:"D", D:"R"};
+  const dir = map[e.key];
+  if (dir){ e.preventDefault(); tryMove(dir); return; }
+  if (e.key === "z" || e.key === "Z" || e.key === "Backspace"){ e.preventDefault(); undo(); }
+  if (e.key === "r" || e.key === "R"){ e.preventDefault(); if (!S.locked) resetRoom(true); }
+});
+
+$("dpad").addEventListener("click", function(e){
+  const b = e.target.closest("button[data-d]");
+  if (!b) return;
+  tryMove(b.dataset.d);
+});
+
+/* swipe anywhere on the board */
+(function(){
+  let sx = 0, sy = 0, down = false;
+  stage.addEventListener("pointerdown", function(e){
+    if (e.target.closest("#dpad") || e.target.closest("#tools")) return;
+    down = true; sx = e.clientX; sy = e.clientY;
+  });
+  stage.addEventListener("pointerup", function(e){
+    if (!down) return;
+    down = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    tryMove(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "R" : "L") : (dy > 0 ? "D" : "U"));
+  });
+  stage.addEventListener("pointercancel", function(){ down = false; });
+})();
+
+$("undoBtn").onclick = function(){ Snd.start(); if (!undo()) toast("Nothing to undo", "bad"); };
+$("resetBtn").onclick = function(){ Snd.start(); if (!S.locked || S.open) resetRoom(true); };
+$("closeBtn").onclick = function(){
+  if (EMBED) toGame({type:"close"});
+  else { S.locked = true; $("startOv").classList.remove("hide"); buildRoomPick(); }
+};
+$("muteBtn").onclick = function(){
+  const on = Snd.toggle();
+  $("muteBtn").textContent = on ? "🔊" : "🔇";
+  if (on) Snd.start();
+};
+$("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
+
+/* ---------------- start screen + room picker ---------------- */
+let pickIdx = 0;
+function buildRoomPick(){
+  const box = $("roomPick");
+  box.innerHTML = "";
+  LEVELS.forEach(function(L, i){
+    const b = document.createElement("button");
+    b.textContent = String(i + 1);
+    b.className = (i === pickIdx ? "on " : "") + (S.solvedSet[i] ? "done" : "");
+    b.onclick = function(){ pickIdx = i; buildRoomPick(); };
+    box.appendChild(b);
+  });
+}
+buildRoomPick();
+
+function enterRoom(i){
+  pickIdx = i;
+  loadLevel(i);
+  $("startOv").classList.add("hide");
+  $("winOv").classList.add("hide");
+  S.locked = false;
+  Snd.start();
+  fitCanvas();
+}
+$("goBtn").onclick = function(){ enterRoom(pickIdx); };
+$("nextBtn").onclick = function(){
+  if (S.li + 1 < LEVELS.length){ enterRoom(S.li + 1); return; }
+  if (EMBED){ toGame({type:"solved", level:S.li + 1, allDone:true}); toGame({type:"close"}); return; }
+  $("winOv").classList.add("hide");
+  $("startOv").classList.remove("hide");
+  buildRoomPick();
+};
+$("replayBtn").onclick = function(){ enterRoom(S.li); };
+
+/* ---------------- boot ---------------- */
+loadLevel(0);
+requestAnimationFrame(frame);
+
+if (EMBED){
+  /* the dungeon already charged whatever it charges to open a room:
+     go straight in, and hand the wallet back through postMessage. */
+  const lv = parseInt(QS.get("level"), 10);
+  $("closeBtn").textContent = "✖ Back";
+  enterRoom(isFinite(lv) && lv >= 1 && lv <= LEVELS.length ? lv - 1 : 0);
+} else {
+  $("startOv").classList.remove("hide");
+}
+
+/* ---------------- test hook ----------------
+   window.CRATE.play("RRDL...") replays a recorded path; every level's
+   own path is in CRATE.levels[i].sol and is what proves it solvable. */
+window.CRATE = {
+  levels: LEVELS,
+  state: S,
+  loadLevel: function(n){ const r = loadLevel(n); S.locked = false; $("startOv").classList.add("hide"); return r; },
+  move: function(d){ return move(d); },
+  undo: undo,
+  reset: function(charge){ return resetRoom(charge !== false); },
+  sum: sumOnPads,
+  padsFilled: padsFilled,
+  isOpen: function(){ return S.open; },
+  target: function(){ return S.target; },
+  moves: function(){ return S.moves; },
+  coins: function(){ return coins; },
+  player: function(){ return {x:S.px, y:S.py}; },
+  cratePositions: function(){ return S.crates.map(function(c){ return {x:c.x, y:c.y, n:c.n}; }); },
+  play: function(path){
+    const out = [];
+    for (let i = 0; i < path.length; i++) out.push(move(path[i]));
+    return {result:out, moves:S.moves, sum:sumOnPads(), open:S.open};
+  },
+  solve: function(n){
+    const i = (n === undefined) ? S.li : n;
+    this.loadLevel(i);
+    return this.play(LEVELS[i].sol);
+  }
+};
+})();
+</script>
+</body>
+</html>
