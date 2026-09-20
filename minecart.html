@@ -24,8 +24,8 @@
   #qbox{position:absolute;left:50%;top:38px;transform:translateX(-50%);width:min(94vw,760px);
     background:rgba(8,12,34,.86);border:2px solid #2c4bd8;border-radius:14px;padding:8px 14px;text-align:center;
     box-shadow:0 0 26px rgba(57,110,255,.35);z-index:5;box-sizing:border-box;}
-  #qkind{font-size:12px;font-weight:800;color:#ffb63f;letter-spacing:.5px}
-  #qtext{font-size:19px;font-weight:800;color:#8fe9ff;line-height:1.25;margin-top:2px}
+  #qkind{font-size:14px;font-weight:800;color:#ffb63f;letter-spacing:.5px}
+  #qtext{font-size:clamp(22px,3.4vw,34px);font-weight:800;color:#8fe9ff;line-height:1.25;margin-top:2px}
   #qbox.hide{display:none}
   #msg{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-size:34px;font-weight:900;
     text-shadow:0 4px 14px #000;z-index:6;pointer-events:none;opacity:0;transition:opacity .2s;}
@@ -68,7 +68,7 @@
   @media (max-height:430px){
     #hud{font-size:12px;padding:4px 10px}
     #qbox{top:30px;padding:5px 10px}
-    #qtext{font-size:15px}
+    #qtext{font-size:19px}
     #qkind{font-size:10px}
     #msg{font-size:26px}
     .panel h1{font-size:22px} .panel p{font-size:13px}
@@ -87,6 +87,7 @@
     <span id="coinBox">🪙 0</span>
     <span id="scoreBox">SCORE 0</span>
     <span id="speedBox"></span>
+    <span id="muteBtn" style="cursor:pointer;margin-left:8px" title="Sound on / off">🔊</span>
   </div>
 
   <div id="qbox" class="hide"><div id="qkind"></div><div id="qtext"></div></div>
@@ -143,6 +144,78 @@ const GATES = 8;                     // gates to the station
 const SPEED0 = 9.5, SPEED_MAX = 14, SPEED_STEP = 0.45;   // slow enough to read the sign and choose
 const STEER = 7.5;                   // sideways speed
 const COST_OPEN = 10, COST_HINT = 3;
+
+/* ============================ sound ============================
+   The rolling cart is synthesised (filtered noise plus wheel clacks that
+   speed up with the cart), so nothing has to load. The one-shots are real
+   files in ./sfx: a wood smash for the right lane, and the funny error
+   sounds out of Will's meme folder for a wrong one.                    */
+const SFX_WIN  = ["13-got-em","33-hey-thats-pretty-good","40-noice","48-ez","62-toasty"];
+const SFX_MISS = ["01-oof","10-bruh","30-violin-screech","52-mission-failed","58-record-scratch-1",
+                  "66-cricket-noise","67-ba-dun-dun","70-sorry-bro","61-say-what","72-titanic-flute-fail"];
+const Snd = (function(){
+  let ctx = null, noise = null, rollGain = null, rollFilter = null, clackT = 0, on = true;
+  const cache = {};
+  function makeNoise(){
+    const len = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let v = 0;
+    for (let i=0;i<len;i++){ v = (v + (Math.random()*2-1)*0.02); v = Math.max(-1,Math.min(1,v*0.995)); d[i] = v; }
+    return buf;
+  }
+  function init(){
+    if (ctx) return;
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return; }
+    noise = ctx.createBufferSource(); noise.buffer = makeNoise(); noise.loop = true;
+    rollFilter = ctx.createBiquadFilter(); rollFilter.type = "lowpass"; rollFilter.frequency.value = 420;
+    rollGain = ctx.createGain(); rollGain.gain.value = 0;
+    noise.connect(rollFilter); rollFilter.connect(rollGain); rollGain.connect(ctx.destination);
+    noise.start();
+  }
+  function clack(vol){
+    if (!ctx || !on) return;
+    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    f.type = "bandpass"; f.frequency.value = 900 + Math.random()*500; f.Q.value = 4;
+    o.type = "square"; o.frequency.value = 120 + Math.random()*60;
+    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+    o.connect(f); f.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.08);
+  }
+  return {
+    start(){ init(); if (ctx && ctx.state === "suspended") ctx.resume(); },
+    /* wheels: louder and faster the quicker the cart rolls */
+    roll(dt, speed, moving){
+      if (!ctx) return;
+      rollGain.gain.value = (on && moving) ? Math.min(0.22, 0.05 + speed*0.011) : 0;
+      rollFilter.frequency.value = 300 + speed*26;
+      if (!moving || !on) return;
+      clackT -= dt;
+      if (clackT <= 0){ clack(0.05 + speed*0.004); clackT = Math.max(0.09, 2.6/Math.max(1,speed)); }
+    },
+    /* the gate smashing apart: a low thump plus a wood crack */
+    smash(){
+      if (!ctx || !on) return;
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(42, t+0.35);
+      g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.4);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+0.42);
+      for (let i=0;i<7;i++) setTimeout(() => clack(0.3), i*22 + Math.random()*20);   // splintering wood
+    },
+    file(name, vol){
+      if (!on) return;
+      try{
+        const a = cache[name] || (cache[name] = new Audio("sfx/" + name + ".mp3"));
+        a.currentTime = 0; a.volume = vol === undefined ? 0.7 : vol;
+        a.play().catch(()=>{});
+      }catch(e){}
+    },
+    pick(list, vol){ this.file(list[(Math.random()*list.length)|0], vol); },
+    toggle(){ on = !on; if (!on && rollGain) rollGain.gain.value = 0; return on; }
+  };
+})();
 
 /* ============================ state ============================ */
 const S = {
@@ -537,13 +610,18 @@ function start(){
   $("steer").classList.remove("hide");
   S.running = true; S.ended = false; S.z = 0; S.x = 0; S.speed = SPEED0;
   S.hearts = 5; S.score = 0; S.gate = 0; S.right = 0; S.asked = 0; S.steerTo = null;
+  Snd.start();
   gates.forEach(clearGate); gates = []; hills.length = 0; banks.length = 0; shownGate = null;
+  // put the tunnel back under the cart: on a second ride the segments were
+  // still parked far down the track, so the whole ride rendered black
+  segments.forEach((sg,i) => { sg.position.z = i*SEG; });
   for (let i=0;i<3;i++) spawnGate(S.gate++);
   hud(); last = performance.now();
 }
 function restart(){ $("endOv").classList.add("hide"); $("startOv").classList.remove("hide"); S.running = false; S.ended = false; }
 $("goBtn").onclick = start;
 $("againBtn").onclick = restart;
+$("muteBtn").onclick = () => { $("muteBtn").textContent = Snd.toggle() ? "🔊" : "🔇"; };
 $("subjRow").onclick = e => {
   const b = e.target.closest("button"); if (!b) return;
   document.querySelectorAll("#subjRow button").forEach(x => x.classList.remove("on"));
@@ -572,18 +650,21 @@ function judge(g){
     S.coins += 5;
     S.speed = Math.min(SPEED_MAX, S.speed + SPEED_STEP);
     flashMsg("✅ YES! +" + (100 + Math.round(S.speed*2)), "#3ddc84");
+    Snd.smash();                                   // burst through the wooden gate
+    if (Math.random() < 0.5) setTimeout(() => Snd.pick(SFX_WIN, 0.75), 260);
     if (hasBank()) MathBank.record(true, g.qd.kind);
   } else {
     S.hearts--;
     S.speed = Math.max(SPEED0, S.speed - SPEED_STEP*2);
     flashMsg("❌ It was " + g.qd.a, "#ff6675");
     hurtFlash(); S.shakeT = 0.4;
+    Snd.pick(SFX_MISS, 0.8);
     if (hasBank()) MathBank.record(false, g.qd.kind);
   }
   hud();
-  if (S.hearts <= 0){ endRun(false); return; }
+  if (S.hearts <= 0){ setTimeout(() => Snd.file("21-gta-wasted", 0.8), 420); endRun(false); return; }
   if (S.gate < GATES) spawnGate(S.gate++);
-  else if (gates.every(x => x.done)) setTimeout(() => endRun(true), 900);
+  else if (gates.every(x => x.done)) setTimeout(() => { Snd.file("50-ta-daaa", 0.8); endRun(true); }, 900);
 }
 
 /* ============================ main loop ============================ */
@@ -592,6 +673,7 @@ function frame(now){
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last)/1000); last = now;
 
+  Snd.roll(dt, S.speed + boostAt(S.z), S.running && !S.paused && !S.ended);
   if (S.running && !S.paused){
     S.z += (S.speed + boostAt(S.z)) * dt;
     for (const g of gates) g.group.position.y = trackY(g.z);
@@ -618,6 +700,7 @@ function frame(now){
   // recycle tunnel segments so the tunnel never ends, and sit each one on the hill
   for (const s of segments){
     if (s.position.z < S.z - SEG*2) s.position.z += SEG*SEGS;
+    else if (s.position.z > S.z + SEG*(SEGS-1)) s.position.z -= SEG*SEGS;
     s.position.y = trackY(s.position.z);
     s.rotation.x = -Math.atan(slope(s.position.z));
     s.rotation.z = bankRoll(s.position.z);
