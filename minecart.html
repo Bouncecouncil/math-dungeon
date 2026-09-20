@@ -140,7 +140,7 @@ const SEG = 20;                      // length of one tunnel segment
 const SEGS = 14;                     // recycled segments = how far you can see
 const GATE_GAP = 165;                // distance between gates: long enough to read, choose and enjoy the ride
 const SIGN_LEAD = 34;                // the question sign stands this far before its gate
-const GATES = 8;                     // gates to the station
+let   GATES = 8;                     // gates to the station (the dungeon asks for fewer)
 const SPEED0 = 9.5, SPEED_MAX = 14, SPEED_STEP = 0.45;   // slow enough to read the sign and choose
 const STEER = 7.5;                   // sideways speed
 const COST_OPEN = 10, COST_HINT = 3;
@@ -217,6 +217,24 @@ const Snd = (function(){
     toggle(){ on = !on; if (!on && rollGain) rollGain.gain.value = 0; return on; }
   };
 })();
+
+/* ============================ embed + hero ============================
+   The dungeon opens this page over the fight as
+   minecart.html?embed=1&gates=6&coins=120&hero=knight and listens for
+   the same three messages every other room type sends.               */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get("embed") === "1";
+const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch(e){} };
+const HERO_ID = (["knight","wizard","ninja","robot","explorer","dragon"]
+                  .indexOf(QS.get("hero")) >= 0) ? QS.get("hero") : "knight";
+const HERO_LOOK = {
+  knight:  {body:0x9fb0c8, head:0xd9e2f0, trim:0xffd23f},
+  wizard:  {body:0x5b4bc4, head:0xf0c9a0, trim:0x8fe9ff},
+  ninja:   {body:0x2b3346, head:0x1a1f2c, trim:0xff4d5e},
+  robot:   {body:0xb8c4d4, head:0x7fe9ff, trim:0x3ddc84},
+  explorer:{body:0xc2874a, head:0xf0c9a0, trim:0x3ddc84},
+  dragon:  {body:0x3ec46b, head:0x6ee39a, trim:0xffd23f}
+};
 
 /* ============================ state ============================ */
 const S = {
@@ -359,6 +377,20 @@ const cart = new THREE.Group();
     color:0xffd39a, transparent:true, opacity:0.13, depthWrite:false
   }));
   lamp.position.set(0,1.6,6); cart.add(lamp);
+  /* the hero the kid picked in the dungeon, riding along */
+  const look = HERO_LOOK[HERO_ID];
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0,0.95,0.7), new THREE.MeshBasicMaterial({color:look.body}));
+  torso.position.set(0,1.9,-0.1); cart.add(torso);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.72,0.7,0.7), new THREE.MeshBasicMaterial({color:look.head}));
+  head.position.set(0,2.72,-0.1); cart.add(head);
+  const hat = new THREE.Mesh(new THREE.BoxGeometry(0.86,0.22,0.86), new THREE.MeshBasicMaterial({color:look.trim}));
+  hat.position.set(0,3.14,-0.1); cart.add(hat);
+  if (HERO_ID === "dragon"){
+    for (const sx of [-1,1]){
+      const w = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.5,0.1), new THREE.MeshBasicMaterial({color:look.trim}));
+      w.position.set(sx*0.78, 2.05, -0.35); w.rotation.z = sx*0.5; cart.add(w);
+    }
+  }
 })();
 scene.add(cart);
 
@@ -513,7 +545,8 @@ function openHelper(){
   if (!g) return;
   const ab = helperNumbers(g.qd.q, g.qd.kind);
   if (!ab) return;
-  S.coins = Math.max(0, S.coins - Math.min(COST_OPEN, S.coins));   // never blocks
+  const paid = Math.min(COST_OPEN, S.coins);
+  S.coins -= paid; if (EMBED) toGame({type:"spend", n:paid});        // never blocks
   hud();
   S.paused = true; helperFor = g;
   $("helperFrame").src = "multiply-helper.html?embed=1&a="+ab[0]+"&b="+ab[1]+"&coins="+S.coins+"&v="+Date.now();
@@ -527,7 +560,7 @@ function closeHelper(){
 }
 addEventListener("message", e => {
   const d = e.data; if (!d || !d.mdHelper) return;
-  if (d.type === "spend"){ S.coins = Math.max(0, S.coins - (d.n|0)); hud(); }
+  if (d.type === "spend"){ S.coins = Math.max(0, S.coins - (d.n|0)); hud(); if (EMBED) toGame({type:"spend", n:d.n|0}); }
   else if (d.type === "close") closeHelper();
   else if (d.type === "solved"){
     const g = helperFor;
@@ -621,6 +654,12 @@ function start(){
 }
 function restart(){ $("endOv").classList.add("hide"); $("startOv").classList.remove("hide"); S.running = false; S.ended = false; }
 $("goBtn").onclick = start;
+if (EMBED){
+  const c = parseInt(QS.get("coins"),10); if (isFinite(c) && c >= 0) S.coins = c;
+  const g = parseInt(QS.get("gates"),10); if (isFinite(g) && g >= 1 && g <= 20) GATES = g;
+  addEventListener("keydown", e => { if (e.key === "Escape") toGame({type:"close"}); });
+  setTimeout(() => { $("startOv").classList.add("hide"); start(); }, 250);
+}
 $("againBtn").onclick = restart;
 $("muteBtn").onclick = () => { $("muteBtn").textContent = Snd.toggle() ? "🔊" : "🔇"; };
 $("subjRow").onclick = e => {
@@ -638,6 +677,11 @@ function endRun(won){
     + ` · <b>${S.score}</b> points · <b>🪙 ${S.coins}</b> coins`
     + (won ? "" : "<br>Out of hearts! Jump back on.");
   $("endOv").classList.remove("hide");
+  if (EMBED){
+    $("againBtn").textContent = "⚔️ Back to the dungeon!";
+    $("againBtn").onclick = () => toGame({type:"solved", right:S.right, asked:S.asked, score:S.score});
+    setTimeout(() => toGame({type:"solved", right:S.right, asked:S.asked, score:S.score}), 4500);
+  }
 }
 
 /* ============================ the gate check ============================ */

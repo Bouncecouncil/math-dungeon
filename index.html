@@ -129,6 +129,12 @@
   #helpBtn.hidden{display:none;}
   #qChoices.subj{grid-template-columns:repeat(3,1fr);}
   #helperOv{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.72);}
+  #roundCard{position:fixed;inset:0;z-index:65;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(3,6,18,.94);color:#fff;text-align:center;}
+  #roundCard.hidden{display:none;}
+  #roundCard .rc1{font-size:clamp(18px,3vw,26px);font-weight:800;color:#ffd23f;letter-spacing:3px;}
+  #roundCard .rc2{font-size:clamp(30px,7vw,58px);font-weight:900;margin-top:6px;text-shadow:0 4px 0 #1b2a6a;}
+  #roundCard .rc3{font-size:clamp(13px,2.4vw,17px);color:#9fb0d8;margin-top:12px;}
   #helperOv iframe{width:100%;height:100%;border:0;display:block;}
   #qMsg{min-height:22px;font-size:15px;font-weight:800;margin-top:8px;color:#ffd23f;}
   #qbar.shake{animation:shk .35s;}
@@ -192,6 +198,7 @@
     <div id="cineSkip">SKIP &nbsp;<span>SPACE / A</span></div>
     <div id="cineBar"><div id="cineFill"></div></div>
   </div>
+  <div id="roundCard" class="hidden"></div>
   <div id="toast"></div>
   <div id="engagePrompt" class="hidden"></div>
 
@@ -502,7 +509,7 @@ function droneUpdate(dt){
 }
 
 /* ================= state ================= */
-const S={mode:"title",level:0,score:0,coins:0,coinTopLevel:-1,best:0,hearts:5,shield:0,streak:0,levelStartScore:0,toastT:0,pausedFrom:"play",tier:{projectile:0,melee:0},track:"projectile",invT:0,view:"third",character:"knight",camTilt:0,seen:new Set(),lastHitX:null,lastHitY:null};
+const S={mode:"title",level:0,score:0,coins:0,coinTopLevel:-1,miniKind:null,rodeCart:false,runeCd:0,runeSeen:false,best:0,hearts:5,shield:0,streak:0,levelStartScore:0,toastT:0,pausedFrom:"play",tier:{projectile:0,melee:0},track:"projectile",invT:0,view:"third",character:"knight",camTilt:0,seen:new Set(),lastHitX:null,lastHitY:null};
 let grid=[],GW=16,GH=16,doors=new Set(),ents=[];
 const p={x:1.5,y:1.5,a:0};
 try{S.best=parseInt(localStorage.getItem("mathDungeonBest")||"0",10)||0;}catch(e){}
@@ -630,10 +637,27 @@ function loadLevel(li){
     else if(ch==="D"){doors.add(x+","+y);}
   }
   packs.forEach(spawnMembers); // after doors set so solidAt is correct
+  if(li===1)placeRuneDoor();   // dungeon 2 hides the way out
   syncWeapon();
   S.hearts=5;S.levelStartScore=S.score;S.streak=0;
   beams.length=0;parts.length=0;
   updateHUD();
+}
+
+/* The rune door: obvious enough for a 7-year-old to spot, tucked in the
+   far corner of dungeon 2. Walking into it is the way out of the level. */
+function placeRuneDoor(){
+  let best=null,bestD=-1;
+  for(let y=1;y<GH-1;y++)for(let x=1;x<GW-1;x++){
+    if(grid[y][x]!==".")continue;
+    if(ents.some(e=>Math.abs(e.x-(x+0.5))<1.2&&Math.abs(e.y-(y+0.5))<1.2))continue;
+    const touchesWall=grid[y-1][x]==="#"||grid[y+1][x]==="#"||grid[y][x-1]==="#"||grid[y][x+1]==="#";
+    if(!touchesWall)continue;
+    const d=Math.hypot(x+0.5-p.x,y+0.5-p.y);
+    if(d>bestD){bestD=d;best={x:x+0.5,y:y+0.5};}
+  }
+  if(best)ents.push({x:best.x,y:best.y,kind:"rune",emoji:"\u{1F6AA}",alive:true});
+  S.runeCd=0;S.runeSeen=false;
 }
 
 /* ================= input ================= */
@@ -852,6 +876,11 @@ function checkWorld(){
     if(!e.alive)continue;
     const d=Math.hypot(e.x-p.x,e.y-p.y);
     if(e.kind==="shield"&&d<0.7){e.alive=false;S.shield=Math.min(S.shield+1,3);SFX.pickup();toast("🛡️ Shield up! It blocks one wrong answer.");updateHUD();}
+    else if(e.kind==="rune"){
+      if(S.runeCd>0)S.runeCd-=0.016;
+      else if(d<1.0&&!C){openMini("rune","runedoor.html?embed=1&doors=1");return;}
+      else if(d<4.5&&!S.runeSeen&&hasLOS(p.x,p.y,e.x,e.y)){S.runeSeen=true;toast("\u2728 A RUNE DOOR! Walk into it to leave this level");}
+    }
     else if(e.kind==="upgrade"&&d<0.8){e.alive=false;collectUpgrade();}
     else if(e.kind==="potion"&&d<0.85&&!C){startPotion(e);return;}
     else if(e.kind==="exit"&&d<0.8&&!C){
@@ -1059,28 +1088,70 @@ function updateHelpBtn(){
 function openHelper(){
   const ab=helperNumbers();if(!ab||S.mode==="helper")return;
   S.coins=Math.max(0,S.coins-Math.min(COIN_OPEN,S.coins));updateHUD();   // never blocks him
-  S.helperFrom=S.mode;S.mode="helper";
+  openMini("helper","multiply-helper.html?embed=1&a="+ab[0]+"&b="+ab[1]);
+}
+/* ============ the other games, opened over the dungeon ============
+   Every room type is its own page and stays playable on its own. The
+   dungeon just hands it the kid's coins and the hero he picked, and
+   listens for the same three messages the multiply helper sends.     */
+function openMini(kind,url){
+  if(S.mode==="helper"||S.mode==="mini")return;
+  S.miniKind=kind;
+  S.helperFrom=(S.mode==="cine")?"play":S.mode;
+  S.mode=(kind==="helper")?"helper":"mini";
+  const sep=url.indexOf("?")<0?"?":"&";
   const ov=document.createElement("div");ov.id="helperOv";
   const fr=document.createElement("iframe");
-  fr.src="multiply-helper.html?embed=1&a="+ab[0]+"&b="+ab[1]+"&coins="+S.coins+"&v="+Date.now();
+  fr.src=url+sep+"coins="+S.coins+"&hero="+encodeURIComponent(S.character||"knight")+"&v="+Date.now();
   fr.onload=()=>{try{fr.focus();}catch(e){}};
   ov.appendChild(fr);document.body.appendChild(ov);
 }
+/* a game-show style card between rooms */
+function roundCard(small,big,sub,then){
+  const el=$("roundCard");
+  el.innerHTML="<div class='rc1'>"+small+"</div><div class='rc2'>"+big+"</div><div class='rc3'>"+(sub||"")+"</div>";
+  el.classList.remove("hidden");
+  setTimeout(()=>{el.classList.add("hidden");if(then)then();},1900);
+}
 function closeHelper(){
   const ov=$("helperOv");if(ov)ov.remove();
-  if(S.mode==="helper")S.mode=S.helperFrom||"combat";
+  if(S.mode==="helper"||S.mode==="mini")S.mode=S.helperFrom||"play";
+  S.miniKind=null;
   updateHelpBtn();
   try{window.focus();}catch(e){}
 }
 window.addEventListener("message",e=>{
   const d=e.data;if(!d||!d.mdHelper)return;
-  if(d.type==="spend"){S.coins=Math.max(0,S.coins-(d.n|0));updateHUD();}
-  else if(d.type==="close"){closeHelper();}
-  else if(d.type==="solved"){
-    closeHelper();
-    if(C&&C.phase==="question"){const i=C.choices.findIndex(c=>c.ok);if(i>=0)pickChoice(i);}
+  const kind=S.miniKind;
+  if(d.type==="spend"){S.coins=Math.max(0,S.coins-(d.n|0));updateHUD();return;}
+  if(d.type!=="close"&&d.type!=="solved")return;
+  const solved=(d.type==="solved");
+  closeHelper();
+  if(kind==="helper"){
+    if(solved&&C&&C.phase==="question"){const i=C.choices.findIndex(c=>c.ok);if(i>=0)pickChoice(i);}
+  }else if(kind==="minecart"){
+    if(solved){S.score+=300;S.coins+=40;updateHUD();}
+    showIntro();                                   // the cart ride sits between levels
+  }else if(kind==="rune"){
+    if(solved){
+      const ent=ents.find(x=>x.kind==="rune");if(ent)ent.alive=false;
+      S.score+=200;updateHUD();
+      openBonusRoom();                             // the rune door teleports him on
+    }else{ S.runeCd=4; }                           // walked away: he can come back
+  }else if(kind==="bonus"){
+    if(solved){
+      S.score+=400;S.coins+=60;S.hearts=Math.min(5,S.hearts+1);updateHUD();
+      toast("🌀 Back in the dungeon! +400 points, +60 coins, +1 ❤️");
+    } else toast("🌀 Back in the dungeon!");
   }
 });
+/* the rune door drops him into ONE round of another game, then brings him back */
+function openBonusRoom(){
+  const pick=Math.random()<0.5
+    ? {url:"detective.html?embed=1&cases=1",  small:"SECRET ROOM", big:"🔎 THE DETECTIVE ROOM", sub:"Read every clue, then answer at the door"}
+    : {url:"crateroom.html?embed=1&level="+(1+Math.floor(Math.random()*5)), small:"SECRET ROOM", big:"📦 THE CRATE ROOM", sub:"Push the crates until they add up to the door"};
+  roundCard(pick.small,pick.big,pick.sub,()=>openMini("bonus",pick.url));
+}
 function startBoss(ent){
   const c={type:"boss",ent:ent,phase:"question",stage:0};
   beginEncounter(c);
@@ -1664,12 +1735,20 @@ const GAME={
     const next=GAME.setView(S.view==="third"?"first":"third");
     toast(next==="third"?"🧍 Third person: you can see your hero":"👁️ First person: through his eyes");
   },
-  start(track){ac();droneStart();S.track=(track==="melee")?"melee":"projectile";$("titleOv").classList.add("hidden");S.level=0;S.score=0;S.coins=COIN_START;S.coinTopLevel=-1;S.shield=0;S.tier={projectile:0,melee:0};showIntro();},
+  start(track){ac();droneStart();S.track=(track==="melee")?"melee":"projectile";$("titleOv").classList.add("hidden");S.level=0;S.score=0;S.coins=COIN_START;S.coinTopLevel=-1;S.rodeCart=false;S.shield=0;S.tier={projectile:0,melee:0};showIntro();},
   beginLevel(){$("introOv").classList.add("hidden");S.mode="play";},
   nextLevel(){
     $("clearOv").classList.add("hidden");
     S.level++;
-    if(S.level>=MAPS_RAW.length){win();}else{showIntro();}
+    if(S.level>=MAPS_RAW.length){win();return;}
+    // between the first two dungeons he rides the mine cart
+    if(S.level===1&&!S.rodeCart){
+      S.rodeCart=true;
+      roundCard("ROUND 2","🛒 THE MINE CART","Read the sign, steer into the right lane",
+                ()=>openMini("minecart","minecart.html?embed=1&gates=6"));
+      return;
+    }
+    showIntro();
   },
   retryLevel(){$("overOv").classList.add("hidden");S.score=S.levelStartScore;loadLevel(S.level);S.mode="play";},
   restart(){$("winOv").classList.add("hidden");$("titleOv").classList.remove("hidden");S.mode="title";},
@@ -1830,6 +1909,8 @@ function pushWorldSprites(now){
       push(e.x,e.y,0.10+0.04*Math.sin(now*3),e.emoji,0.8+0.06*Math.sin(now*4),[92,255,138],{seed:e.x});
     }else if(e.kind==="upgrade"){
       push(e.x,e.y,0.14+0.05*Math.sin(now*3+e.x),"\u{1F527}",0.4+0.05*Math.sin(now*4+e.x),[255,210,63],{seed:e.x});
+    }else if(e.kind==="rune"){
+      push(e.x,e.y,0.14+0.05*Math.sin(now*2.2+e.x),e.emoji,0.62+0.05*Math.sin(now*3),[190,130,255],{seed:e.x});
     }else if(e.kind==="potion"){
       push(e.x,e.y,0.10+0.04*Math.sin(now*2.6+e.x),e.emoji,0.42,[46,229,106],{seed:e.x});
     }else{
