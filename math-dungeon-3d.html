@@ -1139,10 +1139,16 @@ window.addEventListener("message",e=>{
       openBonusRoom();                             // the rune door teleports him on
     }else{ S.runeCd=4; }                           // walked away: he can come back
   }else if(kind==="bonus"){
+    // Will's rule: the rune door is the way OUT of the level. Finishing the
+    // secret room ends dungeon 2 and drops him into the next dungeon.
     if(solved){
       S.score+=400;S.coins+=60;S.hearts=Math.min(5,S.hearts+1);updateHUD();
-      toast("🌀 Back in the dungeon! +400 points, +60 coins, +1 ❤️");
-    } else toast("🌀 Back in the dungeon!");
+      roundCard("LEVEL COMPLETE","\u{1F300} THE RUNE DOOR CARRIES YOU ON","+400 points  \u00b7  +60 coins  \u00b7  +1 heart",
+                ()=>GAME.nextLevel());
+    } else {
+      toast("\u{1F300} Back in the dungeon.");   // he bailed out: the level stands
+      const ent=ents.find(x=>x.kind==="rune");if(ent){ent.alive=true;S.runeCd=4;}
+    }
   }
 });
 /* the rune door drops him into ONE round of another game, then brings him back */
