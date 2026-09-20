@@ -150,7 +150,8 @@ const COST_OPEN = 10, COST_HINT = 3;
    speed up with the cart), so nothing has to load. The one-shots are real
    files in ./sfx: a wood smash for the right lane, and the funny error
    sounds out of Will's meme folder for a wrong one.                    */
-const SFX_WIN  = ["13-got-em","33-hey-thats-pretty-good","40-noice","48-ez","62-toasty"];
+const SFX_WIN  = ["13-got-em","33-hey-thats-pretty-good","40-noice","48-ez","62-toasty",
+                  "07-yeet","12-sheesh","37-weeeeeee","41-skibidi-bop","09-anime-woah","29-ohhhhh"];
 const SFX_MISS = ["01-oof","10-bruh","30-violin-screech","52-mission-failed","58-record-scratch-1",
                   "66-cricket-noise","67-ba-dun-dun","70-sorry-bro","61-say-what","72-titanic-flute-fail"];
 const Snd = (function(){
@@ -234,14 +235,14 @@ const hills = [];      // {z, depth}
 const banks = [];      // {z, dir}
 const bell = (d, w) => Math.exp(-(d*d)/(w*w));            // smooth bump, 1 at the centre
 function trackY(z){
-  let y = Math.sin(z*0.010)*2.8 + Math.sin(z*0.026)*1.3;  // the rolling mine floor
+  let y = Math.sin(z*0.010)*2.2 + Math.sin(z*0.026)*0.9;  // the rolling mine floor
   for (const h of hills) y -= h.depth * bell(z - h.z, 26);
   return y;
 }
 function slope(z){ return (trackY(z+2) - trackY(z-2)) / 4; }
 function bankRoll(z){
   let r = 0;
-  for (const b of banks) r += b.dir * 0.38 * bell(z - b.z, 24);
+  for (const b of banks) r += b.dir * 0.13 * bell(z - b.z, 26);   // a lean you feel, not a barrel roll
   return r;
 }
 function boostAt(z){                                      // gravity down the dip
@@ -471,7 +472,7 @@ function spawnGate(index){
   beam.position.set(0,3.5,0); group.add(beam);
 
   // the stretch AFTER this gate: a dip and a banked curve, both visible long before they arrive
-  hills.push({z: z + GATE_GAP*0.34, depth: 5.5});
+  hills.push({z: z + GATE_GAP*0.34, depth: 4.2});
   banks.push({z: z + GATE_GAP*0.70, dir: (index % 2) ? 1 : -1});
   scene.add(group);
   gates.push({z, qd, group, banners, done:false, index});
@@ -651,7 +652,7 @@ function judge(g){
     S.speed = Math.min(SPEED_MAX, S.speed + SPEED_STEP);
     flashMsg("✅ YES! +" + (100 + Math.round(S.speed*2)), "#3ddc84");
     Snd.smash();                                   // burst through the wooden gate
-    if (Math.random() < 0.5) setTimeout(() => Snd.pick(SFX_WIN, 0.75), 260);
+    setTimeout(() => Snd.pick(SFX_WIN, 0.8), 260);   // a funny win sound every single time
     if (hasBank()) MathBank.record(true, g.qd.kind);
   } else {
     S.hearts--;
@@ -703,17 +704,16 @@ function frame(now){
     else if (s.position.z > S.z + SEG*(SEGS-1)) s.position.z -= SEG*SEGS;
     s.position.y = trackY(s.position.z);
     s.rotation.x = -Math.atan(slope(s.position.z));
-    s.rotation.z = bankRoll(s.position.z);
   }
 
   // camera rides just behind and above the cart
   const roll = bankRoll(S.z);
-  cart.position.set(S.x, trackY(S.z), S.z);
+  cart.position.set(S.x, trackY(S.z) + 0.05, S.z);   // ride on top of the sleepers, never through them
   const sway = Math.sin(now/90) * 0.04 + (S.shakeT>0 ? (Math.random()-0.5)*0.25 : 0);
-  cart.rotation.z = readSteer()*0.07 + sway*0.3 + roll;
+  cart.rotation.z = readSteer()*0.07 + sway*0.3 + roll*0.6;
   cart.rotation.x = -Math.atan(slope(S.z));
   camera.position.set(S.x*0.8, trackY(S.z-11) + 4.4 + sway, S.z - 11);
-  camera.up.set(Math.sin(roll*0.8), Math.cos(roll*0.8), 0);   // the whole view leans through a banked curve
+  camera.up.set(Math.sin(roll), Math.cos(roll), 0);           // the view leans through a banked curve
   camera.lookAt(S.x*0.9, trackY(S.z+16) + 2.4, S.z + 16);
   if (S.shakeT > 0){
     S.shakeT -= dt;
