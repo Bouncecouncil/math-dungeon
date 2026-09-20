@@ -400,7 +400,10 @@ const MathBank = (function () {
     if (!okNum && !okWord) return null;
     r.kind = kind;
     r.tier = t;
-    r.sig = kind + "|" + r.q.replace(/<[^>]*>/g, "");
+    // the ANSWER belongs in the signature: every spelling question reads
+    // "Which word is spelled correctly?", so keying on wording alone made the
+    // bag treat the whole family as already seen after one question
+    r.sig = kind + "|" + r.q.replace(/<[^>]*>/g, "") + "|" + r.a;
     return r;
   }
 
