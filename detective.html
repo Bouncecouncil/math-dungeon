@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Detective Room</title>
+<style>
+:root{
+  --bg:#141a22; --board:#1f2a33; --chalk:#f4f1e8; --dim:#8a97a3;
+  --gold:#ffd23f; --good:#3ddc84; --bad:#ff4d5e; --blue:#4fc3ff;
+  --panelbg:#0c1117; --edge:#2b3843;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--chalk);
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+button{font-family:inherit;cursor:pointer;border:none}
+
+/* ---------- HUD ---------- */
+#hud{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:8px 12px;background:#10161d;
+  border-bottom:2px solid var(--edge);min-height:56px;flex-wrap:nowrap}
+#hearts{font-size:20px;letter-spacing:1px;white-space:nowrap}
+#hearts .off{opacity:.22}
+#coins{font-size:19px;font-weight:700;color:var(--gold);background:var(--panelbg);padding:6px 12px;
+  border-radius:999px;border:2px solid #3a3113;white-space:nowrap}
+#coins.spend{animation:spend .5s}
+@keyframes spend{30%{transform:scale(1.18);color:var(--bad)}}
+#checks{display:flex;gap:6px;align-items:center}
+.chk{width:34px;height:34px;border-radius:9px;background:#222c36;border:2px solid var(--edge);
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--dim)}
+.chk.on{background:var(--gold);border-color:#a3830f;color:#1a1405;box-shadow:0 0 12px rgba(255,210,63,.5)}
+#caseName{font-size:15px;font-weight:700;color:var(--dim);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+#hintBtn{flex:0 0 auto;margin-left:auto;background:var(--blue);color:#06121b;font-size:16px;font-weight:800;
+  padding:0 14px;height:44px;border-radius:12px;box-shadow:0 4px 0 #1d6f99;white-space:nowrap}
+#hintBtn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d6f99}
+
+/* ---------- stage ---------- */
+#stage{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+#cv{display:block;width:100%;height:100%;touch-action:none}
+
+/* ---------- d-pad ---------- */
+#dpad{position:absolute;right:10px;bottom:10px;display:grid;grid-template-columns:repeat(3,46px);
+  grid-template-rows:repeat(3,46px);gap:4px;opacity:.9;touch-action:none;z-index:6}
+#dpad button{background:rgba(43,56,67,.92);color:var(--chalk);font-size:20px;font-weight:800;
+  border-radius:10px;box-shadow:0 3px 0 #0b1016}
+#dpad button:active{transform:translateY(2px);box-shadow:0 1px 0 #0b1016}
+#dpad .sp{visibility:hidden}
+
+/* ---------- overlay cards ---------- */
+.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,94%);
+  max-height:92%;background:var(--panelbg);border:3px solid var(--gold);border-radius:16px;
+  box-shadow:0 12px 40px rgba(0,0,0,.65);display:none;flex-direction:column;z-index:8;overflow:hidden}
+.card.show{display:flex}
+.card.plain{border-color:var(--edge)}
+.card.danger{border-color:var(--bad)}
+.chead{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:12px 14px 8px}
+.chead .ttl{font-size:19px;font-weight:800;color:var(--gold);flex:1 1 auto;line-height:1.2}
+.badge{font-size:12px;font-weight:800;background:var(--blue);color:#06121b;padding:4px 8px;border-radius:999px;white-space:nowrap}
+.cbody{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px 16px 12px;
+  font-size:17px;line-height:1.5}
+.cbody p{margin:0 0 10px}
+.cfoot{flex:0 0 auto;padding:8px 14px 14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{background:var(--blue);color:#06121b;font-size:17px;font-weight:800;padding:0 20px;min-height:44px;
+  border-radius:12px;box-shadow:0 4px 0 #1d6f99}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d6f99}
+.btn.gold{background:var(--gold);box-shadow:0 4px 0 #a3830f;color:#1a1405}
+.btn.gold:active{box-shadow:0 1px 0 #a3830f}
+.btn.grey{background:#2b3843;color:var(--chalk);box-shadow:0 4px 0 #111820}
+.btn.grey:active{box-shadow:0 1px 0 #111820}
+
+/* question card */
+#qWrap .qtext{font-size:19px;font-weight:700;line-height:1.35;margin:0 0 12px}
+#choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#choices button{background:#2b3843;color:var(--chalk);font-size:16px;font-weight:700;min-height:48px;
+  padding:8px 10px;border-radius:12px;box-shadow:0 4px 0 #111820;text-align:left;line-height:1.25}
+#choices button:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+#choices button.wrong{background:#4a2f36;color:#ffb8bf}
+#choices button.right{background:var(--good);color:#06210f}
+#qmsg{min-height:22px;font-size:16px;font-weight:700;text-align:center;margin-top:10px}
+#qmsg.bad{color:var(--bad)} #qmsg.good{color:var(--good)}
+
+/* start + end screens */
+#start .cbody,#end .cbody{text-align:center}
+.det{font-size:58px;line-height:1}
+.note{color:var(--dim);font-size:14px;line-height:1.5}
+
+/* toast */
+#toast{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(12,17,23,.95);
+  border:2px solid var(--edge);color:var(--chalk);font-size:15px;font-weight:700;padding:9px 16px;
+  border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:7;max-width:88%;text-align:center}
+#toast.show{opacity:1}
+#toast.bad{border-color:var(--bad);color:#ffb8bf}
+#toast.good{border-color:var(--good);color:#bdf5d3}
+
+/* ---------- phone in landscape: no page scroll, panel scrolls inside ---------- */
+@media (max-height:430px){
+  #hud{min-height:48px;padding:5px 10px;gap:7px}
+  #hearts{font-size:15px}
+  #coins{font-size:15px;padding:4px 9px}
+  .chk{width:28px;height:28px;border-radius:7px;font-size:13px}
+  #caseName{display:none}
+  #hintBtn{font-size:14px;padding:0 11px;height:44px}
+  #dpad{grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);right:6px;bottom:6px}
+  .card{width:min(520px,96%);max-height:96%;border-width:2px;border-radius:12px}
+  .chead{padding:8px 12px 4px}
+  .chead .ttl{font-size:16px}
+  .cbody{font-size:15px;line-height:1.4;padding:2px 12px 8px}
+  .cbody p{margin:0 0 7px}
+  .cfoot{padding:6px 12px 10px;gap:8px}
+  .btn{font-size:15px;padding:0 16px;min-height:44px}
+  #qWrap .qtext{font-size:16px;margin:0 0 8px}
+  #choices button{font-size:15px;min-height:44px;padding:6px 9px}
+  #qmsg{font-size:14px;min-height:18px;margin-top:6px}
+  .det{font-size:38px}
+  .note{font-size:12px}
+  #toast{bottom:6px;font-size:13px;padding:7px 12px}
+}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div id="hearts"></div>
+  <div id="coins">🪙 <span id="coinN">55</span></div>
+  <div id="checks"></div>
+  <div id="caseName">Detective Room</div>
+  <button id="hintBtn">💡 Hint (🪙3)</button>
+</div>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+
+  <div id="dpad">
+    <button class="sp"></button><button data-d="up">▲</button><button class="sp"></button>
+    <button data-d="left">◀</button><button class="sp"></button><button data-d="right">▶</button>
+    <button class="sp"></button><button data-d="down">▼</button><button class="sp"></button>
+  </div>
+
+  <!-- plaque panel -->
+  <div class="card" id="pWrap">
+    <div class="chead"><div class="ttl" id="pTitle"></div><div class="badge" id="pBadge" style="display:none">🔑 KEY CLUE</div></div>
+    <div class="cbody" id="pBody"></div>
+    <div class="cfoot"><button class="btn grey" id="pClose">Close</button></div>
+  </div>
+
+  <!-- question panel -->
+  <div class="card" id="qWrap">
+    <div class="chead"><div class="ttl">🚪 The door asks...</div></div>
+    <div class="cbody">
+      <p class="qtext" id="qText"></p>
+      <div id="choices"></div>
+      <div id="qmsg"></div>
+    </div>
+    <div class="cfoot"><button class="btn grey" id="qClose">Go read the clues again</button></div>
+  </div>
+
+  <!-- solved / between cases -->
+  <div class="card" id="solved">
+    <div class="chead"><div class="ttl">✅ Case solved!</div></div>
+    <div class="cbody" id="solvedBody"></div>
+    <div class="cfoot"><button class="btn gold" id="nextBtn">Next case ▶</button></div>
+  </div>
+
+  <!-- start -->
+  <div class="card plain" id="start">
+    <div class="chead"><div class="ttl">🕵️ Detective Room</div></div>
+    <div class="cbody">
+      <div class="det">🕵️</div>
+      <p>Walk up to each <b>clue plaque</b> on the wall and read it. When every clue is lit up, the door will ask you one question.</p>
+      <p class="note">Move with the arrow keys, WASD, the buttons on screen, or drag your finger.<br>
+      A wrong answer costs a heart. A hint costs 🪙3 and re-shows the clue that matters most.</p>
+    </div>
+    <div class="cfoot"><button class="btn gold" id="startBtn">Start the case ▶</button></div>
+  </div>
+
+  <!-- end of run / out of hearts -->
+  <div class="card" id="end">
+    <div class="chead"><div class="ttl" id="endTitle"></div></div>
+    <div class="cbody" id="endBody"></div>
+    <div class="cfoot"><button class="btn gold" id="endBtn">Play again ▶</button></div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ==========================================================================
+   1. THE CASES  (8 written cases: 3-4 plaques, 1 question, 4 choices)
+   `key` = index of the single plaque the hint re-shows.
+   ========================================================================== */
+const CASES = [
+{
+  id:"key", name:"The Stolen Key",
+  plaques:[
+    {t:"Guard Log", s:"The brass key is gone from its hook. Only three goblins came into this room last night: Grubb, Snik, and Mol. One of them is the thief."},
+    {t:"Boot Rack", s:"Muddy boot prints lead away from the empty hook. Grubb owns no boots at all. He walks on bare green feet, so he can never leave a boot print."},
+    {t:"Kitchen Log", s:"Mol cooked stew in the tower kitchen all night long. She never stepped outside, so her boots stayed dry and clean."},
+    {t:"Weather Stone", s:"Rain fell all night. Anyone who crossed the muddy yard came back with thick mud on their boots."}
+  ],
+  q:"Who stole the brass key?",
+  choices:["Grubb","Snik","Mol","The guard"], ans:1, key:1
+},
+{
+  id:"doors", name:"The Three Doors",
+  plaques:[
+    {t:"Door Rule", s:"A safe door always has a cold handle. A trap door always has a warm handle, because fire sleeps behind it."},
+    {t:"Bort's Note", s:"I touched every handle this morning. The green handle was warm. The blue handle was warm too. Bort the dwarf wrote this."},
+    {t:"Room Sign", s:"Three doors lead out of this room. One is red, one is green, one is blue. Only one of them is safe."}
+  ],
+  q:"Which door is safe to open?",
+  choices:["The red door","The green door","The blue door","None of them"], ans:0, key:1
+},
+{
+  id:"soup", name:"The Missing Soup",
+  plaques:[
+    {t:"Troll's Complaint", s:"Somebody ate my mushroom soup! Only three creatures came in here: Pip the bat, Tock the rat, and Glub the slime."},
+    {t:"Cave Diary", s:"Pip the bat only drinks nectar from cave flowers. Mushrooms make her sneeze for a whole week, so she never eats them."},
+    {t:"Shelf Notice", s:"The soup bowl sits on a stone shelf as tall as three trolls. Tock the rat cannot fly and cannot climb stone."},
+    {t:"Dungeon Guide", s:"Bats fly up to high places. Slimes ooze straight up a wall like syrup going backwards."}
+  ],
+  q:"Who ate the mushroom soup?",
+  choices:["Pip the bat","Tock the rat","Glub the slime","The troll"], ans:2, key:2
+},
+{
+  id:"torch", name:"The Torch Count",
+  plaques:[
+    {t:"Sunset Log", s:"At sunset this hall had 10 torches burning on the walls. Every one of them was counted."},
+    {t:"Goblin Tracks", s:"A goblin crept in during the night and carried 3 torches back to his cave."},
+    {t:"Ghost's Note", s:"I felt sorry for lost heroes, so I lit 2 brand new torches. Nobody else touched a single one."}
+  ],
+  q:"How many torches are burning in the hall now?",
+  choices:["5 torches","7 torches","9 torches","12 torches"], ans:2, key:0
+},
+{
+  id:"dragon", name:"The Dragon's Nap",
+  plaques:[
+    {t:"Dragon Rule", s:"After every meal the dragon sleeps for 6 hours. While she is awake, nobody may cross her cave."},
+    {t:"Kitchen Bone", s:"The dragon ate a whole goat at 2 o'clock, then curled up on the gold and fell asleep."},
+    {t:"Crossing Sign", s:"Walking across the dragon cave takes 1 whole hour. You must be all the way out before she wakes up."}
+  ],
+  q:"What is the latest hour the hero can start crossing?",
+  choices:["5 o'clock","6 o'clock","7 o'clock","8 o'clock"], ans:2, key:2
+},
+{
+  id:"map", name:"The Fake Map",
+  plaques:[
+    {t:"Mapmakers' Board", s:"Three mapmakers drew this dungeon: Old Nell, Barnaby, and Zim the wizard. One of the three maps is a fake."},
+    {t:"True Map Rule", s:"Every true map of this dungeon shows exactly 4 rooms. A fake map always shows 5 rooms."},
+    {t:"Map Table", s:"Old Nell's map shows 4 rooms. Barnaby's map shows 4 rooms as well. Both maps are spread out on this table."},
+    {t:"Gossip Stone", s:"Zim lost his reading glasses last winter and he still has not found them."}
+  ],
+  q:"Whose map is the fake?",
+  choices:["Old Nell's map","Barnaby's map","Zim's map","They are all true"], ans:2, key:2
+},
+{
+  id:"coins", name:"The Coin Chest",
+  plaques:[
+    {t:"Chest Label", s:"This chest holds 12 gold coins. Count them carefully before you take any."},
+    {t:"Dungeon Law", s:"Every hero who opens a chest must leave half of the coins behind for the next hero."},
+    {t:"Floor Note", s:"Three loose coins were lying in the dust beside the chest. Those are not chest coins, so a hero may keep all 3."}
+  ],
+  q:"How many coins does the hero carry away?",
+  choices:["6 coins","9 coins","12 coins","15 coins"], ans:1, key:1
+},
+{
+  id:"bridge", name:"The Cut Bridge",
+  plaques:[
+    {t:"Night Report", s:"The rope bridge was cut at midnight. Only three of us were on this side: Dara the knight, Fizz the goblin, and Grum the troll."},
+    {t:"Rope Ends", s:"The rope was cut clean with a small sharp blade. Grum the troll owns no blade. He only smashes things with his fists."},
+    {t:"Tower Log", s:"Dara the knight was locked inside the north tower all night. The key hung on the far side of the door."},
+    {t:"River Sign", s:"The rope bridge is the only way over the Black River. Without it, nobody leaves the dungeon."}
+  ],
+  q:"Who cut the rope bridge?",
+  choices:["Dara the knight","Fizz the goblin","Grum the troll","The river spirit"], ans:1, key:1
+}
+];
+
+/* ==========================================================================
+   2. EMBED CONTRACT (copied from multiply-helper.html)
+   ========================================================================== */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get("embed") === "1";
+const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
+
+const COST_HINT = 3, MAX_HEARTS = 5, RUN_LEN = 3;
+let coins = 55;
+if (EMBED){ const c = parseInt(QS.get("coins"),10); if (isFinite(c) && c >= 0) coins = c; }
+
+/* ==========================================================================
+   3. SOUND (never allowed to break the game)
+   ========================================================================== */
+let actx = null;
+function audioCtx(){
+  try {
+    if (!actx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === "suspended"){ try { actx.resume(); } catch(e){} }
+    return actx;
+  } catch(e){ return null; }
+}
+/* soft synthesised click: a short filtered blip, no file needed */
+function synthClick(){
+  try {
+    const ac = audioCtx(); if (!ac) return;
+    const t = ac.currentTime;
+    const osc = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(880, t);
+    osc.frequency.exponentialRampToValueAtTime(320, t + 0.07);
+    lp.type = "lowpass"; lp.frequency.setValueAtTime(2600, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+    osc.connect(lp); lp.connect(g); g.connect(ac.destination);
+    osc.start(t); osc.stop(t + 0.13);
+  } catch(e){ /* silent */ }
+}
+function sfx(name){
+  try {
+    const a = new Audio("sfx/" + name + ".mp3");
+    a.volume = 0.7;
+    const p = a.play();
+    if (p && typeof p.catch === "function") p.catch(function(){});
+  } catch(e){ /* silent */ }
+}
+const WRONG_SFX = ["01-oof","10-bruh","67-ba-dun-dun","70-sorry-bro"];
+const rndOf = arr => arr[Math.floor(Math.random()*arr.length)];
+
+/* tiny guarded store (never throws in private mode) */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, String(v)); } catch(e){ /* ignore */ } }
+};
+
+/* ==========================================================================
+   4. ROOM LAYOUT
+   ========================================================================== */
+const COLS = 15, ROWS = 9;                 // includes the 1-tile wall ring
+const DOOR = {c:7, r:0};
+const TORCHES = [{c:3,r:0},{c:11,r:0},{c:0,r:6},{c:14,r:6},{c:4,r:8},{c:10,r:8}];
+/* wall slots used by the plaques, in order */
+const SLOTS4 = [{c:0,r:3},{c:14,r:3},{c:4,r:8},{c:10,r:8}];
+const SLOTS3 = [{c:0,r:3},{c:14,r:3},{c:7,r:8}];
+const NEAR = 1.75;                          // tiles: how close counts as "standing next to it"
+const HERO_R = 0.36;
+
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx2d = cv.getContext("2d");
+const stage = $("stage");
+let tile = 40, ox = 0, oy = 0, cw = 0, ch = 0, dpr = 1;
+
+function layout(){
+  const r = stage.getBoundingClientRect();
+  cw = Math.max(80, Math.floor(r.width)); ch = Math.max(80, Math.floor(r.height));
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.floor(cw*dpr); cv.height = Math.floor(ch*dpr);
+  cv.style.width = cw+"px"; cv.style.height = ch+"px";
+  ctx2d.setTransform(dpr,0,0,dpr,0,0);
+  tile = Math.max(14, Math.floor(Math.min(cw/COLS, ch/ROWS)));
+  ox = Math.floor((cw - tile*COLS)/2);
+  oy = Math.floor((ch - tile*ROWS)/2);
+}
+const px = x => ox + x*tile;
+const py = y => oy + y*tile;
+
+/* ==========================================================================
+   5. GAME STATE
+   ========================================================================== */
+const state = {
+  running:false, caseIdx:-1, kase:null, runOrder:[], runPos:0,
+  read:[], slots:[], hearts:MAX_HEARTS, coins:coins,
+  openPlaque:-1, forced:false, questionOpen:false, doorOpen:false,
+  suppress:[], doorSuppress:false, solvedCount:0, over:false,
+  hero:{x:7.5, y:6.5, fx:0, fy:1, moving:false, bob:0}
+};
+
+/* ==========================================================================
+   6. HUD
+   ========================================================================== */
+function drawHearts(){
+  let s = "";
+  for (let i=0;i<MAX_HEARTS;i++) s += i < state.hearts ? "❤️" : '<span class="off">🖤</span>';
+  $("hearts").innerHTML = s;
+}
+function drawCoins(flash){
+  $("coinN").textContent = state.coins;
+  if (flash){ const b = $("coins"); b.classList.remove("spend"); void b.offsetWidth; b.classList.add("spend"); }
+}
+function buildChecks(){
+  const box = $("checks"); box.innerHTML = "";
+  const n = state.kase ? state.kase.plaques.length : 0;
+  for (let i=0;i<n;i++){
+    const d = document.createElement("div");
+    d.className = "chk"; d.id = "chk"+i; d.textContent = String(i+1);
+    box.appendChild(d);
+  }
+}
+function drawChecks(){
+  if (!state.kase) return;
+  state.kase.plaques.forEach((_,i) => {
+    const e = $("chk"+i); if (e) e.classList.toggle("on", !!state.read[i]);
+  });
+}
+function spend(n){
+  const before = state.coins;
+  state.coins = Math.max(0, state.coins - n);
+  const spentReal = before - state.coins;
+  if (EMBED) toGame({type:"spend", n:spentReal});
+  drawCoins(true);
+}
+let toastT = null;
+function toast(txt, cls){
+  const t = $("toast");
+  t.textContent = txt;
+  t.className = "show" + (cls ? " "+cls : "");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { t.className = ""; }, 2200);
+}
+
+/* ==========================================================================
+   7. CASE FLOW
+   ========================================================================== */
+function pickRun(){
+  const idx = CASES.map((_,i) => i);
+  for (let i = idx.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); const t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+  return idx.slice(0, RUN_LEN);
+}
+function beginCase(i){
+  state.caseIdx = i;
+  state.kase = CASES[i];
+  const n = state.kase.plaques.length;
+  state.slots = (n >= 4 ? SLOTS4 : SLOTS3).slice(0, n);
+  state.read = new Array(n).fill(false);
+  state.suppress = new Array(n).fill(false);
+  state.openPlaque = -1; state.forced = false;
+  state.questionOpen = false; state.doorOpen = false; state.doorSuppress = false;
+  state.hero.x = 7.5; state.hero.y = 6.5; state.hero.fx = 0; state.hero.fy = 1;
+  state.running = true; state.over = false;
+  hideAll();
+  buildChecks(); drawChecks(); drawHearts(); drawCoins(false);
+  $("caseName").textContent = "Case: " + state.kase.name;
+  toast("Read all " + n + " clue plaques, then try the door.");
+}
+function startRun(){
+  state.runOrder = pickRun();
+  state.runPos = 0;
+  state.hearts = MAX_HEARTS;
+  state.solvedCount = 0;
+  beginCase(state.runOrder[0]);
+}
+function nextCase(){
+  state.runPos++;
+  if (state.runPos >= state.runOrder.length){ finishRun(); return; }
+  beginCase(state.runOrder[state.runPos]);
+}
+function finishRun(){
+  state.running = false;
+  hideAll();
+  $("endTitle").textContent = "🏆 Every case closed!";
+  $("endBody").innerHTML = '<div class="det">🏆</div><p>You solved all ' + state.runOrder.length +
+    ' cases with <b>' + state.hearts + '</b> hearts left.</p><p class="note">Real detectives read every clue before they answer.</p>';
+  $("endBtn").textContent = EMBED ? "⚔️ Back to the dungeon" : "Play again ▶";
+  show("end");
+  const best = parseInt(store.get("detBest","0"),10) || 0;
+  if (state.solvedCount > best) store.set("detBest", state.solvedCount);
+  if (EMBED) toGame({type:"solved", cases: state.solvedCount});
+}
+function gameOver(){
+  state.running = false; state.over = true;
+  hideAll();
+  $("end").classList.add("danger");
+  $("endTitle").textContent = "💀 Out of hearts";
+  $("endBody").innerHTML = '<div class="det">💀</div><p>The door stays shut this time. Detectives never quit, so let us take the case again.</p>' +
+    '<p class="note">Tip: read every plaque, then ask yourself which two of them fit together.</p>';
+  $("endBtn").textContent = EMBED ? "⚔️ Back to the dungeon" : "Try again ▶";
+  show("end");
+}
+
+/* ==========================================================================
+   8. PANELS
+   ========================================================================== */
+const CARDS = ["pWrap","qWrap","solved","start","end"];
+function hideAll(){ CARDS.forEach(id => $(id).classList.remove("show")); }
+function show(id){ $(id).classList.add("show"); }
+
+function openPlaque(i, opts){
+  opts = opts || {};
+  if (!state.kase || i < 0 || i >= state.kase.plaques.length) return false;
+  const p = state.kase.plaques[i];
+  const firstTime = !state.read[i];
+  state.read[i] = true;
+  state.openPlaque = i;
+  state.forced = !!opts.forced;
+  $("pTitle").textContent = "📜 " + p.t;
+  $("pBody").innerHTML = "<p>" + p.s + "</p>";
+  $("pBadge").style.display = opts.hint ? "" : "none";
+  $("qWrap").classList.remove("show");
+  show("pWrap");
+  $("pBody").scrollTop = 0;
+  synthClick();
+  drawChecks();
+  if (firstTime && allRead()){
+    sfx("62-toasty");
+    toast("All clues read! The door will ask its question now.", "good");
+  }
+  return true;
+}
+function closePlaque(suppress){
+  const i = state.openPlaque, wasForced = state.forced;
+  state.openPlaque = -1; state.forced = false;
+  $("pWrap").classList.remove("show");
+  if (suppress && i >= 0) state.suppress[i] = true;
+  /* a hint panel was opened on top of the door question: once he closes it,
+     let the door ask again right away instead of making him walk away first */
+  if (wasForced) state.doorSuppress = false;
+}
+const allRead = () => state.read.length > 0 && state.read.every(Boolean);
+
+function openQuestion(){
+  if (!state.kase) return false;
+  if (!allRead()) return false;
+  closePlaque(false);
+  state.questionOpen = true;
+  $("qText").textContent = state.kase.q;
+  const box = $("choices"); box.innerHTML = "";
+  state.kase.choices.forEach((c,i) => {
+    const b = document.createElement("button");
+    b.textContent = c; b.dataset.i = i;
+    b.onclick = () => answer(i);
+    box.appendChild(b);
+  });
+  $("qmsg").textContent = ""; $("qmsg").className = "";
+  show("qWrap");
+  return true;
+}
+function closeQuestion(suppress){
+  state.questionOpen = false;
+  $("qWrap").classList.remove("show");
+  if (suppress) state.doorSuppress = true;
+}
+
+/* returns a plain object so the test hook can read what happened */
+function answer(i){
+  if (!state.kase || state.over) return {ok:false, reason:"no-case", hearts:state.hearts, doorOpen:state.doorOpen};
+  if (!allRead()) return {ok:false, reason:"locked", hearts:state.hearts, doorOpen:false};
+  if (state.doorOpen) return {ok:true, reason:"already-open", hearts:state.hearts, doorOpen:true};
+  if (!state.questionOpen) openQuestion();
+  const btns = $("choices").children;
+  const correct = i === state.kase.ans;
+  if (correct){
+    if (btns[i]) btns[i].classList.add("right");
+    state.doorOpen = true;
+    state.solvedCount++;
+    sfx("50-ta-daaa");
+    $("qmsg").textContent = "Correct! The door swings open.";
+    $("qmsg").className = "good";
+    setTimeout(() => {
+      if (!state.doorOpen) return;
+      closeQuestion(false);
+      $("solvedBody").innerHTML = "<p><b>" + state.kase.q + "</b></p><p>Answer: <b>" +
+        state.kase.choices[state.kase.ans] + "</b></p>" +
+        '<p class="note">Hearts left: ' + state.hearts + "</p>";
+      $("nextBtn").textContent = (state.runPos + 1 >= state.runOrder.length) ? "Finish ▶" : "Next case ▶";
+      show("solved");
+    }, 900);
+    return {ok:true, reason:"correct", hearts:state.hearts, doorOpen:true};
+  }
+  if (btns[i]) btns[i].classList.add("wrong");
+  state.hearts = Math.max(0, state.hearts - 1);
+  drawHearts();
+  sfx(rndOf(WRONG_SFX));
+  $("qmsg").textContent = "Not that one. The door stays shut. Read the clues again.";
+  $("qmsg").className = "bad";
+  if (state.hearts <= 0){ setTimeout(gameOver, 900); }
+  return {ok:false, reason:"wrong", hearts:state.hearts, doorOpen:false};
+}
+
+/* hint: re-show the one plaque that matters most */
+function useHint(){
+  if (!state.kase || !state.running) return false;
+  spend(COST_HINT);                      /* never blocked, clamps at 0 */
+  const k = state.kase.key;
+  closeQuestion(true);
+  openPlaque(k, {forced:true, hint:true});
+  toast("Key clue: plaque " + (k+1) + ". Now pair it with another one.", "good");
+  return true;
+}
+
+/* ==========================================================================
+   9. INPUT
+   ========================================================================== */
+const held = {up:false, down:false, left:false, right:false};
+const KEYMAP = {ArrowUp:"up", ArrowDown:"down", ArrowLeft:"left", ArrowRight:"right",
+  w:"up", a:"left", s:"down", d:"right", W:"up", A:"left", S:"down", D:"right"};
+window.addEventListener("keydown", e => {
+  const k = KEYMAP[e.key];
+  if (k){ held[k] = true; e.preventDefault(); audioCtx(); }
+});
+window.addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k){ held[k] = false; e.preventDefault(); } });
+window.addEventListener("blur", () => { held.up = held.down = held.left = held.right = false; });
+
+/* d-pad */
+$("dpad").querySelectorAll("button[data-d]").forEach(b => {
+  const d = b.dataset.d;
+  const on = e => { e.preventDefault(); audioCtx(); held[d] = true; };
+  const off = e => { e.preventDefault(); held[d] = false; };
+  b.addEventListener("pointerdown", on);
+  b.addEventListener("pointerup", off);
+  b.addEventListener("pointercancel", off);
+  b.addEventListener("pointerleave", off);
+});
+
+/* swipe / drag on the canvas acts like a little joystick */
+let drag = null;
+cv.addEventListener("pointerdown", e => {
+  audioCtx();
+  drag = {x:e.clientX, y:e.clientY, dx:0, dy:0};
+  try { cv.setPointerCapture(e.pointerId); } catch(err){}
+});
+cv.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.hypot(dx,dy) > 10){ const m = Math.hypot(dx,dy); drag.dx = dx/m; drag.dy = dy/m; }
+  else { drag.dx = 0; drag.dy = 0; }
+});
+const endDrag = () => { drag = null; };
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", endDrag);
+cv.addEventListener("pointerleave", endDrag);
+
+/* buttons */
+$("pClose").onclick = () => closePlaque(true);
+$("qClose").onclick = () => closeQuestion(true);
+$("hintBtn").onclick = () => { audioCtx(); useHint(); };
+$("startBtn").onclick = () => { audioCtx(); startRun(); };
+$("nextBtn").onclick = () => { hideAll(); nextCase(); };
+$("endBtn").onclick = () => {
+  $("end").classList.remove("danger");
+  if (EMBED){ toGame({type:"close"}); return; }
+  hideAll(); startRun();
+};
+
+/* ==========================================================================
+   10. MOVEMENT + PROXIMITY
+   ========================================================================== */
+const SPEED = 5.2;   // tiles per second
+function step(dt){
+  if (!state.running || state.over) return;
+  let vx = 0, vy = 0;
+  if (held.left) vx -= 1;
+  if (held.right) vx += 1;
+  if (held.up) vy -= 1;
+  if (held.down) vy += 1;
+  if (drag && (drag.dx || drag.dy)){ vx += drag.dx; vy += drag.dy; }
+  const m = Math.hypot(vx,vy);
+  const h = state.hero;
+  if (m > 0.01){
+    vx /= m; vy /= m;
+    h.x += vx*SPEED*dt; h.y += vy*SPEED*dt;
+    h.fx = vx; h.fy = vy; h.moving = true; h.bob += dt*10;
+  } else { h.moving = false; }
+  const lo = 1 + HERO_R, hiX = COLS-1-HERO_R, hiY = ROWS-1-HERO_R;
+  h.x = Math.min(hiX, Math.max(lo, h.x));
+  h.y = Math.min(hiY, Math.max(lo, h.y));
+  proximity();
+}
+const distTo = (t) => Math.hypot(state.hero.x - (t.c+0.5), state.hero.y - (t.r+0.5));
+
+let lockMsgT = 0;
+function proximity(){
+  if (!state.kase || state.doorOpen) return;
+  /* plaques */
+  let near = -1, best = 1e9;
+  state.slots.forEach((s,i) => { const d = distTo(s); if (d < NEAR && d < best){ best = d; near = i; } });
+  state.slots.forEach((s,i) => { if (distTo(s) >= NEAR) state.suppress[i] = false; });
+  if (state.openPlaque >= 0 && !state.forced){
+    if (distTo(state.slots[state.openPlaque]) >= NEAR) closePlaque(false);
+  }
+  if (state.openPlaque < 0 && near >= 0 && !state.suppress[near] && !state.questionOpen){
+    openPlaque(near, {});
+  }
+  /* door */
+  const dd = distTo(DOOR);
+  if (dd >= NEAR + 0.3){
+    state.doorSuppress = false;
+    if (state.questionOpen) closeQuestion(false);
+  } else if (!state.doorSuppress && !state.questionOpen){
+    if (allRead()){
+      if (state.openPlaque >= 0) closePlaque(false);
+      openQuestion();
+    } else if (performance.now() - lockMsgT > 2400){
+      lockMsgT = performance.now();
+      const left = state.read.filter(x => !x).length;
+      toast("🔒 The door is locked. " + left + " clue" + (left === 1 ? "" : "s") + " still unread.", "bad");
+    }
+  }
+}
+
+/* ==========================================================================
+   11. DRAWING
+   ========================================================================== */
+function rnd(i){ const x = Math.sin(i*12.9898)*43758.5453; return x - Math.floor(x); }
+
+function drawRoom(t){
+  const g = ctx2d;
+  g.fillStyle = "#0b0f14"; g.fillRect(0,0,cw,ch);
+  /* floor + walls */
+  for (let r=0;r<ROWS;r++){
+    for (let c=0;c<COLS;c++){
+      const wall = (r===0 || r===ROWS-1 || c===0 || c===COLS-1);
+      const n = rnd(r*COLS+c);
+      const X = px(c), Y = py(r);
+      if (wall){
+        g.fillStyle = n < .5 ? "#2a333d" : "#323c47";
+        g.fillRect(X,Y,tile,tile);
+        g.fillStyle = "rgba(0,0,0,.35)";
+        g.fillRect(X, Y+tile-Math.max(2,tile*0.08), tile, Math.max(2,tile*0.08));
+        g.fillRect(X+tile-Math.max(2,tile*0.08), Y, Math.max(2,tile*0.08), tile);
+        g.fillStyle = "rgba(255,255,255,.05)";
+        g.fillRect(X+2, Y+2, tile-4, Math.max(2, tile*0.07));
+      } else {
+        const base = n < .33 ? "#1c242d" : (n < .66 ? "#202932" : "#1a222a");
+        g.fillStyle = base; g.fillRect(X,Y,tile,tile);
+        g.strokeStyle = "rgba(0,0,0,.45)"; g.lineWidth = Math.max(1, tile*0.05);
+        g.strokeRect(X+0.5, Y+0.5, tile-1, tile-1);
+        if (n > .88){ g.fillStyle = "rgba(255,255,255,.05)";
+          g.fillRect(X+tile*0.25, Y+tile*0.3, tile*0.2, tile*0.12); }
+      }
+    }
+  }
+  /* torch glow */
+  g.save(); g.globalCompositeOperation = "lighter";
+  TORCHES.forEach((p,i) => {
+    const flick = 0.82 + 0.18*Math.sin(t/230 + i*2.1) + 0.05*Math.sin(t/57 + i);
+    const X = px(p.c)+tile/2, Y = py(p.r)+tile/2, R = tile*3.4*flick;
+    const grd = g.createRadialGradient(X,Y,tile*0.15,X,Y,R);
+    grd.addColorStop(0, "rgba(255,190,80,.30)");
+    grd.addColorStop(0.45, "rgba(255,150,50,.10)");
+    grd.addColorStop(1, "rgba(255,140,40,0)");
+    g.fillStyle = grd; g.beginPath(); g.arc(X,Y,R,0,7); g.fill();
+  });
+  g.restore();
+  /* torch sconces */
+  TORCHES.forEach((p,i) => {
+    const X = px(p.c)+tile/2, Y = py(p.r)+tile/2;
+    const flick = 0.85 + 0.15*Math.sin(t/180 + i*3);
+    g.fillStyle = "#4a3421"; g.fillRect(X-tile*0.07, Y-tile*0.05, tile*0.14, tile*0.32);
+    g.fillStyle = "#ffb03a"; g.beginPath(); g.ellipse(X, Y-tile*0.12, tile*0.13*flick, tile*0.2*flick, 0,0,7); g.fill();
+    g.fillStyle = "#ffe89a"; g.beginPath(); g.ellipse(X, Y-tile*0.13, tile*0.06*flick, tile*0.1*flick, 0,0,7); g.fill();
+  });
+}
+
+function drawDoor(t){
+  const g = ctx2d;
+  const X = px(DOOR.c), Y = py(DOOR.r);
+  const open = state.doorOpen;
+  g.fillStyle = open ? "#0a0d11" : "#5b3b1f";
+  g.fillRect(X+tile*0.06, Y+tile*0.1, tile*0.88, tile*0.9);
+  if (!open){
+    g.fillStyle = "#6d4826";
+    for (let i=0;i<3;i++) g.fillRect(X+tile*0.1+i*tile*0.29, Y+tile*0.12, tile*0.24, tile*0.86);
+    g.fillStyle = allRead() ? "#3ddc84" : "#ffd23f";
+    g.beginPath(); g.arc(X+tile*0.5, Y+tile*0.62, tile*0.11, 0, 7); g.fill();
+    g.fillStyle = "#1a1405"; g.font = "bold " + Math.floor(tile*0.16) + "px Trebuchet MS, sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(allRead() ? "?" : "🔒", X+tile*0.5, Y+tile*0.62);
+  } else {
+    g.strokeStyle = "#3ddc84"; g.lineWidth = Math.max(2, tile*0.07);
+    g.strokeRect(X+tile*0.06, Y+tile*0.1, tile*0.88, tile*0.9);
+  }
+  /* label above-ish */
+  g.fillStyle = open ? "#3ddc84" : (allRead() ? "#ffd23f" : "#8a97a3");
+  g.font = "bold " + Math.floor(tile*0.3) + "px Trebuchet MS, sans-serif";
+  g.textAlign = "center"; g.textBaseline = "top";
+  g.fillText(open ? "OPEN" : (allRead() ? "ASK ME" : "LOCKED"), X+tile*0.5, Y+tile*1.06);
+}
+
+function drawPlaques(t){
+  const g = ctx2d;
+  state.slots.forEach((s,i) => {
+    const X = px(s.c), Y = py(s.r);
+    const near = distTo(s) < NEAR;
+    const done = state.read[i];
+    const pulse = near ? 0.5+0.5*Math.sin(t/220) : 0;
+    g.fillStyle = "#1a1208";
+    g.fillRect(X+tile*0.12, Y+tile*0.18, tile*0.76, tile*0.64);
+    g.strokeStyle = done ? "#3ddc84" : "#ffd23f";
+    g.lineWidth = Math.max(2, tile*0.07 + pulse*tile*0.04);
+    g.strokeRect(X+tile*0.12, Y+tile*0.18, tile*0.76, tile*0.64);
+    g.fillStyle = done ? "#3ddc84" : "#ffd23f";
+    g.font = "bold " + Math.floor(tile*0.34) + "px Trebuchet MS, sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(done ? "✓" : String(i+1), X+tile*0.5, Y+tile*0.52);
+    if (near && !done){
+      g.fillStyle = "rgba(255,210,63," + (0.35+0.35*pulse) + ")";
+      g.font = "bold " + Math.floor(tile*0.24) + "px Trebuchet MS, sans-serif";
+      g.textBaseline = "top";
+      const below = s.r === 0 ? Y+tile*1.02 : (s.r === ROWS-1 ? Y-tile*0.42 : Y+tile*0.9);
+      g.fillText("READ", X+tile*0.5, below);
+    }
+  });
+}
+
+function drawHero(t){
+  const g = ctx2d, h = state.hero;
+  const X = px(h.x), Y = py(h.y);
+  const bob = h.moving ? Math.sin(h.bob)*tile*0.05 : 0;
+  /* shadow */
+  g.fillStyle = "rgba(0,0,0,.45)";
+  g.beginPath(); g.ellipse(X, Y+tile*0.34, tile*0.3, tile*0.12, 0,0,7); g.fill();
+  /* cloak / body */
+  g.fillStyle = "#4fc3ff";
+  g.beginPath();
+  g.moveTo(X-tile*0.3, Y+tile*0.32+bob);
+  g.lineTo(X-tile*0.2, Y-tile*0.1+bob);
+  g.lineTo(X+tile*0.2, Y-tile*0.1+bob);
+  g.lineTo(X+tile*0.3, Y+tile*0.32+bob);
+  g.closePath(); g.fill();
+  /* head */
+  g.fillStyle = "#f0c9a0";
+  g.beginPath(); g.arc(X, Y-tile*0.2+bob, tile*0.22, 0, 7); g.fill();
+  /* detective hat */
+  g.fillStyle = "#8a5a2b";
+  g.beginPath(); g.ellipse(X, Y-tile*0.3+bob, tile*0.32, tile*0.09, 0,0,7); g.fill();
+  g.fillRect(X-tile*0.18, Y-tile*0.48+bob, tile*0.36, tile*0.2);
+  g.fillStyle = "#6d4520";
+  g.fillRect(X-tile*0.18, Y-tile*0.36+bob, tile*0.36, tile*0.06);
+  /* eyes, facing the way he walks */
+  const ex = Math.max(-1, Math.min(1, h.fx))*tile*0.06;
+  const ey = Math.max(-1, Math.min(1, h.fy))*tile*0.04;
+  g.fillStyle = "#141a22";
+  g.beginPath(); g.arc(X-tile*0.08+ex, Y-tile*0.2+ey+bob, tile*0.035, 0, 7); g.fill();
+  g.beginPath(); g.arc(X+tile*0.08+ex, Y-tile*0.2+ey+bob, tile*0.035, 0, 7); g.fill();
+  /* magnifying glass */
+  g.strokeStyle = "#ffd23f"; g.lineWidth = Math.max(1.5, tile*0.05);
+  g.beginPath(); g.arc(X+tile*0.3, Y+tile*0.06+bob, tile*0.12, 0, 7); g.stroke();
+  g.beginPath(); g.moveTo(X+tile*0.22, Y+tile*0.16+bob); g.lineTo(X+tile*0.14, Y+tile*0.26+bob); g.stroke();
+}
+
+function vignette(){
+  const g = ctx2d;
+  const grd = g.createRadialGradient(cw/2, ch/2, Math.min(cw,ch)*0.25, cw/2, ch/2, Math.max(cw,ch)*0.72);
+  grd.addColorStop(0, "rgba(0,0,0,0)");
+  grd.addColorStop(1, "rgba(0,0,0,.55)");
+  g.fillStyle = grd; g.fillRect(0,0,cw,ch);
+}
+
+let last = 0;
+function frame(t){
+  if (!last) last = t;
+  const dt = Math.min(0.05, (t-last)/1000); last = t;
+  step(dt);
+  drawRoom(t);
+  drawDoor(t);
+  if (state.kase) drawPlaques(t);
+  drawHero(t);
+  vignette();
+  requestAnimationFrame(frame);
+}
+
+/* ==========================================================================
+   12. BOOT
+   ========================================================================== */
+function resize(){ layout(); }
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 120));
+if (window.ResizeObserver){ try { new ResizeObserver(resize).observe(stage); } catch(e){} }
+layout();
+drawHearts(); drawCoins(false);
+requestAnimationFrame(frame);
+
+if (EMBED){
+  $("qClose").textContent = "Go read the clues again";
+  startRun();
+} else {
+  show("start");
+}
+
+/* ==========================================================================
+   13. TEST HOOK
+   ========================================================================== */
+window.DET = {
+  CASES,
+  state,
+  /* start one specific case (0..7) with a full set of hearts */
+  startCase(n){
+    if (!(n >= 0 && n < CASES.length)) return false;
+    state.runOrder = [n]; state.runPos = 0; state.hearts = MAX_HEARTS; state.solvedCount = 0;
+    beginCase(n);
+    return true;
+  },
+  /* walk-up-and-read one plaque, then step away from it */
+  readPlaque(i){
+    const ok = openPlaque(i, {forced:true});
+    if (ok) closePlaque(true);
+    return ok;
+  },
+  answer,
+  useHint,
+  openQuestion,
+  allRead,
+  nextCase,
+  get hearts(){ return state.hearts; },
+  get coins(){ return state.coins; },
+  get doorOpen(){ return state.doorOpen; },
+  get read(){ return state.read.slice(); }
+};
+})();
+</script>
+</body>
+</html>
