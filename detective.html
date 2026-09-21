@@ -168,6 +168,7 @@ button{font-family:inherit;cursor:pointer;border:none}
     <div class="chead"><div class="ttl">🕵️ Detective Room</div></div>
     <div class="cbody">
       <div class="det">🕵️</div>
+      <p id="heroLine" class="note"></p>
       <p>Walk up to each <b>clue plaque</b> on the wall and read it. When every clue is lit up, the door will ask you one question.</p>
       <p class="note">Move with the arrow keys, WASD, the buttons on screen, or drag your finger.<br>
       A wrong answer costs a heart. A hint costs 🪙3 and re-shows the clue that matters most.</p>
@@ -190,8 +191,10 @@ button{font-family:inherit;cursor:pointer;border:none}
 "use strict";
 
 /* ==========================================================================
-   1. THE CASES  (8 written cases: 3-4 plaques, 1 question, 4 choices)
+   1. THE CASES  (24 written cases: 3-4 plaques, 1 question, 4 choices)
    `key` = index of the single plaque the hint re-shows.
+   HOUSE RULE: no case may be answered from one plaque alone. Every answer
+   needs a fact from one plaque paired with a rule or a fact from another.
    ========================================================================== */
 const CASES = [
 {
@@ -277,6 +280,168 @@ const CASES = [
   ],
   q:"Who cut the rope bridge?",
   choices:["Dara the knight","Fizz the goblin","Grum the troll","The river spirit"], ans:1, key:1
+},
+{
+  id:"egg", name:"The Cracked Egg",
+  plaques:[
+    {t:"Nest Log", s:"Somebody sat on the dragon egg and cracked it. Only three creatures came near the nest: Fizzle the pixie, Bram the ogre, and Nix the kobold."},
+    {t:"Egg Rule", s:"A dragon egg only cracks under something heavier than 100 stones. Fizzle the pixie weighs 2 stones. Nix the kobold weighs 40 stones."},
+    {t:"Ogre Scroll", s:"Bram the ogre weighs 300 stones. He is so heavy that the stairs groan when he walks up them."}
+  ],
+  q:"Who cracked the dragon egg?",
+  choices:["Fizzle the pixie","Bram the ogre","Nix the kobold","The mother dragon"], ans:1, key:1
+},
+{
+  id:"ladder", name:"The Well Ladder",
+  plaques:[
+    {t:"Ladder Sign", s:"The old well ladder has 20 rungs from the water at the bottom to the grass at the top."},
+    {t:"Climb Note", s:"Pim started at the very bottom. She climbed up 12 rungs, then her hands slipped and she slid back down 4 rungs."},
+    {t:"Rope Note", s:"A friendly troll dropped a rope and pulled Pim up 3 more rungs before the rope snapped."}
+  ],
+  q:"How many rungs are left above Pim?",
+  choices:["8 rungs","9 rungs","11 rungs","12 rungs"], ans:1, key:1
+},
+{
+  id:"cups", name:"The Three Cups",
+  plaques:[
+    {t:"Alchemist Rule", s:"A safe cup always smells like fresh mint. A poison cup always smells like old eggs. That rule has never once been wrong."},
+    {t:"Sniff Log", s:"I sniffed two of them this morning. The silver cup smells like old eggs. The clay cup smells like old eggs too."},
+    {t:"Table Sign", s:"Three cups sit on the stone table: a silver cup, a clay cup, and a wooden cup. Drink only one."}
+  ],
+  q:"Which cup is safe to drink?",
+  choices:["The silver cup","The clay cup","The wooden cup","None of them"], ans:2, key:1
+},
+{
+  id:"watch", name:"The Night Watch",
+  plaques:[
+    {t:"Watch Rule", s:"Each guard watches for 2 hours, then the next guard takes over. Nobody ever watches twice in a row."},
+    {t:"Start Log", s:"Hob took the very first watch tonight. He climbed the tower at 8 o'clock sharp."},
+    {t:"Guard Board", s:"The order on this wall never changes. Hob goes first, then Kit, then Dunn."}
+  ],
+  q:"What hour does Dunn start his watch?",
+  choices:["10 o'clock","11 o'clock","12 o'clock","2 o'clock"], ans:2, key:0
+},
+{
+  id:"lantern", name:"The Broken Lantern",
+  plaques:[
+    {t:"Hall Log", s:"The big lantern was knocked off its hook and smashed. Three goblins walked this hall: Tark, Wisp, and Bod."},
+    {t:"Hook Height", s:"The hook is nailed 6 feet up the wall. Only somebody taller than the hook could ever knock the lantern off it."},
+    {t:"Height Chart", s:"Tark stands 3 feet tall. Wisp stands 4 feet tall. Bod stands 7 feet tall."}
+  ],
+  q:"Who knocked the lantern down?",
+  choices:["Tark","Wisp","Bod","A gust of wind"], ans:2, key:2
+},
+{
+  id:"mushrooms", name:"The Mushroom Basket",
+  plaques:[
+    {t:"Basket Tag", s:"This basket holds 15 mushrooms picked from the cave floor this morning."},
+    {t:"Cook's Rule", s:"Every red mushroom in this dungeon is poison. Throw all the red ones away and cook the rest."},
+    {t:"Sorting Note", s:"I counted the colours. 6 of the mushrooms in the basket are red. All the others are brown."}
+  ],
+  q:"How many mushrooms are safe to cook?",
+  choices:["6 mushrooms","9 mushrooms","11 mushrooms","15 mushrooms"], ans:1, key:2
+},
+{
+  id:"bell", name:"The Silent Bell",
+  plaques:[
+    {t:"Bell Rule", s:"The alarm bell rings the moment a stranger walks into the pantry. It never rings for somebody who lives in this dungeon."},
+    {t:"Last Night", s:"The whole wheel of cheese was taken from the pantry last night. The bell did not ring one single time."},
+    {t:"Roster", s:"Three people were near the pantry: Nib the cook, Pell the mole, and Sir Dane. Nib and Pell live here. Sir Dane is a visiting stranger."},
+    {t:"Burrow Log", s:"Pell the mole slept in his burrow ten rooms away all night. He snored so loudly the walls shook."}
+  ],
+  q:"Who took the cheese?",
+  choices:["Sir Dane","Nib the cook","Pell the mole","A cave rat"], ans:1, key:0
+},
+{
+  id:"stairs", name:"The Slippery Stairs",
+  plaques:[
+    {t:"Moss Rule", s:"Stairs with green moss on them are slippery and unsafe. Dry stone stairs are safe to walk down."},
+    {t:"Water Note", s:"Water drips onto the east stairs and the middle stairs all day long, so thick green moss grows on both of them."},
+    {t:"Stair Sign", s:"Three stairways lead down out of this cellar: the east stairs, the middle stairs, and the west stairs."}
+  ],
+  q:"Which stairway is safe?",
+  choices:["The east stairs","The middle stairs","The west stairs","All three"], ans:2, key:1
+},
+{
+  id:"sword", name:"The Missing Sword",
+  plaques:[
+    {t:"Armory Log", s:"The silver sword vanished from the armory. Three people wanted it badly: Gwen, Ruk, and Pim."},
+    {t:"Door Rule", s:"The armory door only opens for somebody carrying a red key. No red key, no way in."},
+    {t:"Key Board", s:"Gwen carries a blue key. Pim carries a green key. Ruk carries the only red key in the whole dungeon."}
+  ],
+  q:"Who took the silver sword?",
+  choices:["Gwen","Ruk","Pim","The blacksmith"], ans:1, key:2
+},
+{
+  id:"relay", name:"The Long Tunnel",
+  plaques:[
+    {t:"Torch Rule", s:"One torch burns for exactly 3 hours and then goes out. A dark tunnel is far too dangerous to walk."},
+    {t:"Tunnel Sign", s:"The long tunnel takes 9 hours to walk from this end to the other end. There is no way to stop halfway."},
+    {t:"Pack Note", s:"Mira already has 1 torch tucked in her pack. The torch rack by the door is full of spares."}
+  ],
+  q:"How many MORE torches must Mira take?",
+  choices:["1 torch","2 torches","3 torches","9 torches"], ans:1, key:0
+},
+{
+  id:"dials", name:"The Dial Chest",
+  plaques:[
+    {t:"Lock Rule", s:"This chest opens only when the three dials show numbers that add up to exactly 10."},
+    {t:"Dial Note", s:"Two dials are already set. The first dial shows 4. The second dial shows 3. The third dial still spins free."},
+    {t:"Warning Stone", s:"A dial can never show 0, and no dial ever goes higher than 9. Turning past 9 snaps the spring."}
+  ],
+  q:"What must the third dial show?",
+  choices:["2","3","4","7"], ans:1, key:1
+},
+{
+  id:"trolls", name:"The Hungry Trolls",
+  plaques:[
+    {t:"Dinner Bell", s:"4 trolls stomped in and sat down at the long table for dinner tonight."},
+    {t:"Troll Appetite", s:"Every troll eats exactly 3 loaves of bread. Never more, never less. That is the troll way."},
+    {t:"Pantry Count", s:"The cook counted the pantry shelf. There are 10 loaves of bread in the whole kitchen."}
+  ],
+  q:"How many more loaves does the cook need?",
+  choices:["2 loaves","3 loaves","4 loaves","12 loaves"], ans:0, key:1
+},
+{
+  id:"bridges", name:"The Three Bridges",
+  plaques:[
+    {t:"Bridge Rule", s:"A bridge is safe only if it can hold MORE weight than the whole party weighs together."},
+    {t:"Bridge Tags", s:"The vine bridge holds 80 pounds. The plank bridge holds 500 pounds. The string bridge holds 20 pounds."},
+    {t:"Party Note", s:"The party is a knight, a mage, and a big dog. All together they weigh 300 pounds."}
+  ],
+  q:"Which bridge can the party cross?",
+  choices:["The vine bridge","The plank bridge","The string bridge","Any of them"], ans:1, key:1
+},
+{
+  id:"wizardnap", name:"The Wizard's Nap",
+  plaques:[
+    {t:"Wizard Rule", s:"After casting a big spell the wizard naps for 4 hours. Waking him early turns you into a toad."},
+    {t:"Spell Log", s:"He cast the huge lightning spell at 1 o'clock and fell asleep on the rug the very same minute."},
+    {t:"Visit Sign", s:"Visitors must wait outside until the wizard is awake again. Then knock twice."}
+  ],
+  q:"What is the earliest hour a visitor can knock?",
+  choices:["3 o'clock","4 o'clock","5 o'clock","6 o'clock"], ans:2, key:0
+},
+{
+  id:"spiders", name:"The Spider Ceiling",
+  plaques:[
+    {t:"Spider Fact", s:"Every cave spider in this dungeon has 8 legs. Not one of them has ever had more or fewer."},
+    {t:"Web Count", s:"Three fat cave spiders hang in the webs right above the door. They are watching you."},
+    {t:"Bat Note", s:"Two bats hang up there too. Bats have wings, not legs, so there is nothing to count on a bat."}
+  ],
+  q:"How many spider legs hang above the door?",
+  choices:["11 legs","16 legs","24 legs","40 legs"], ans:2, key:0
+},
+{
+  id:"snow", name:"The Cold Trail",
+  plaques:[
+    {t:"Snow Log", s:"Somebody carried the lantern off the snow porch. Only three of us went outside: Brill, Otto, and Sana."},
+    {t:"Print Rule", s:"Anybody who walks in fresh snow leaves footprints. There is exactly ONE trail of prints leading away."},
+    {t:"Foot Board", s:"Brill has huge feet. Otto has huge feet as well. Sana has tiny feet, the smallest in the dungeon."},
+    {t:"Trail Note", s:"I measured the trail in the snow. Every single footprint is tiny."}
+  ],
+  q:"Who carried off the lantern?",
+  choices:["Brill","Otto","Sana","Nobody went outside"], ans:2, key:3
 }
 ];
 
@@ -287,9 +452,27 @@ const QS = new URLSearchParams(location.search);
 const EMBED = QS.get("embed") === "1";
 const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
 
-const COST_HINT = 3, MAX_HEARTS = 5, RUN_LEN = 3;
+const COST_HINT = 3, MAX_HEARTS = 5;
+/* ?cases=N  -> how many cases make one run (default 3). The dungeon hands him
+   a single case with ?cases=1, and finishing it posts `solved` to the parent. */
+const RUN_LEN = (function(){
+  const n = parseInt(QS.get("cases"), 10);
+  if (!isFinite(n) || n < 1) return Math.min(3, CASES.length);
+  return Math.max(1, Math.min(n, CASES.length));
+})();
 let coins = 55;
 if (EMBED){ const c = parseInt(QS.get("coins"),10); if (isFinite(c) && c >= 0) coins = c; }
+
+/* ?hero=knight|wizard|ninja|robot|explorer|dragon  (default knight).
+   Same six ids the dungeon's character picker uses, plus the display names
+   as aliases so ?hero=mage / ?hero=shadow also work. */
+const HERO_IDS = ["knight","wizard","ninja","robot","explorer","dragon"];
+const HERO_ALIAS = {mage:"wizard", shadow:"ninja", bot:"robot", beep9:"robot", "lil'dragon":"dragon"};
+const HERO = (function(){
+  let h = String(QS.get("hero") || "").toLowerCase().trim().replace(/\s+/g,"");
+  if (HERO_ALIAS[h]) h = HERO_ALIAS[h];
+  return HERO_IDS.indexOf(h) >= 0 ? h : "knight";
+})();
 
 /* ==========================================================================
    3. SOUND (never allowed to break the game)
@@ -570,6 +753,11 @@ function answer(i){
         '<p class="note">Hearts left: ' + state.hearts + "</p>";
       $("nextBtn").textContent = (state.runPos + 1 >= state.runOrder.length) ? "Finish ▶" : "Next case ▶";
       show("solved");
+      /* one case handed over by the dungeon: roll straight back instead of
+         making a seven-year-old tap through a trophy screen */
+      if (EMBED && RUN_LEN === 1){
+        setTimeout(() => { if ($("solved").classList.contains("show")){ hideAll(); nextCase(); } }, 1300);
+      }
     }, 900);
     return {ok:true, reason:"correct", hearts:state.hearts, doorOpen:true};
   }
@@ -809,39 +997,207 @@ function drawPlaques(t){
   });
 }
 
+/* ---------- the chosen character, drawn chunky so he reads at a glance ----
+   Same six heroes the dungeon's character picker offers. Each one gets its
+   own silhouette AND its own palette, so a kid can tell them apart from
+   across the room. `drawHeroSprite` is self-contained on purpose: this file
+   stays independent of every other game file.
+   -------------------------------------------------------------------- */
+const HERO_ART = {
+  knight:   {body:"#b9c6d4", trim:"#8795a5", skin:"#f0c9a0", accent:"#ffd23f", name:"The Knight"},
+  wizard:   {body:"#7b5cd6", trim:"#4a35a0", skin:"#f0c9a0", accent:"#ffd23f", name:"The Mage"},
+  ninja:    {body:"#263445", trim:"#151f2b", skin:"#f0c9a0", accent:"#ff4d5e", name:"The Shadow"},
+  robot:    {body:"#cfd8e3", trim:"#8b9bad", skin:"#cfd8e3", accent:"#4ff0ff", name:"BEEP-9"},
+  explorer: {body:"#c8a86a", trim:"#8a6f3c", skin:"#f0c9a0", accent:"#6d8f4a", name:"The Explorer"},
+  dragon:   {body:"#4fbf6a", trim:"#2f8f4a", skin:"#4fbf6a", accent:"#f5e6a8", name:"Lil' Dragon"}
+};
+
+function drawHeroSprite(g, X, Y, u, id, o){
+  o = o || {};
+  const A = HERO_ART[id] || HERO_ART.knight;
+  const b = o.bob || 0;
+  const ex = Math.max(-1, Math.min(1, o.fx || 0)) * u * 0.06;
+  const ey = Math.max(-1, Math.min(1, o.fy || 0)) * u * 0.04;
+  const cheer = !!o.cheer;
+  const HY = Y - u*0.20 + b, HR = u*0.22;
+  const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
+
+  /* shadow stays on the floor and never bobs */
+  g.fillStyle = "rgba(0,0,0,.45)";
+  g.beginPath(); g.ellipse(X, Y + u*0.34, u*0.30, u*0.12, 0, 0, 7); g.fill();
+
+  /* ---------- things that sit BEHIND the body ---------- */
+  if (id === "dragon"){
+    g.fillStyle = A.trim;
+    g.beginPath();                                   // curling tail
+    g.moveTo(X + u*0.16, Y + u*0.18 + b);
+    g.quadraticCurveTo(X + u*0.66, Y + u*0.30 + b, X + u*0.52, Y - u*0.06 + b);
+    g.quadraticCurveTo(X + u*0.44, Y + u*0.16 + b, X + u*0.16, Y + u*0.30 + b);
+    g.closePath(); g.fill();
+    [-1, 1].forEach(s => {                           // little bat wings
+      g.beginPath();
+      g.moveTo(X + s*u*0.14, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.54, Y - u*0.40 + b);
+      g.lineTo(X + s*u*0.46, Y + u*0.08 + b);
+      g.closePath(); g.fill();
+    });
+  }
+  if (id === "explorer"){
+    g.fillStyle = "#6b4a24"; g.fillRect(X - u*0.36, Y - u*0.12 + b, u*0.21, u*0.36);
+    g.fillStyle = "#4e3518"; g.fillRect(X - u*0.36, Y + u*0.02 + b, u*0.21, u*0.06);
+  }
+  if (id === "wizard"){
+    g.strokeStyle = "#8a5a2b"; g.lineWidth = Math.max(1.5, u*0.06);
+    g.beginPath(); g.moveTo(X + u*0.32, Y + u*0.34 + b); g.lineTo(X + u*0.36, Y - u*0.44 + b); g.stroke();
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X + u*0.36, Y - u*0.50 + b, u*0.09, 0, 7); g.fill();
+  }
+
+  /* ---------- body ---------- */
+  if (id === "robot"){
+    g.fillStyle = A.body; g.fillRect(X - u*0.26, Y - u*0.10 + b, u*0.52, u*0.40);
+    g.fillStyle = A.trim; g.fillRect(X - u*0.26, Y + u*0.16 + b, u*0.52, u*0.07);
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X, Y + u*0.03 + b, u*0.07, 0, 7); g.fill();
+    g.fillStyle = A.trim; g.fillRect(X - u*0.30, Y + u*0.30 + b, u*0.60, u*0.08);
+  } else {
+    const flare = id === "wizard" ? 0.38 : 0.30;
+    g.fillStyle = A.body;
+    g.beginPath();
+    g.moveTo(X - u*flare, Y + u*0.32 + b);
+    g.lineTo(X - u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*flare, Y + u*0.32 + b);
+    g.closePath(); g.fill();
+    g.fillStyle = A.trim;
+    g.fillRect(X - u*0.22, Y + u*0.05 + b, u*0.44, u*0.06);
+    if (id === "knight"){                            // pauldrons
+      g.fillStyle = A.trim;
+      [-1, 1].forEach(s => { g.beginPath(); g.ellipse(X + s*u*0.24, Y - u*0.06 + b, u*0.12, u*0.09, 0, 0, 7); g.fill(); });
+    }
+    if (id === "ninja"){                             // scarf tail
+      g.fillStyle = A.accent;
+      g.beginPath();
+      g.moveTo(X + u*0.16, Y - u*0.06 + b);
+      g.lineTo(X + u*0.46, Y + u*0.04 + b);
+      g.lineTo(X + u*0.18, Y + u*0.06 + b);
+      g.closePath(); g.fill();
+    }
+    if (id === "dragon"){                            // pale belly
+      g.fillStyle = A.accent;
+      g.beginPath(); g.ellipse(X, Y + u*0.13 + b, u*0.15, u*0.17, 0, 0, 7); g.fill();
+    }
+    if (id === "explorer"){                          // shirt buttons
+      g.fillStyle = A.trim;
+      g.fillRect(X - u*0.02, Y - u*0.08 + b, u*0.04, u*0.14);
+    }
+  }
+
+  /* ---------- cheering arms (used by the other rooms; harmless here) ---- */
+  if (cheer){
+    /* arms in the TRIM colour so they read against the body, with a hand
+       blob on the end: waving arms are the whole point of a cheer */
+    g.strokeStyle = id === "ninja" ? A.accent : A.trim;
+    g.lineWidth = Math.max(2, u*0.11);
+    g.lineCap = "round";
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.19, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.40, Y - u*0.42 + b);
+      g.stroke();
+    });
+    g.lineCap = "butt";
+    g.fillStyle = id === "robot" ? A.accent : A.skin;
+    [-1, 1].forEach(s => { g.beginPath(); g.arc(X + s*u*0.40, Y - u*0.44 + b, u*0.075, 0, 7); g.fill(); });
+  }
+
+  /* ---------- head ---------- */
+  if (id === "robot"){
+    g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
+    g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    g.fillStyle = "#e3e9f0"; g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.32);
+    g.fillStyle = A.trim;    g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.05);
+    g.fillStyle = "#0a1418"; g.fillRect(X - u*0.17, Y - u*0.30 + b, u*0.34, u*0.13);
+    g.fillStyle = A.accent;
+    g.fillRect(X - u*0.14 + ex, Y - u*0.27 + ey + b, u*0.28, u*0.07);
+    g.save(); g.globalAlpha = 0.45;
+    g.fillRect(X - u*0.18 + ex, Y - u*0.29 + ey + b, u*0.36, u*0.11);
+    g.restore();
+  } else if (id === "dragon"){
+    g.fillStyle = A.body; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.trim;                              // snout
+    g.beginPath(); g.ellipse(X + ex*1.4, HY + u*0.09 + ey, u*0.16, u*0.10, 0, 0, 7); g.fill();
+    g.fillStyle = A.accent;                            // horns
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.12, HY - u*0.18);
+      g.lineTo(X + s*u*0.22, HY - u*0.40);
+      g.lineTo(X + s*u*0.02, HY - u*0.22);
+      g.closePath(); g.fill();
+    });
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    g.fillStyle = "#0d1a12";                           // nostrils
+    g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+    g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+  } else if (id === "ninja"){
+    g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
+    g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);   // eye slit
+    g.fillStyle = A.trim; g.fillRect(X - u*0.23, HY + u*0.06, u*0.46, u*0.15);   // mask
+    g.fillStyle = A.accent;                                                      // headband + tail
+    g.fillRect(X - u*0.25, HY - u*0.17, u*0.50, u*0.08);
+    g.beginPath();
+    g.moveTo(X - u*0.23, HY - u*0.16);
+    g.lineTo(X - u*0.46, HY - u*0.04);
+    g.lineTo(X - u*0.23, HY - u*0.07);
+    g.closePath(); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+  } else {
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
+    if (id === "knight"){
+      g.fillStyle = "#cfdae6";                         // helm dome
+      g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
+      g.fillStyle = "#1a2129";                         // visor slit
+      g.fillRect(X - u*0.13, HY - u*0.05, u*0.26, u*0.045);
+      g.fillStyle = A.accent;                          // horns
+      [-1, 1].forEach(s => {
+        g.beginPath();
+        g.moveTo(X + s*u*0.20, HY - u*0.12);
+        g.lineTo(X + s*u*0.40, HY - u*0.30);
+        g.lineTo(X + s*u*0.22, HY - u*0.01);
+        g.closePath(); g.fill();
+      });
+    } else if (id === "wizard"){
+      g.fillStyle = "#eef1f5";                         // beard
+      g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
+      g.fillStyle = A.trim;                            // pointed hat
+      g.beginPath();
+      g.moveTo(X - u*0.26, HY - u*0.14);
+      g.lineTo(X + u*0.08, HY - u*0.62);
+      g.lineTo(X + u*0.26, HY - u*0.14);
+      g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
+    } else if (id === "explorer"){
+      g.fillStyle = A.accent;                          // cap
+      g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
+      g.fillStyle = "#54713a";
+      g.beginPath(); g.ellipse(X + u*0.16, HY - u*0.02, u*0.20, u*0.055, 0, 0, 7); g.fill();
+    }
+  }
+}
+
 function drawHero(t){
   const g = ctx2d, h = state.hero;
   const X = px(h.x), Y = py(h.y);
   const bob = h.moving ? Math.sin(h.bob)*tile*0.05 : 0;
-  /* shadow */
-  g.fillStyle = "rgba(0,0,0,.45)";
-  g.beginPath(); g.ellipse(X, Y+tile*0.34, tile*0.3, tile*0.12, 0,0,7); g.fill();
-  /* cloak / body */
-  g.fillStyle = "#4fc3ff";
-  g.beginPath();
-  g.moveTo(X-tile*0.3, Y+tile*0.32+bob);
-  g.lineTo(X-tile*0.2, Y-tile*0.1+bob);
-  g.lineTo(X+tile*0.2, Y-tile*0.1+bob);
-  g.lineTo(X+tile*0.3, Y+tile*0.32+bob);
-  g.closePath(); g.fill();
-  /* head */
-  g.fillStyle = "#f0c9a0";
-  g.beginPath(); g.arc(X, Y-tile*0.2+bob, tile*0.22, 0, 7); g.fill();
-  /* detective hat */
-  g.fillStyle = "#8a5a2b";
-  g.beginPath(); g.ellipse(X, Y-tile*0.3+bob, tile*0.32, tile*0.09, 0,0,7); g.fill();
-  g.fillRect(X-tile*0.18, Y-tile*0.48+bob, tile*0.36, tile*0.2);
-  g.fillStyle = "#6d4520";
-  g.fillRect(X-tile*0.18, Y-tile*0.36+bob, tile*0.36, tile*0.06);
-  /* eyes, facing the way he walks */
-  const ex = Math.max(-1, Math.min(1, h.fx))*tile*0.06;
-  const ey = Math.max(-1, Math.min(1, h.fy))*tile*0.04;
-  g.fillStyle = "#141a22";
-  g.beginPath(); g.arc(X-tile*0.08+ex, Y-tile*0.2+ey+bob, tile*0.035, 0, 7); g.fill();
-  g.beginPath(); g.arc(X+tile*0.08+ex, Y-tile*0.2+ey+bob, tile*0.035, 0, 7); g.fill();
-  /* magnifying glass */
+  drawHeroSprite(g, X, Y, tile, HERO, {bob:bob, fx:h.fx, fy:h.fy});
+  /* every hero carries the magnifying glass: this is the detective room */
   g.strokeStyle = "#ffd23f"; g.lineWidth = Math.max(1.5, tile*0.05);
-  g.beginPath(); g.arc(X+tile*0.3, Y+tile*0.06+bob, tile*0.12, 0, 7); g.stroke();
+  g.beginPath(); g.arc(X+tile*0.30, Y+tile*0.06+bob, tile*0.12, 0, 7); g.stroke();
   g.beginPath(); g.moveTo(X+tile*0.22, Y+tile*0.16+bob); g.lineTo(X+tile*0.14, Y+tile*0.26+bob); g.stroke();
 }
 
@@ -875,6 +1231,12 @@ window.addEventListener("orientationchange", () => setTimeout(resize, 120));
 if (window.ResizeObserver){ try { new ResizeObserver(resize).observe(stage); } catch(e){} }
 layout();
 drawHearts(); drawCoins(false);
+/* the start screen names the hero he picked back in the dungeon */
+(function(){
+  const A = HERO_ART[HERO] || HERO_ART.knight;
+  const line = document.getElementById("heroLine");
+  if (line) line.innerHTML = "Tonight's detective: <b style=\"color:" + A.body + "\">" + A.name + "</b>";
+})();
 requestAnimationFrame(frame);
 
 if (EMBED){
@@ -890,7 +1252,12 @@ if (EMBED){
 window.DET = {
   CASES,
   state,
-  /* start one specific case (0..7) with a full set of hearts */
+  HERO,
+  RUN_LEN,
+  HERO_ART,
+  drawHeroSprite,                       /* lets a test render every hero big */
+  heroName: (HERO_ART[HERO] || HERO_ART.knight).name,
+  /* start one specific case (0..CASES.length-1) with a full set of hearts */
   startCase(n){
     if (!(n >= 0 && n < CASES.length)) return false;
     state.runOrder = [n]; state.runPos = 0; state.hearts = MAX_HEARTS; state.solvedCount = 0;
@@ -915,5 +1282,6 @@ window.DET = {
 };
 })();
 </script>
+<script src="home-button.js"></script>
 </body>
 </html>

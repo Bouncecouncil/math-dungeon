@@ -19,6 +19,7 @@ html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk)
   font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
   -webkit-user-select:none;user-select:none;}
 button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+.accent{color:var(--gold)}
 
 #wrap{position:fixed;inset:0;display:flex;flex-direction:column}
 
@@ -32,6 +33,7 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 #targetChip{border-color:#5a4a12;background:#1d1804}
 #targetChip .val{color:var(--gold)}
 #sumChip .val{color:var(--chalk)}
+#sumChip.word .val{letter-spacing:3px}
 #sumChip.hit{border-color:#1d6b3f;background:#071a10}
 #sumChip.hit .val{color:var(--good)}
 #sumChip.over{border-color:#5a1b22;background:#1d0709}
@@ -47,6 +49,15 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 #roomChip{color:var(--dim)}
 #muteBtn{background:#0c1117;border:2px solid #2b3843;border-radius:999px;font-size:16px;
   width:40px;height:36px;display:flex;align-items:center;justify-content:center}
+
+/* ---------------- clue bar (word rooms) ----------------
+   Its own flex row, so it never covers the door. The stage shrinks
+   around it and fitCanvas() re-measures. */
+#cluebar{flex:0 0 auto;display:none;padding:5px 14px 7px;text-align:center;
+  font-size:15px;line-height:1.35;font-weight:700;color:#cfd8e0;z-index:6}
+#cluebar.on{display:block}
+#cluebar .count{color:var(--dim);font-weight:700}
+#cluebar i{font-style:italic}
 
 /* ---------------- stage ---------------- */
 #stage{flex:1 1 auto;position:relative;min-height:0;touch-action:none}
@@ -97,11 +108,15 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
 .bigbtn.grey{background:#2b3843;color:var(--chalk);box-shadow:0 5px 0 #111820;font-size:17px;padding:12px 20px}
 .rooms{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
 .rooms button{background:#2b3843;color:var(--chalk);font-size:16px;font-weight:800;
-  min-width:48px;height:46px;padding:0 12px;border-radius:12px}
+  min-width:48px;height:46px;padding:0 12px;border-radius:12px;border-bottom:4px solid transparent}
+.rooms button.word{border-bottom-color:var(--blue)}
 .rooms button.done{background:#1d6b3f;color:#eafff2}
 .rooms button.on{background:var(--gold);color:#1a1405;box-shadow:0 0 0 3px #fff3c4}
 .legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0 2px;font-size:14px;color:#cfd8e0}
 .legend b{color:var(--gold)}
+.keyline{font-size:13px;color:var(--dim);margin-top:10px}
+.keyline i{display:inline-block;width:18px;height:4px;background:var(--blue);border-radius:2px;
+  vertical-align:middle;margin:0 4px}
 
 /* ---------------- phone held sideways ---------------- */
 @media (max-height:430px){
@@ -111,6 +126,7 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
   .chip .val{font-size:15px}
   #muteBtn{width:32px;height:28px;font-size:13px}
   #roomChip{display:none}
+  #cluebar{font-size:12px;padding:2px 10px 4px;line-height:1.25}
   #dpad{left:6px;bottom:6px;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px);gap:4px}
   #dpad button{width:46px;height:46px;font-size:19px}
   #tools{right:6px;bottom:6px;gap:6px}
@@ -125,6 +141,7 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
   .rooms{gap:6px;margin-top:8px}
   .rooms button{min-width:44px;height:44px;font-size:15px}
   .legend{font-size:12px;gap:10px;margin:7px 0 0}
+  .keyline{font-size:11px;margin-top:6px}
 }
 </style>
 </head>
@@ -132,14 +149,16 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
 <div id="wrap">
 
   <div id="hud">
-    <div class="chip" id="targetChip"><span class="lbl">DOOR</span><span class="val" id="targetV">0</span></div>
+    <div class="chip" id="targetChip"><span class="lbl" id="targetL">DOOR</span><span class="val" id="targetV">0</span></div>
     <div class="chip" id="sumChip"><span class="lbl">ON PADS</span><span class="val" id="sumV">0</span></div>
     <div class="chip" id="movesChip"><span class="lbl">MOVES</span><span class="val" id="movesV">0</span></div>
     <div class="chip" id="coinChip"><span class="val">🪙 <span id="coinV">55</span></span></div>
     <span id="sp"></span>
-    <div class="chip" id="roomChip"><span class="lbl">ROOM</span><span class="val" id="roomV">1/5</span></div>
+    <div class="chip" id="roomChip"><span class="lbl">ROOM</span><span class="val" id="roomV">1/18</span></div>
     <button id="muteBtn" title="Sound on / off">🔊</button>
   </div>
+
+  <div id="cluebar"><span id="clueTxt"></span></div>
 
   <div id="stage">
     <canvas id="cv"></canvas>
@@ -162,14 +181,16 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
 <div class="overlay" id="startOv">
   <div class="panel">
     <h1>📦 CRATE ROOM</h1>
-    <p>Push the numbered crates onto the glowing pads.<br>
-       The door opens when the crates on the pads <b style="color:var(--gold)">add up to the door number</b>.</p>
+    <p>Push the crates onto the glowing pads.<br>
+       <b style="color:var(--gold)">Number rooms:</b> the crates on the pads must add up to the door number.<br>
+       <b style="color:var(--blue)">Word rooms:</b> the letter crates must spell the word, left to right.</p>
     <div class="legend">
       <span>🧍 you</span><span>📦 crate</span><span>⭕ pad</span><span><b>Some crates are wrong on purpose.</b></span>
     </div>
     <p class="small">Move: arrow keys, W A S D, the D-pad, or swipe.<br>
        You can only PUSH a crate, never pull it. Undo is free. Finish under the move target for 🪙10.</p>
     <div class="rooms" id="roomPick"></div>
+    <p class="keyline">Rooms with a blue bar<i></i>are word rooms.</p>
     <button class="bigbtn gold" id="goBtn">ENTER THE ROOM ▶</button>
   </div>
 </div>
@@ -185,26 +206,52 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
   </div>
 </div>
 
+<script src="math-bank.js"></script>
+<script src="story-bank.js"></script>
 <script>
 (function(){
 "use strict";
 
 /* ================================================================
-   CRATE ROOM  -  a push-the-crates (sokoban) math door.
-   Standalone test page for the 3D dungeon. Drop-in contract at the
-   bottom matches multiply-helper.html: ?embed=1&coins=NN and
+   CRATE ROOM  -  a push-the-crates (sokoban) door.
+
+   Two room types share one grid engine:
+     NUMBER rooms  crates carry numbers, the door opens when the
+                   crates on the pads add up to the door number.
+     WORD rooms    crates carry LETTERS, the pads sit in a row, and
+                   the door opens when the pads spell the word. The
+                   clue is on screen from the first frame.
+
+   Words come from the shared question bank (math-bank.js +
+   story-bank.js) through the same call rune door uses:
+       MathBank.ask(tier, {rawTier:true, only:[...]})
+   For a spelling question the answer IS the word; for a vocabulary
+   question the answer is the word and the question is its meaning,
+   so the bank question works as the clue either way.
+
+   Drop-in contract at the bottom matches multiply-helper.html:
+   ?embed=1&coins=NN&level=N&hero=knight and
    postMessage {mdHelper:true, type:"spend"|"solved"|"close"}.
    ================================================================ */
 
 /* ---------------- levels ----------------
-   rows: # wall, . floor, P pressure pad, @ hero start, $ crate
-   vals: crate numbers in READING ORDER (top row left-to-right, then down)
-   sol : a recorded, verified solution path (U D L R). Replaying it from
-         a fresh load always opens the door - this is how each room is
-         proven solvable, and window.CRATE.play(sol) runs it.
-   par : move target. Finish at or under par and the room pays 10 coins. */
+   rows : # wall, . floor, P pressure pad, @ hero start, $ crate
+   kind : "num" or "word"
+   vals : NUMBER rooms. Crate numbers in READING ORDER (top row
+          left-to-right, then down). Every number room has exactly ONE
+          subset of these values that sums to target (checked
+          exhaustively by the designer, and by CRATE.subsetCheck).
+   len  : WORD rooms. Letters in the word, which is also the pad count.
+   tier : WORD rooms. Tier handed to MathBank.ask.
+   want : WORD rooms. want[crateIndex] = pad index that crate belongs
+          on, or -1 for a decoy crate whose letter is not in the word.
+          The pads are read left to right, so want IS the scramble.
+   sol  : a recorded, verified solution path (U D L R). Replaying it
+          from a fresh load always opens the door. This is how each
+          room is proven solvable, and window.CRATE.play(sol) runs it.
+   par  : move target. Finish at or under par and the room pays 10 coins. */
 const LEVELS = [
-  { name:"Room 1", target:10, par:12,
+  { name:"Room 1", kind:"num", target:10, par:12,
     rows:["######",
           "#@...#",
           "#$$$.#",
@@ -212,9 +259,30 @@ const LEVELS = [
           "#PP..#",
           "######"],
     vals:[4,6,7],
-    sol:"DDUURDD" },                                   /* 7 moves, 4 + 6 = 10 */
+    sol:"DDUURDD" },   /* 7 moves, 4 + 6 = 10 */
 
-  { name:"Room 2", target:12, par:26,
+  { name:"Room 2", kind:"num", target:15, par:20,
+    rows:["########",
+          "#@.....#",
+          "#.$..$.#",
+          "#..##..#",
+          "#..$.$.#",
+          "#.P..P.#",
+          "########"],
+    vals:[8,11,9,7],
+    sol:"RDDDUUURRRRDDLD" },   /* 15 moves, 8 + 7 = 15 */
+
+  { name:"Room 3", kind:"word", len:3, tier:1, par:35,
+    rows:["##########",
+          "#@.......#",
+          "#.$.$.$..#",
+          "#.......$#",
+          "#..PPP...#",
+          "##########"],
+    want:[2,1,0,-1],
+    sol:"RDDLDRRRULUURDDRRRULLLULDD" },   /* 26 moves, 3 letters, 1 decoy */
+
+  { name:"Room 4", kind:"num", target:12, par:28,
     rows:["#######",
           "#@....#",
           "#.$.$.#",
@@ -223,9 +291,20 @@ const LEVELS = [
           "#P...P#",
           "#######"],
     vals:[3,9,5,8],
-    sol:"RRDLULDDDUUURRDRURDDD" },                     /* 21 moves, 3 + 9 = 12 */
+    sol:"RRDLULDDDUUURRDRURDDD" },   /* 21 moves, 3 + 9 = 12 */
 
-  { name:"Room 3", target:15, par:27,
+  { name:"Room 5", kind:"word", len:4, tier:1, par:47,
+    rows:["###########",
+          "#@........#",
+          "#.$.$.$.$.#",
+          "#.........#",
+          "#..PPPP..$#",
+          "#........$#",
+          "###########"],
+    want:[2,0,3,1,-1,-1],
+    sol:"RDDLDRRRURULULDDUURRRDDRRRULLLLULDD" },   /* 35 moves, 4 letters, 2 decoys */
+
+  { name:"Room 6", kind:"num", target:15, par:28,
     rows:["########",
           "#@.....#",
           "#.$.$..#",
@@ -234,9 +313,41 @@ const LEVELS = [
           "#P.P.P.#",
           "########"],
     vals:[3,4,8,9],
-    sol:"RRDLULDDDRURDUURURDDD" },                     /* 21 moves, 3 + 8 + 4 = 15 */
+    sol:"RRDLULDDDRURDUURURDDD" },   /* 21 moves, 3 + 4 + 8 = 15 */
 
-  { name:"Room 4", target:20, par:40,
+  { name:"Room 7", kind:"word", len:4, tier:2, par:58,
+    rows:["###########",
+          "#@........#",
+          "#.$.$.$.$.#",
+          "#........$#",
+          "#..PPPP...#",
+          "###########"],
+    want:[3,2,0,1,-1],
+    sol:"RRDRURDDRRULLLULDDLLURRRRURDDUURRRDLLLLULDD" },   /* 43 moves, 4 letters, 1 decoy */
+
+  { name:"Room 8", kind:"num", target:19, par:41,
+    rows:["##########",
+          "#@.......#",
+          "#.$.$..$.#",
+          "#........#",
+          "#..#..#..#",
+          "#.$....$.#",
+          "#.P..P..P#",
+          "##########"],
+    vals:[6,3,12,5,4],
+    sol:"RRRDDDDRDLLURRRRURDUUULLULDDDD" },   /* 30 moves, 3 + 12 + 4 = 19 */
+
+  { name:"Room 9", kind:"word", len:4, tier:2, par:61,
+    rows:["###########",
+          "#@........#",
+          "#.$.$.$.$.#",
+          "#.$......$#",
+          "#..PPPP...#",
+          "###########"],
+    want:[1,3,2,0,-1,-1],
+    sol:"RRRDDLDRRURRULULDDUURRRRDLLLLLULDDUULLDRRURDD" },   /* 45 moves, 4 letters, 2 decoys */
+
+  { name:"Room 10", kind:"num", target:20, par:43,
     rows:["#########",
           "#@......#",
           "#.$.$.$.#",
@@ -246,9 +357,88 @@ const LEVELS = [
           "#P..P..P#",
           "#########"],
     vals:[4,6,10,2,9],
-    sol:"RRDLULDDDDUUUURRRDDDDUUURRURDDDD" },          /* 32 moves, 4 + 6 + 10 = 20 */
+    sol:"RRDLULDDDDUUUURRRDDDDUUURRURDDDD" },   /* 32 moves, 4 + 6 + 10 = 20 */
 
-  { name:"Room 5", target:24, par:55,
+  { name:"Room 11", kind:"word", len:5, tier:2, par:72,
+    rows:["#############",
+          "#@..........#",
+          "#.$.$.$.$.$.#",
+          "#...........#",
+          "#...PPPPP...#",
+          "#.$.......$.#",
+          "#############"],
+    want:[4,3,2,1,0,-1,-1],
+    sol:"RDDLDRRRRRRUUULDDRRRULLLULDDLLURRRURDDRRRRULLLLLLULDD" },   /* 53 moves, 5 letters, 2 decoys */
+
+  { name:"Room 12", kind:"num", target:29, par:43,
+    rows:["#########",
+          "#@......#",
+          "#.$.$.$.#",
+          "#.#...#.#",
+          "#.$...$.#",
+          "#.P.P.P.#",
+          "#########"],
+    vals:[8,10,9,6,11],
+    sol:"DRURDDDRDLRRRRULLULDLDRRUUUULDDD" },   /* 32 moves, 8 + 10 + 11 = 29 */
+
+  { name:"Room 13", kind:"word", len:5, tier:3, par:76,
+    rows:["#############",
+          "#@..........#",
+          "#.$.$.$.$.$.#",
+          "#..........$#",
+          "#...PPPPP...#",
+          "#############"],
+    want:[4,2,0,3,1,-1],
+    sol:"RDDLDRRRRRRUUULDDRDLLULLURRURDDRRRULULDDUURRRRDLLLLLULDD" },   /* 56 moves, 5 letters, 1 decoy */
+
+  { name:"Room 14", kind:"num", target:29, par:50,
+    rows:["###########",
+          "#@........#",
+          "#.$.$.$.$.#",
+          "#.........#",
+          "#..#...#..#",
+          "#.$.....$.#",
+          "#.........#",
+          "#P..P.P..P#",
+          "###########"],
+    vals:[6,11,5,8,3,9],
+    sol:"RRRDDDDDUUUULLULDDDDDURRRRURDDURRURDD" },   /* 37 moves, 6 + 11 + 3 + 9 = 29 */
+
+  { name:"Room 15", kind:"word", len:5, tier:3, par:77,
+    rows:["#############",
+          "#@..........#",
+          "#.$.$.$.$.$.#",
+          "#.$........$#",
+          "#...PPPPP...#",
+          "#############"],
+    want:[3,0,4,1,2,-1,-1],
+    sol:"RRRDDUURRDDLDRRURRULLLULDDUULLLLDRRRRRURDDUURRRRDLLLLULDD" },   /* 57 moves, 5 letters, 2 decoys */
+
+  { name:"Room 16", kind:"num", target:33, par:54,
+    rows:["##########",
+          "#@.......#",
+          "#.$.$.$..#",
+          "#........#",
+          "#..#..#..#",
+          "#.$.$.$..#",
+          "#P.P.P.P.#",
+          "##########"],
+    vals:[11,12,5,8,7,6],
+    sol:"DDDRDLDRURRURDRDRRUULDUUUULLLDDDRDLLLULD" },   /* 40 moves, 12 + 8 + 7 + 6 = 33 */
+
+  { name:"Room 17", kind:"word", len:5, tier:3, par:81,
+    rows:["#############",
+          "#@..........#",
+          "#.$.$.$.$.$.#",
+          "#...........#",
+          "#..#.....#..#",
+          "#...PPPPP...#",
+          "#.$.......$.#",
+          "#############"],
+    want:[2,4,1,3,0,-1,-1],
+    sol:"RDDDLDRRRRUURRRRULULDDDUULULDDDULLURRRRURDDDURRRULLLLLLULDDD" },   /* 60 moves, 5 letters, 2 decoys */
+
+  { name:"Room 18", kind:"num", target:24, par:59,
     rows:["##########",
           "#@.......#",
           "#.$.$.$..#",
@@ -258,8 +448,7 @@ const LEVELS = [
           "#P.P.P.P.#",
           "##########"],
     vals:[3,5,7,9,2,11],
-    sol:"RRDLULDDDDRLUURRDDUURRURURDDDDUULLLLURURDDDD" }
-                                                       /* 44 moves, 3 + 9 + 7 + 5 = 24 */
+    sol:"RRDLULDDDDRLUURRDDUURRURURDDDDUULLLLURURDDDD" }   /* 44 moves, 3 + 5 + 7 + 9 = 24 */
 ];
 
 const COST_RESET = 10 - 9;   /* 1 coin, kept as a named cost so the dungeon can tune it */
@@ -276,13 +465,27 @@ const toGame = msg => {
 let coins = 55;
 if (EMBED){ const c = parseInt(QS.get("coins"), 10); if (isFinite(c) && c >= 0) coins = c; }
 
+/* ?level=N starts on one room. In embed mode that also means SINGLE room
+   mode: solving it reports back and stops instead of rolling onward. */
+const LV_RAW = parseInt(QS.get("level"), 10);
+const HAS_LV = isFinite(LV_RAW) && LV_RAW >= 1 && LV_RAW <= LEVELS.length;
+const START_LV = HAS_LV ? LV_RAW - 1 : 0;
+const SINGLE = EMBED && HAS_LV;
+
+/* ?hero= the character the kid picked at the dungeon door */
+const HERO_KEYS = ["knight","wizard","ninja","robot","explorer","dragon"];
+const HERO_ALIAS = { mage:"wizard", shadow:"ninja", rogue:"ninja", droid:"robot", scout:"explorer" };
+let HERO = String(QS.get("hero") || "").trim().toLowerCase();
+if (HERO_ALIAS[HERO]) HERO = HERO_ALIAS[HERO];
+if (HERO_KEYS.indexOf(HERO) < 0) HERO = "knight";
+
 /* ---------------- tiny safe storage ---------------- */
 function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
 
 /* ---------------- sound ----------------
    Crate pushes and wall bonks are synthesised so nothing has to load.
-   The three one-shots are real files in ./sfx. Every call is guarded:
+   The one-shots are real files in ./sfx. Every call is guarded:
    audio must never be able to break the game.                        */
 const Snd = (function(){
   let ctx = null, on = lsGet("crate_snd","1") === "1";
@@ -337,6 +540,8 @@ const Snd = (function(){
     bonk(){ blip("sine", 90, 55, 0.22, 0.13); },
     /* undo */
     rewind(){ blip("triangle", 300, 620, 0.12, 0.10); },
+    /* a letter shoved onto the WRONG pad: dull, not a reward */
+    thud(){ blip("sine", 120, 80, 0.14, 0.09); },
     file(name, vol){
       if (!on) return;
       try{
@@ -359,13 +564,19 @@ const stage = $("stage");
 /* ---------------- state ---------------- */
 const S = {
   li: 0,                 // level index
+  kind: "num",
   W: 0, H: 0,
   wall: [], pad: [],     // boolean grids, indexed [y][x]
-  crates: [],            // {x,y,n,ax,ay}   ax/ay = animated (drawn) position
+  padList: [],           // pads in reading order. Word rooms put them in one row,
+                         // so padList index IS the letter position, left to right.
+  crates: [],            // {x,y,n,ch,ax,ay}  ax/ay = animated (drawn) position
   px: 0, py: 0, pax: 0, pay: 0, face: "D",
   moves: 0,
   hist: [],              // full move history for undo
-  target: 0,
+  target: 0,             // number rooms: the door sum. word rooms: the letter count.
+  word: "",              // word rooms: the word to spell, UPPERCASE
+  clue: "",              // word rooms: clue html, shown from the first frame
+  wordKind: "",          // which bank family the word came from
   open: false,
   locked: true,          // input off until the room is entered
   solvedSet: {},         // levels already beaten this session
@@ -386,14 +597,122 @@ const normDir = d => {
   return null;
 };
 
-/* ---------------- level loading ---------------- */
-function loadLevel(n){
+/* ================================================================
+   WORDS
+   ================================================================ */
+/* the exact call rune door uses, so both rooms draw from one bank */
+const WORD_FAMS = ["spellEasy","spellHard","vocabEasy","vocabHard"];
+const WORD_TRIES = 60;          /* capped: the bank rotates, so this is plenty */
+const WORD_RE = /^[A-Za-z]+$/;
+const usedWords = {};           /* do not hand the same word out twice in a run */
+
+/* Used when the bank has no word of the length a room needs (it holds no
+   three letter words at all) or when the bank scripts are missing, for
+   example opening the file straight off disk with no server. */
+const FALLBACK_WORDS = {
+  3: [["CAT","🐱 A small furry pet that says meow."],
+      ["SUN","☀️ The bright star that lights up the day."],
+      ["MAP","🗺️ A picture that shows you the way to go."],
+      ["KEY","🔑 A little metal thing that opens a lock."],
+      ["BUG","🐛 A tiny creature with lots of legs."],
+      ["OWL","🦉 A night bird that hoots in the dark."]],
+  4: [["DOOR","🚪 You open it to walk into a room."],
+      ["GOLD","🪙 Shiny treasure worth a lot of money."],
+      ["MAZE","🌀 Twisty paths that are easy to get lost in."],
+      ["LAMP","💡 It gives you light when it is dark."],
+      ["ROPE","🪢 A thick cord you can climb up."],
+      ["BOOK","📖 Pages full of words to read."]],
+  5: [["TORCH","🔥 A stick with fire on the end of it."],
+      ["MAGIC","✨ Powers that do impossible things."],
+      ["BRAVE","🦁 Not afraid to do something scary."],
+      ["SWORD","⚔️ A long blade a knight swings."],
+      ["CROWN","👑 A king or a queen wears it."],
+      ["GHOST","👻 A see through spirit that floats."]]
+};
+
+function clueFor(r, up){
+  let q = String((r && r.q) || "").trim();
+  const kind = (r && r.kind) || "";
+  if (!q || kind === "spellEasy" || kind === "spellHard"){
+    /* a spelling question hands over the right word, so on a crate rack the
+       honest clue is Will's own line: the word that is spelled correctly. */
+    q = "✏️ These crates spell one real word. Spell it <span class='accent'>correctly</span>.";
+  }
+  return q + " <span class='count'>(" + up.length + " letters)</span>";
+}
+
+function fallbackWord(len){
+  const list = FALLBACK_WORDS[len] || FALLBACK_WORDS[5];
+  const fresh = list.filter(function(e){ return !usedWords[e[0]]; });
+  const pool = fresh.length ? fresh : list;
+  const e = pool[Math.floor(Math.random() * pool.length)];
+  return { word: e[0], clue: e[1] + " <span class='count'>(" + e[0].length + " letters)</span>", wordKind: "fallback" };
+}
+
+/* Ask the bank for a word of EXACTLY len letters. Keep them short so they
+   are pushable: the rooms only ask for 3 to 5. If the bank keeps handing
+   back longer words, ask again up to WORD_TRIES and then fall back. */
+function drawWord(len, tier){
+  if (!(len >= 3 && len <= 5)) return fallbackWord(5);
+  if (typeof MathBank !== "undefined" && MathBank && typeof MathBank.ask === "function"){
+    for (let i = 0; i < WORD_TRIES; i++){
+      let r = null;
+      try { r = MathBank.ask(tier, { rawTier:true, only: WORD_FAMS }); }
+      catch (e) { r = null; }
+      if (!r || typeof r.a !== "string") continue;
+      const w = r.a.trim();
+      if (!WORD_RE.test(w)) continue;
+      if (w.length !== len) continue;                 /* too long to push: ask again */
+      const up = w.toUpperCase();
+      if (usedWords[up]) continue;
+      return { word: up, clue: clueFor(r, up), wordKind: r.kind || "bank" };
+    }
+  }
+  return fallbackWord(len);
+}
+
+/* Decoy crates carry a letter that is NOT in the word, and not each other's. */
+const DECOY_POOL = "BCDFGHJKLMNPQRSTVWXYZAEIOU".split("");
+function assignLetters(want, word){
+  const have = {};
+  for (let i = 0; i < word.length; i++) have[word[i]] = true;
+  const pool = DECOY_POOL.filter(function(c){ return !have[c]; });
+  const out = [];
+  for (let i = 0; i < want.length; i++){
+    const p = want[i];
+    if (p >= 0 && p < word.length){ out.push(word[p]); continue; }
+    if (pool.length){ out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); }
+    else { out.push("Z"); }
+  }
+  return out;
+}
+
+/* ---------------- level loading ----------------
+   keepWord lets a reset rebuild THIS room with the word the kid is already
+   working on, instead of burning a fresh one out of the bank. */
+function loadLevel(n, keepWord){
   const idx = Math.max(0, Math.min(LEVELS.length - 1, (n|0)));
   const L = LEVELS[idx];
   S.li = idx;
+  S.kind = L.kind === "word" ? "word" : "num";
   S.H = L.rows.length;
   S.W = L.rows[0].length;
-  S.wall = []; S.pad = []; S.crates = [];
+  S.wall = []; S.pad = []; S.crates = []; S.padList = [];
+
+  /* word rooms pick their word first: the letters ride on the crates */
+  let letters = null;
+  if (S.kind === "word"){
+    const picked = (keepWord && keepWord.word && keepWord.word.length === L.len)
+                     ? keepWord : drawWord(L.len, L.tier || 1);
+    S.word = picked.word;
+    S.clue = picked.clue;
+    S.wordKind = picked.wordKind;
+    usedWords[S.word] = true;
+    letters = assignLetters(L.want, S.word);
+  } else {
+    S.word = ""; S.clue = ""; S.wordKind = "";
+  }
+
   let vi = 0;
   for (let y = 0; y < S.H; y++){
     S.wall[y] = []; S.pad[y] = [];
@@ -402,11 +721,20 @@ function loadLevel(n){
       const ch = row[x] || "#";
       S.wall[y][x] = (ch === "#");
       S.pad[y][x]  = (ch === "P");
+      if (ch === "P") S.padList.push({x:x, y:y});
       if (ch === "@"){ S.px = x; S.py = y; S.pax = x; S.pay = y; }
-      if (ch === "$"){ S.crates.push({x:x, y:y, n: L.vals[vi] !== undefined ? L.vals[vi] : 1, ax:x, ay:y}); vi++; }
+      if (ch === "$"){
+        S.crates.push({
+          x:x, y:y, ax:x, ay:y,
+          n: (S.kind === "num" && L.vals && L.vals[vi] !== undefined) ? L.vals[vi] : 0,
+          ch: (letters && letters[vi] !== undefined) ? letters[vi] : ""
+        });
+        vi++;
+      }
     }
   }
-  S.target = L.target;
+
+  S.target = (S.kind === "word") ? S.word.length : L.target;
   S.moves = 0;
   S.hist = [];
   S.open = false;
@@ -414,9 +742,23 @@ function loadLevel(n){
   S.shakeT = 0;
   clearTimeout(winT); winT = null;      /* a fast reset must not let the old win panel pop up */
   $("winOv").classList.add("hide");
+  showClue();
   fitCanvas();
   syncHud();
   return true;
+}
+
+/* The clue bar owns its own row, so it never covers the door. Toggling it
+   changes the stage height, which is why fitCanvas runs straight after. */
+function showClue(){
+  const bar = $("cluebar");
+  if (S.kind === "word"){
+    $("clueTxt").innerHTML = S.clue;
+    bar.classList.add("on");
+  } else {
+    $("clueTxt").textContent = "";
+    bar.classList.remove("on");
+  }
 }
 
 /* ---------------- rules ---------------- */
@@ -426,6 +768,10 @@ function crateAt(x, y){
 }
 function blocked(x, y){
   return x < 0 || y < 0 || x >= S.W || y >= S.H || S.wall[y][x];
+}
+function padIndexAt(x, y){
+  for (let i = 0; i < S.padList.length; i++) if (S.padList[i].x === x && S.padList[i].y === y) return i;
+  return -1;
 }
 function sumOnPads(){
   let s = 0;
@@ -442,6 +788,24 @@ function padsFilled(){
     if (S.pad[c.y] && S.pad[c.y][c.x]) n++;
   }
   return n;
+}
+/* word rooms: what the pads currently spell, left to right, _ for empty */
+function padWord(){
+  let s = "";
+  for (let i = 0; i < S.padList.length; i++){
+    const p = S.padList[i];
+    const ci = crateAt(p.x, p.y);
+    s += (ci < 0) ? "_" : (S.crates[ci].ch || "?");
+  }
+  return s;
+}
+/* is the crate sitting on pad index pi the RIGHT letter for that slot? */
+function letterRight(pi, ch){
+  return S.kind === "word" && pi >= 0 && pi < S.word.length && ch === S.word[pi];
+}
+function doorSatisfied(){
+  if (S.kind === "word") return S.word.length > 0 && padWord() === S.word;
+  return sumOnPads() === S.target;
 }
 
 /* one move. Returns "move" | "push" | "blocked" | "off" */
@@ -470,7 +834,15 @@ function move(dirIn){
     S.moves++;
     Snd.push();
     const nowOnPad = !!(S.pad[by] && S.pad[by][bx]);
-    if (nowOnPad && !wasOnPad) Snd.file("62-toasty", 0.55);
+    if (nowOnPad && !wasOnPad){
+      if (S.kind === "word"){
+        /* a letter only LOCKS IN when it is the right letter for that slot */
+        if (letterRight(padIndexAt(bx, by), c.ch)) Snd.file("62-toasty", 0.55);
+        else Snd.thud();
+      } else {
+        Snd.file("62-toasty", 0.55);
+      }
+    }
   } else {
     S.hist.push({px:S.px, py:S.py, ci:-1, cx:0, cy:0, face:prevFace});
     S.px = nx; S.py = ny;
@@ -502,7 +874,9 @@ function undo(){
 function resetRoom(charge){
   if (charge !== false && coins > 0) spend(COST_RESET);
   Snd.file("58-record-scratch-1", 0.6);
-  loadLevel(S.li);
+  /* keep the same word on a reset: the kid is retrying THIS puzzle */
+  const keep = (S.kind === "word") ? { word:S.word, clue:S.clue, wordKind:S.wordKind } : null;
+  loadLevel(S.li, keep);
   S.locked = false;
   toast("Room reset", "bad");
   return true;
@@ -511,7 +885,7 @@ function resetRoom(charge){
 let winT = null;
 function checkDoor(){
   if (S.open) return false;
-  if (sumOnPads() !== S.target) return false;
+  if (!doorSatisfied()) return false;
   S.open = true;
   S.locked = true;
   Snd.file("50-ta-daaa", 0.75);
@@ -521,15 +895,23 @@ function checkDoor(){
   earn(reward);
   S.solvedSet[S.li] = true;
   lsSet("crate_done", JSON.stringify(S.solvedSet));
-  toGame({type:"solved", level:S.li + 1, moves:S.moves, par:L.par, reward:reward, target:S.target});
+  /* embed contract: type + level + moves + par + reward + target are unchanged.
+     target stays a NUMBER in both room types (the door sum, or the letter
+     count). kind and word are additive, for rooms that want to show them. */
+  const msg = {type:"solved", level:S.li + 1, kind:S.kind, moves:S.moves,
+               par:L.par, reward:reward, target:S.target, single:SINGLE};
+  if (S.kind === "word") msg.word = S.word;
+  toGame(msg);
   clearTimeout(winT);
   winT = setTimeout(function(){
     $("winTitle").textContent = "🚪 DOOR OPEN!";
-    $("winLine").innerHTML = crateLine() +
+    $("winLine").innerHTML = (S.kind === "word" ? wordLine() : crateLine()) +
       "<br>" + S.moves + " moves &nbsp;·&nbsp; move target " + L.par +
       (underPar ? " &nbsp;<b style='color:var(--good)'>UNDER!</b>" : "");
     $("winCoins").textContent = "+ 🪙" + reward + (underPar ? "  under the move target!" : "  nice work");
-    $("nextBtn").textContent = (S.li + 1 < LEVELS.length) ? "NEXT ROOM ▶" : (EMBED ? "⚔️ Back to the dungeon" : "🏆 All rooms done");
+    $("nextBtn").textContent = SINGLE ? "⚔️ Back to the dungeon"
+      : (S.li + 1 < LEVELS.length) ? "NEXT ROOM ▶"
+      : (EMBED ? "⚔️ Back to the dungeon" : "🏆 All rooms done");
     $("winOv").classList.remove("hide");
   }, 900);
   return true;
@@ -541,6 +923,9 @@ function crateLine(){
     if (S.pad[c.y] && S.pad[c.y][c.x]) parts.push(c.n);
   }
   return parts.join(" + ") + " = <b style='color:var(--gold)'>" + S.target + "</b>";
+}
+function wordLine(){
+  return "You spelled <b style='color:var(--gold);letter-spacing:3px'>" + S.word + "</b>";
 }
 
 /* ---------------- coins ---------------- */
@@ -561,15 +946,27 @@ function earn(n){
 
 /* ---------------- HUD ---------------- */
 function syncHud(){
-  const s = sumOnPads();
-  $("targetV").textContent = S.target;
-  $("sumV").textContent = s;
+  const sc = $("sumChip");
+  if (S.kind === "word"){
+    const pw = padWord();
+    $("targetL").textContent = "LETTERS";
+    $("targetV").textContent = S.word.length;
+    $("sumV").textContent = pw;
+    sc.classList.add("word");
+    sc.classList.toggle("hit", pw === S.word);
+    sc.classList.toggle("over", pw.indexOf("_") < 0 && pw !== S.word);
+  } else {
+    const s = sumOnPads();
+    $("targetL").textContent = "DOOR";
+    $("targetV").textContent = S.target;
+    $("sumV").textContent = s;
+    sc.classList.remove("word");
+    sc.classList.toggle("hit", s === S.target && s > 0);
+    sc.classList.toggle("over", s > S.target);
+  }
   $("movesV").textContent = S.moves;
   $("coinV").textContent = coins;
   $("roomV").textContent = (S.li + 1) + "/" + LEVELS.length;
-  const sc = $("sumChip");
-  sc.classList.toggle("hit", s === S.target && s > 0);
-  sc.classList.toggle("over", s > S.target);
   $("undoBtn").disabled = S.hist.length === 0 || S.open;
 }
 let toastT = null;
@@ -597,7 +994,7 @@ function fitCanvas(){
   if (usableW < 220){ left = 8; usableW = Math.max(120, w - 16); }
   const usableH = Math.max(120, h - 16);
   TS = Math.floor(Math.min(usableW / S.W, usableH / S.H));
-  TS = Math.max(20, Math.min(76, TS));
+  TS = Math.max(18, Math.min(76, TS));
   const cssW = TS * S.W, cssH = TS * S.H;
   const dpr = Math.min(3, window.devicePixelRatio || 1);
   cv.style.left = Math.round(left + usableW / 2) + "px";
@@ -710,8 +1107,13 @@ function draw(time){
     for (let x = 0; x < S.W; x++){
       if (!S.pad[y][x]) continue;
       const cxp = x*TS + TS/2, cyp = y*TS + TS/2;
-      const filled = crateAt(x, y) >= 0;
-      const col = filled ? "255,210,63" : "79,195,255";
+      const ci = crateAt(x, y);
+      const pi = padIndexAt(x, y);
+      let col = "79,195,255";                       /* empty pad: blue */
+      if (ci >= 0){
+        if (S.kind === "word") col = letterRight(pi, S.crates[ci].ch) ? "61,220,132" : "255,77,94";
+        else col = "255,210,63";
+      }
       const grad = g.createRadialGradient(cxp, cyp, TS*0.05, cxp, cyp, TS*0.6);
       grad.addColorStop(0, "rgba(" + col + "," + (0.30 + 0.18*pulse) + ")");
       grad.addColorStop(1, "rgba(" + col + ",0)");
@@ -727,6 +1129,13 @@ function draw(time){
       g.beginPath();
       g.arc(cxp, cyp, TS*0.40, 0, Math.PI*2);
       g.stroke();
+      /* word rooms number the slots so left to right is unmistakable */
+      if (S.kind === "word" && ci < 0 && pi >= 0 && TS >= 26){
+        g.fillStyle = "rgba(79,195,255,.85)";
+        g.font = "800 " + Math.round(TS*0.22) + "px 'Trebuchet MS',sans-serif";
+        g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(String(pi + 1), cxp, cyp);
+      }
     }
   }
 
@@ -788,13 +1197,22 @@ function drawDoor(g, time){
     }
     g.strokeStyle = "#2a1d0c"; g.lineWidth = 3;
     g.strokeRect(dx + 1.5, dy + 1.5, dw*TS - 3, dh - 3);
-    /* the target number, carved on the door */
-    const s = sumOnPads();
-    g.fillStyle = (s === S.target) ? "#3ddc84" : "#ffd23f";
-    g.font = "800 " + Math.round(TS*0.52) + "px 'Trebuchet MS',sans-serif";
+    /* carved on the door: the target number, or what the pads spell so far */
+    let txt, done;
+    if (S.kind === "word"){ txt = padWord(); done = (txt === S.word); }
+    else { txt = String(S.target); done = (sumOnPads() === S.target); }
+    g.fillStyle = done ? "#3ddc84" : "#ffd23f";
+    let fs = Math.round(TS*0.52);
+    g.font = "800 " + fs + "px 'Trebuchet MS',sans-serif";
+    /* shrink to fit: a five letter word is far wider than a two digit number */
+    const room = dw*TS - TS*0.30;
+    while (fs > 7 && g.measureText(txt).width > room){
+      fs -= 1;
+      g.font = "800 " + fs + "px 'Trebuchet MS',sans-serif";
+    }
     g.textAlign = "center"; g.textBaseline = "middle";
     g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 4;
-    g.fillText(String(S.target), dx + dw*TS/2, dy + dh/2 + 1);
+    g.fillText(txt, dx + dw*TS/2, dy + dh/2 + 1);
     g.shadowBlur = 0;
   }
   g.restore();
@@ -803,6 +1221,10 @@ function drawDoor(g, time){
 function drawCrate(g, c, time){
   const x = c.ax * TS, y = c.ay * TS;
   const onPad = !!(S.pad[c.y] && S.pad[c.y][c.x]);
+  const pi = onPad ? padIndexAt(c.x, c.y) : -1;
+  /* a word crate on the right pad is LOCKED IN: green. On a wrong pad: red. */
+  const right = onPad && S.kind === "word" && letterRight(pi, c.ch);
+  const wrong = onPad && S.kind === "word" && !right;
   const m = TS*0.07;
   g.save();
   /* shadow */
@@ -811,70 +1233,289 @@ function drawCrate(g, c, time){
   g.fill();
   /* body */
   const grad = g.createLinearGradient(x, y, x, y + TS);
-  if (onPad){ grad.addColorStop(0, "#c08b1e"); grad.addColorStop(1, "#8a6110"); }
+  if (right){ grad.addColorStop(0, "#2f9c5f"); grad.addColorStop(1, "#1d6b3f"); }
+  else if (wrong){ grad.addColorStop(0, "#a8474f"); grad.addColorStop(1, "#73262d"); }
+  else if (onPad){ grad.addColorStop(0, "#c08b1e"); grad.addColorStop(1, "#8a6110"); }
   else { grad.addColorStop(0, "#9a6b3a"); grad.addColorStop(1, "#6d4824"); }
   g.fillStyle = grad;
   roundRect(g, x + m, y + m, TS - m*2, TS - m*2, TS*0.12);
   g.fill();
   /* planks */
-  g.strokeStyle = onPad ? "rgba(255,225,140,.45)" : "rgba(0,0,0,.28)";
+  g.strokeStyle = onPad ? "rgba(255,255,255,.30)" : "rgba(0,0,0,.28)";
   g.lineWidth = Math.max(1, TS*0.035);
   g.beginPath();
   g.moveTo(x + m, y + m); g.lineTo(x + TS - m, y + TS - m);
   g.moveTo(x + TS - m, y + m); g.lineTo(x + m, y + TS - m);
   g.stroke();
   /* frame */
-  g.strokeStyle = onPad ? "#ffd23f" : "#4a3018";
+  g.strokeStyle = right ? "#3ddc84" : wrong ? "#ff4d5e" : onPad ? "#ffd23f" : "#4a3018";
   g.lineWidth = Math.max(2, TS*0.07);
   roundRect(g, x + m, y + m, TS - m*2, TS - m*2, TS*0.12);
   g.stroke();
-  /* number plate */
-  g.fillStyle = onPad ? "rgba(26,20,5,.82)" : "rgba(12,17,23,.72)";
+  /* plate carrying the number or the letter */
+  g.fillStyle = onPad ? "rgba(8,12,16,.80)" : "rgba(12,17,23,.72)";
   roundRect(g, x + TS*0.19, y + TS*0.24, TS*0.62, TS*0.52, TS*0.10);
   g.fill();
-  g.fillStyle = onPad ? "#ffd23f" : "#f4f1e8";
+  g.fillStyle = right ? "#8dffbc" : wrong ? "#ffc0c6" : onPad ? "#ffd23f" : "#f4f1e8";
   g.font = "800 " + Math.round(TS*0.40) + "px 'Trebuchet MS',sans-serif";
   g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillText(String(c.n), x + TS*0.5, y + TS*0.51);
+  g.fillText(S.kind === "word" ? String(c.ch) : String(c.n), x + TS*0.5, y + TS*0.51);
   g.restore();
 }
 
+/* ================================================================
+   THE HERO the kid picked at the dungeon door (?hero=...)
+   Chunky silhouettes, one palette each, and the face always reads
+   the direction of the last move.
+   ================================================================ */
+const HERO_DEF = {
+  knight:   { body:"#8d99a8", body2:"#5d6875", trim:"#dce4ee", glove:"#c3ccd8", skin:"#f2c9a0" },
+  wizard:   { body:"#7350d6", body2:"#432991", trim:"#ffd23f", glove:"#f2c9a0", skin:"#f2c9a0" },
+  ninja:    { body:"#2b3445", body2:"#141a26", trim:"#c8102e", glove:"#2b3445", skin:"#e8d9c5" },
+  robot:    { body:"#c6d2de", body2:"#8b99a8", trim:"#4fc3ff", glove:"#8b99a8", skin:"#c6d2de" },
+  explorer: { body:"#cfa961", body2:"#96743a", trim:"#3f7a4a", glove:"#e5d3b0", skin:"#f2c9a0" },
+  dragon:   { body:"#45ad63", body2:"#2a7241", trim:"#9be36f", glove:"#7fd18f", skin:"#7fd18f" }
+};
+
 function drawHero(g, x, y, time){
+  const P = HERO_DEF[HERO] || HERO_DEF.knight;
   const cxp = x + TS/2, cyp = y + TS/2;
   const bob = Math.sin(time * 5) * TS * 0.02;
+  const d = DIRS[S.face] || [0,1];
+  const up = S.face === "U";
+  const fx = (S.face === "L" ? -1 : S.face === "R" ? 1 : 0) * TS*0.06;
+  const fy = (S.face === "U" ? -1 : S.face === "D" ? 1 : 0) * TS*0.035;
+  const hy = cyp - TS*0.20 + bob;          /* head centre */
+  const R  = TS*0.17;                       /* head radius */
+
   g.save();
+  /* ---- ground shadow ---- */
   g.fillStyle = "rgba(0,0,0,.42)";
   g.beginPath();
   g.ellipse(cxp, y + TS*0.84, TS*0.28, TS*0.11, 0, 0, Math.PI*2);
   g.fill();
-  /* cloak / body */
-  g.fillStyle = "#2f7fbf";
-  roundRect(g, cxp - TS*0.22, cyp - TS*0.08 + bob, TS*0.44, TS*0.44, TS*0.12);
-  g.fill();
-  g.fillStyle = "#4fc3ff";
-  roundRect(g, cxp - TS*0.22, cyp - TS*0.08 + bob, TS*0.44, TS*0.16, TS*0.10);
-  g.fill();
-  /* head */
-  g.fillStyle = "#f2c9a0";
-  g.beginPath();
-  g.arc(cxp, cyp - TS*0.20 + bob, TS*0.17, 0, Math.PI*2);
-  g.fill();
-  /* hair / helmet */
-  g.fillStyle = "#3a2a18";
-  g.beginPath();
-  g.arc(cxp, cyp - TS*0.23 + bob, TS*0.17, Math.PI, Math.PI*2);
-  g.fill();
-  /* eyes, facing the way he last moved */
-  const fx = (S.face === "L" ? -1 : S.face === "R" ? 1 : 0) * TS*0.06;
-  const fy = (S.face === "U" ? -1 : S.face === "D" ? 1 : 0) * TS*0.035;
-  if (S.face !== "U"){
-    g.fillStyle = "#1a2029";
-    g.beginPath(); g.arc(cxp - TS*0.06 + fx, cyp - TS*0.19 + fy + bob, TS*0.030, 0, Math.PI*2); g.fill();
-    g.beginPath(); g.arc(cxp + TS*0.06 + fx, cyp - TS*0.19 + fy + bob, TS*0.030, 0, Math.PI*2); g.fill();
+
+  /* ---- things that sit BEHIND the body ---- */
+  if (HERO === "dragon"){
+    /* tail, curling away from the way he faces */
+    g.strokeStyle = P.body2;
+    g.lineWidth = Math.max(2, TS*0.09);
+    g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(cxp - d[0]*TS*0.10, cyp + TS*0.12 + bob);
+    g.quadraticCurveTo(cxp - d[0]*TS*0.36, cyp + TS*0.30 + bob,
+                       cxp - d[0]*TS*0.40 + TS*0.06, cyp + TS*0.06 + bob);
+    g.stroke();
+    g.lineCap = "butt";
+    /* two little wings */
+    g.fillStyle = P.trim;
+    for (const s of [-1, 1]){
+      g.beginPath();
+      g.moveTo(cxp + s*TS*0.20, cyp - TS*0.04 + bob);
+      g.lineTo(cxp + s*TS*0.40, cyp - TS*0.22 + bob);
+      g.lineTo(cxp + s*TS*0.36, cyp + TS*0.10 + bob);
+      g.closePath();
+      g.fill();
+    }
   }
-  /* mitts, out front in the push direction */
-  const d = DIRS[S.face] || [0,1];
-  g.fillStyle = "#f2c9a0";
+  if (HERO === "explorer"){
+    /* backpack, hanging off the side he is NOT facing */
+    g.fillStyle = "#6d4824";
+    roundRect(g, cxp - d[0]*TS*0.24 - TS*0.15, cyp - TS*0.04 + bob - d[1]*TS*0.10,
+              TS*0.30, TS*0.32, TS*0.08);
+    g.fill();
+    g.fillStyle = "#8a5f30";
+    roundRect(g, cxp - d[0]*TS*0.24 - TS*0.11, cyp + bob - d[1]*TS*0.10, TS*0.22, TS*0.10, TS*0.04);
+    g.fill();
+  }
+  if (HERO === "wizard"){
+    /* staff, planted on his left */
+    g.strokeStyle = "#7a5327";
+    g.lineWidth = Math.max(2, TS*0.055);
+    g.beginPath();
+    g.moveTo(cxp - TS*0.30, cyp - TS*0.30 + bob);
+    g.lineTo(cxp - TS*0.26, cyp + TS*0.30 + bob);
+    g.stroke();
+    g.fillStyle = P.trim;
+    g.beginPath();
+    g.arc(cxp - TS*0.30, cyp - TS*0.32 + bob, TS*0.065, 0, Math.PI*2);
+    g.fill();
+  }
+
+  /* ---- body ---- */
+  const bodyGrad = g.createLinearGradient(0, cyp - TS*0.08 + bob, 0, cyp + TS*0.36 + bob);
+  bodyGrad.addColorStop(0, P.body);
+  bodyGrad.addColorStop(1, P.body2);
+  g.fillStyle = bodyGrad;
+  if (HERO === "wizard"){
+    /* a robe flares out toward the floor */
+    g.beginPath();
+    g.moveTo(cxp - TS*0.17, cyp - TS*0.08 + bob);
+    g.lineTo(cxp + TS*0.17, cyp - TS*0.08 + bob);
+    g.lineTo(cxp + TS*0.27, cyp + TS*0.36 + bob);
+    g.lineTo(cxp - TS*0.27, cyp + TS*0.36 + bob);
+    g.closePath();
+    g.fill();
+  } else if (HERO === "robot"){
+    /* boxy, no rounding at all */
+    g.fillRect(cxp - TS*0.22, cyp - TS*0.08 + bob, TS*0.44, TS*0.44);
+  } else {
+    roundRect(g, cxp - TS*0.22, cyp - TS*0.08 + bob, TS*0.44, TS*0.44, TS*0.12);
+    g.fill();
+  }
+
+  /* ---- chest trim ---- */
+  if (HERO === "knight"){
+    g.fillStyle = P.trim;
+    g.fillRect(cxp - TS*0.03, cyp - TS*0.06 + bob, TS*0.06, TS*0.40);
+    g.fillRect(cxp - TS*0.16, cyp + TS*0.06 + bob, TS*0.32, TS*0.05);
+  } else if (HERO === "ninja"){
+    g.fillStyle = P.trim;
+    g.fillRect(cxp - TS*0.22, cyp + TS*0.10 + bob, TS*0.44, TS*0.07);
+  } else if (HERO === "robot"){
+    g.fillStyle = P.body2;
+    g.fillRect(cxp - TS*0.22, cyp + TS*0.16 + bob, TS*0.44, TS*0.05);
+    g.fillStyle = P.trim;
+    g.beginPath(); g.arc(cxp, cyp + TS*0.06 + bob, TS*0.05, 0, Math.PI*2); g.fill();
+  } else if (HERO === "explorer"){
+    g.fillStyle = P.trim;
+    g.fillRect(cxp - TS*0.22, cyp + TS*0.08 + bob, TS*0.44, TS*0.06);
+  } else if (HERO === "wizard"){
+    g.fillStyle = P.trim;
+    g.fillRect(cxp - TS*0.19, cyp + TS*0.12 + bob, TS*0.38, TS*0.045);
+  } else if (HERO === "dragon"){
+    g.fillStyle = P.glove;
+    roundRect(g, cxp - TS*0.11, cyp + TS*0.02 + bob, TS*0.22, TS*0.30, TS*0.07);
+    g.fill();
+  }
+
+  /* ---- head ---- */
+  if (HERO === "robot"){
+    g.fillStyle = P.body;
+    g.fillRect(cxp - R, hy - R, R*2, R*2);
+    g.fillStyle = P.body2;
+    g.fillRect(cxp - R, hy + R - TS*0.03, R*2, TS*0.03);
+    /* antenna */
+    g.strokeStyle = P.body2; g.lineWidth = Math.max(1, TS*0.035);
+    g.beginPath(); g.moveTo(cxp, hy - R); g.lineTo(cxp, hy - R - TS*0.11); g.stroke();
+    g.fillStyle = P.trim;
+    g.beginPath(); g.arc(cxp, hy - R - TS*0.13, TS*0.045, 0, Math.PI*2); g.fill();
+  } else {
+    g.fillStyle = P.skin;
+    g.beginPath(); g.arc(cxp, hy, R, 0, Math.PI*2); g.fill();
+  }
+
+  /* ---- headgear + face, per hero ---- */
+  if (HERO === "knight"){
+    /* steel helm with a visor slit and two horns */
+    g.fillStyle = P.body;
+    g.beginPath(); g.arc(cxp, hy, R*1.06, Math.PI, Math.PI*2); g.fill();
+    g.fillRect(cxp - R*1.06, hy - TS*0.005, R*2.12, R*0.62);
+    g.fillStyle = P.body2;
+    for (const s of [-1, 1]){
+      g.beginPath();
+      g.moveTo(cxp + s*R*0.98, hy - R*0.30);
+      g.lineTo(cxp + s*R*1.70, hy - R*0.92);
+      g.lineTo(cxp + s*R*1.02, hy + R*0.18);
+      g.closePath(); g.fill();
+    }
+    g.fillStyle = P.trim;      /* plume */
+    g.fillRect(cxp - TS*0.02, hy - R*1.55, TS*0.04, R*0.62);
+    if (!up){
+      g.fillStyle = "#0d1218";
+      g.fillRect(cxp - R*0.62 + fx, hy + R*0.02 + fy, R*1.24, R*0.30);
+      g.fillStyle = P.trim;
+      g.fillRect(cxp - R*0.10 + fx, hy + R*0.02 + fy, R*0.06, R*0.30);
+    }
+  } else if (HERO === "wizard"){
+    /* tall pointed hat with a gold band */
+    g.fillStyle = P.body2;
+    g.beginPath();
+    g.moveTo(cxp - R*1.35, hy - R*0.55);
+    g.lineTo(cxp + R*1.35, hy - R*0.55);
+    g.lineTo(cxp + R*0.26, hy - R*2.55);
+    g.closePath(); g.fill();
+    g.fillStyle = P.trim;
+    g.fillRect(cxp - R*1.35, hy - R*0.80, R*2.70, R*0.30);
+    if (!up){
+      g.fillStyle = "#1a2029";
+      g.beginPath(); g.arc(cxp - R*0.36 + fx, hy + fy, R*0.16, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(cxp + R*0.36 + fx, hy + fy, R*0.16, 0, Math.PI*2); g.fill();
+      /* beard */
+      g.fillStyle = "#e8eef5";
+      g.beginPath();
+      g.moveTo(cxp - R*0.62, hy + R*0.40);
+      g.lineTo(cxp + R*0.62, hy + R*0.40);
+      g.lineTo(cxp + fx*0.6, hy + R*1.55);
+      g.closePath(); g.fill();
+    }
+  } else if (HERO === "ninja"){
+    /* hood over everything but an eye band */
+    g.fillStyle = P.body2;
+    g.beginPath(); g.arc(cxp, hy, R*1.12, 0, Math.PI*2); g.fill();
+    g.fillStyle = P.trim;   /* headband tail */
+    g.beginPath();
+    g.moveTo(cxp - R*1.05, hy - R*0.25);
+    g.lineTo(cxp - R*2.05, hy - R*0.05 + Math.sin(time*7)*TS*0.02);
+    g.lineTo(cxp - R*1.05, hy + R*0.22);
+    g.closePath(); g.fill();
+    if (!up){
+      g.fillStyle = P.skin;
+      g.fillRect(cxp - R*1.05 + fx*0.4, hy - R*0.22 + fy, R*2.10, R*0.46);
+      g.fillStyle = "#141a26";
+      g.beginPath(); g.arc(cxp - R*0.42 + fx, hy + fy, R*0.15, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(cxp + R*0.42 + fx, hy + fy, R*0.15, 0, Math.PI*2); g.fill();
+    }
+  } else if (HERO === "robot"){
+    /* one glowing visor bar, with a bright eye that slides toward the facing */
+    if (!up){
+      g.fillStyle = "#0d1218";
+      g.fillRect(cxp - R*0.78, hy - R*0.28 + fy, R*1.56, R*0.56);
+      g.fillStyle = P.trim;
+      g.fillRect(cxp - R*0.70, hy - R*0.20 + fy, R*1.40, R*0.40);
+      g.fillStyle = "#ffffff";
+      g.fillRect(cxp - R*0.16 + fx*1.8, hy - R*0.16 + fy, R*0.32, R*0.32);
+    } else {
+      g.fillStyle = P.body2;
+      g.fillRect(cxp - R*0.78, hy - R*0.28, R*1.56, R*0.56);
+    }
+  } else if (HERO === "explorer"){
+    /* cap: a rounded crown and a brim pointing the way he faces */
+    g.fillStyle = P.trim;
+    g.beginPath(); g.arc(cxp, hy - R*0.12, R*1.02, Math.PI, Math.PI*2); g.fill();
+    g.fillRect(cxp - R*1.02, hy - R*0.22, R*2.04, R*0.22);
+    g.fillStyle = "#2d5a36";
+    if (S.face === "L")      g.fillRect(cxp - R*1.85, hy - R*0.14, R*0.90, R*0.22);
+    else if (S.face === "R") g.fillRect(cxp + R*0.95, hy - R*0.14, R*0.90, R*0.22);
+    else if (S.face === "U") g.fillRect(cxp - R*0.85, hy - R*0.55, R*1.70, R*0.22);
+    else                     g.fillRect(cxp - R*0.85, hy + R*0.02, R*1.70, R*0.24);
+    if (!up){
+      g.fillStyle = "#1a2029";
+      g.beginPath(); g.arc(cxp - R*0.36 + fx, hy + R*0.34 + fy, R*0.15, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(cxp + R*0.36 + fx, hy + R*0.34 + fy, R*0.15, 0, Math.PI*2); g.fill();
+    }
+  } else if (HERO === "dragon"){
+    /* two horns, a snout that sticks out the way he faces */
+    g.fillStyle = P.trim;
+    for (const s of [-1, 1]){
+      g.beginPath();
+      g.moveTo(cxp + s*R*0.50, hy - R*0.80);
+      g.lineTo(cxp + s*R*0.78, hy - R*1.62);
+      g.lineTo(cxp + s*R*0.92, hy - R*0.62);
+      g.closePath(); g.fill();
+    }
+    if (!up){
+      g.fillStyle = P.body2;
+      roundRect(g, cxp - R*0.34 + d[0]*R*0.85, hy + R*0.14 + d[1]*R*0.55, R*0.68, R*0.46, R*0.16);
+      g.fill();
+      g.fillStyle = "#1a2029";
+      g.beginPath(); g.arc(cxp - R*0.40 + fx, hy - R*0.14 + fy, R*0.15, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(cxp + R*0.40 + fx, hy - R*0.14 + fy, R*0.15, 0, Math.PI*2); g.fill();
+    }
+  }
+
+  /* ---- mitts, out front in the push direction (every hero) ---- */
+  g.fillStyle = P.glove;
   g.beginPath();
   g.arc(cxp + d[0]*TS*0.26 - d[1]*TS*0.12, cyp + d[1]*TS*0.24 - d[0]*TS*0.12 + bob, TS*0.075, 0, Math.PI*2);
   g.fill();
@@ -938,14 +1579,15 @@ $("muteBtn").onclick = function(){
 $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
 
 /* ---------------- start screen + room picker ---------------- */
-let pickIdx = 0;
+let pickIdx = START_LV;
 function buildRoomPick(){
   const box = $("roomPick");
   box.innerHTML = "";
   LEVELS.forEach(function(L, i){
     const b = document.createElement("button");
     b.textContent = String(i + 1);
-    b.className = (i === pickIdx ? "on " : "") + (S.solvedSet[i] ? "done" : "");
+    b.className = (i === pickIdx ? "on " : "") + (S.solvedSet[i] ? "done " : "") + (L.kind === "word" ? "word" : "");
+    b.title = L.kind === "word" ? ("Word room, " + L.len + " letters") : ("Number room, door " + L.target);
     b.onclick = function(){ pickIdx = i; buildRoomPick(); };
     box.appendChild(b);
   });
@@ -963,6 +1605,8 @@ function enterRoom(i){
 }
 $("goBtn").onclick = function(){ enterRoom(pickIdx); };
 $("nextBtn").onclick = function(){
+  /* the dungeon handed over ONE room: report and go back, never roll onward */
+  if (SINGLE){ toGame({type:"close"}); return; }
   if (S.li + 1 < LEVELS.length){ enterRoom(S.li + 1); return; }
   if (EMBED){ toGame({type:"solved", level:S.li + 1, allDone:true}); toGame({type:"close"}); return; }
   $("winOv").classList.add("hide");
@@ -972,49 +1616,83 @@ $("nextBtn").onclick = function(){
 $("replayBtn").onclick = function(){ enterRoom(S.li); };
 
 /* ---------------- boot ---------------- */
-loadLevel(0);
+loadLevel(START_LV);
 requestAnimationFrame(frame);
 
 if (EMBED){
   /* the dungeon already charged whatever it charges to open a room:
      go straight in, and hand the wallet back through postMessage. */
-  const lv = parseInt(QS.get("level"), 10);
   $("closeBtn").textContent = "✖ Back";
-  enterRoom(isFinite(lv) && lv >= 1 && lv <= LEVELS.length ? lv - 1 : 0);
+  enterRoom(START_LV);
+} else if (HAS_LV){
+  enterRoom(START_LV);            /* ?level=N standalone: straight into that room */
 } else {
   $("startOv").classList.remove("hide");
 }
 
 /* ---------------- test hook ----------------
-   window.CRATE.play("RRDL...") replays a recorded path; every level's
-   own path is in CRATE.levels[i].sol and is what proves it solvable. */
+   window.CRATE.solve(i) reloads room i and replays its recorded path;
+   every level's own path is in CRATE.levels[i].sol and is what proves
+   it solvable. subsetCheck(i) is the exhaustive proof that a number
+   room has exactly ONE winning combination of crate values. */
 window.CRATE = {
   levels: LEVELS,
   state: S,
+  hero: function(){ return HERO; },
+  single: function(){ return SINGLE; },
+  embed: function(){ return EMBED; },
+  startLevel: function(){ return START_LV; },
   loadLevel: function(n){ const r = loadLevel(n); S.locked = false; $("startOv").classList.add("hide"); return r; },
   move: function(d){ return move(d); },
   undo: undo,
   reset: function(charge){ return resetRoom(charge !== false); },
   sum: sumOnPads,
   padsFilled: padsFilled,
+  padWord: padWord,
+  kind: function(){ return S.kind; },
+  word: function(){ return S.word; },
+  clue: function(){ return S.clue; },
+  wordKind: function(){ return S.wordKind; },
+  letters: function(){ return S.crates.map(function(c){ return c.ch; }); },
+  /* swap two crates' letters: used to prove a WRONG letter keeps the door shut */
+  swapLetters: function(i, j){
+    if (!S.crates[i] || !S.crates[j]) return false;
+    const t = S.crates[i].ch; S.crates[i].ch = S.crates[j].ch; S.crates[j].ch = t;
+    syncHud();
+    return true;
+  },
   isOpen: function(){ return S.open; },
   target: function(){ return S.target; },
   moves: function(){ return S.moves; },
   coins: function(){ return coins; },
   player: function(){ return {x:S.px, y:S.py}; },
-  cratePositions: function(){ return S.crates.map(function(c){ return {x:c.x, y:c.y, n:c.n}; }); },
+  cratePositions: function(){ return S.crates.map(function(c){ return {x:c.x, y:c.y, n:c.n, ch:c.ch}; }); },
+  pads: function(){ return S.padList.map(function(p){ return {x:p.x, y:p.y}; }); },
   play: function(path){
     const out = [];
     for (let i = 0; i < path.length; i++) out.push(move(path[i]));
-    return {result:out, moves:S.moves, sum:sumOnPads(), open:S.open};
+    return {result:out, moves:S.moves, sum:sumOnPads(), padWord:padWord(), open:S.open};
   },
   solve: function(n){
     const i = (n === undefined) ? S.li : n;
     this.loadLevel(i);
     return this.play(LEVELS[i].sol);
+  },
+  /* exhaustive: every non-empty subset of this room's crate values */
+  subsetCheck: function(n){
+    const L = LEVELS[n];
+    if (L.kind !== "num") return null;
+    const v = L.vals, hits = [];
+    for (let m = 1; m < (1 << v.length); m++){
+      let s = 0; const picked = [];
+      for (let i = 0; i < v.length; i++) if (m & (1 << i)){ s += v[i]; picked.push(v[i]); }
+      if (s === L.target) hits.push(picked);
+    }
+    return {target:L.target, vals:v.slice(), count:hits.length, hits:hits};
   }
 };
 })();
 </script>
+<script src="home-button.js"></script>
 </body>
 </html>

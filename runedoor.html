@@ -68,7 +68,8 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 #slots{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;
   background:rgba(4,7,11,.72);border:3px solid #7a6526;border-radius:14px;padding:8px 10px;
   box-shadow:inset 0 3px 10px rgba(0,0,0,.8),0 0 0 2px rgba(0,0,0,.5)}
-#runes{position:absolute;left:0;right:0;top:9%;text-align:center;color:#7d8d9c;font-size:15px;letter-spacing:10px;z-index:2}
+#runes{position:absolute;left:0;right:0;top:9%;text-align:center;color:#7d8d9c;font-size:15px;letter-spacing:4px;
+  z-index:2;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:clip}
 #door.open #runes{color:var(--gold);text-shadow:0 0 12px rgba(255,210,63,.9)}
 
 /* ---------- tiles ---------- */
@@ -92,11 +93,13 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 @keyframes pop{40%{transform:scale(1.35)}}
 .slot.wrong .tile{background:linear-gradient(180deg,#b34b56,#6d222b);color:#fff}
 
-/* ---------- rack ---------- */
+/* ---------- rack (+ the chosen hero standing next to it) ---------- */
 #rackWrap{flex:0 0 auto;padding:4px 8px 2px}
+#rackRow{display:flex;align-items:center;justify-content:center;gap:8px;width:min(96vw,760px);margin:0 auto}
+#heroCv{flex:0 0 auto;display:block;width:calc(var(--t) + 16px);height:calc(var(--t) + 18px)}
 #rack{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
   background:linear-gradient(180deg,#232e38,#161e26);border:2px solid #313f4b;border-radius:14px;padding:8px;
-  min-height:calc(var(--t) + 18px);width:min(96vw,760px);margin:0 auto}
+  min-height:calc(var(--t) + 18px);flex:1 1 auto;min-width:0;width:auto;margin:0}
 
 /* ---------- buttons ---------- */
 #btns{flex:0 0 auto;display:flex;gap:10px;align-items:center;justify-content:center;padding:6px 8px 10px}
@@ -131,11 +134,13 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
   #clue{padding:4px 10px;font-size:15px;border-width:2px;border-radius:9px}
   #sub{font-size:11px;min-height:14px;margin-top:1px}
   #stage{padding:3px 6px}
-  #runes{font-size:11px;top:5%;letter-spacing:7px}
+  #runes{font-size:11px;top:5%;letter-spacing:3px}
   #door{box-shadow:0 0 0 3px #4a5a68,0 0 0 6px #232e38,0 8px 16px rgba(0,0,0,.6)}
   #slots{padding:5px 7px;border-width:2px;border-radius:10px}
   .ring{width:18px;height:18px;border-width:3px}
   #rackWrap{padding:2px 6px 0}
+  #rackRow{gap:6px}
+  #heroCv{width:calc(var(--t) + 10px);height:calc(var(--t) + 12px)}
   #rack{padding:5px;gap:6px;border-radius:10px;min-height:calc(var(--t) + 12px)}
   #slots{gap:5px}
   #btns{padding:4px 6px 5px;gap:8px}
@@ -174,7 +179,12 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
     </div>
   </div>
 
-  <div id="rackWrap"><div id="rack"></div></div>
+  <div id="rackWrap">
+    <div id="rackRow">
+      <canvas id="heroCv" aria-label="your hero"></canvas>
+      <div id="rack"></div>
+    </div>
+  </div>
 
   <div id="btns">
     <button class="btn blue" id="hintBtn">💡 Hint (🪙3)</button>
@@ -189,15 +199,16 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
   <h1>RUNE DOOR</h1>
   <p>A stone door blocks the hall. The carved letters fell off the door and landed on the rack.
      Put them back in the right order and the door grinds open.</p>
-  <p>Drag a letter into a slot, or tap the letter then tap the slot. 5 doors, 5 hearts.
+  <p id="startLine">Drag a letter into a slot, or tap the letter then tap the slot.
      A hint costs 🪙3 and carves one letter into the right place for you.</p>
+  <p id="gateLine" class="accent" style="font-weight:800"></p>
   <button class="bigbtn gold" id="startBtn">Open the first door</button>
 </div>
 
 <!-- WIN -->
 <div class="screen" id="winScreen">
   <div class="big">🏆</div>
-  <h1>ALL 5 DOORS OPEN</h1>
+  <h1 id="winTitle">ALL DOORS OPEN</h1>
   <p id="winLine"></p>
   <button class="bigbtn" id="winBtn">Play again</button>
 </div>
@@ -227,13 +238,30 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
    works as the clue either way.
    ===================================================================== */
 
-const COST_HINT = 3, DOORS = 5, HEARTS = 5, START_COINS = 55;
-const FAIL_SFX = ["01-oof","10-bruh","30-violin-screech","58-record-scratch-1","67-ba-dun-dun","70-sorry-bro"];
-
 /* ---------- embed contract (copied from multiply-helper.html) ---------- */
 const QS = new URLSearchParams(location.search);
 const EMBED = QS.get("embed") === "1";
 const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
+
+const COST_HINT = 3, HEARTS = 5, START_COINS = 55;
+/* ?doors=N  -> how many doors make one run (default 5). The dungeon hands him
+   a single door with ?doors=1, and finishing it posts `solved` to the parent. */
+const DOORS = (function(){
+  const n = parseInt(QS.get("doors"), 10);
+  if (!isFinite(n) || n < 1) return 5;
+  return Math.max(1, Math.min(n, 30));
+})();
+const FAIL_SFX = ["01-oof","10-bruh","30-violin-screech","58-record-scratch-1","67-ba-dun-dun","70-sorry-bro"];
+
+/* ?hero=knight|wizard|ninja|robot|explorer|dragon  (default knight).
+   Same six ids the dungeon's character picker uses. */
+const HERO_IDS = ["knight","wizard","ninja","robot","explorer","dragon"];
+const HERO_ALIAS = {mage:"wizard", shadow:"ninja", bot:"robot", beep9:"robot", "lil'dragon":"dragon"};
+const HERO = (function(){
+  let h = String(QS.get("hero") || "").toLowerCase().trim().replace(/\s+/g,"");
+  if (HERO_ALIAS[h]) h = HERO_ALIAS[h];
+  return HERO_IDS.indexOf(h) >= 0 ? h : "knight";
+})();
 
 /* ---------- sound ---------- */
 const Snd = (function(){
@@ -276,49 +304,89 @@ const S = {
   missed: false,      // got this door wrong at least once
   locked: false,      // input frozen (animation running / run over)
   running: false,
-  hintsUsed: 0
+  hintsUsed: 0,
+  gate: null,         // the themed door set this run is using
+  used: [],           // every word already seen THIS run: never repeated
+  lastLen: 3,         // longest word so far (the "long word" gate grows off this)
+  posted: false       // `solved` already sent to the parent
 };
 
-/* ---------- word source ---------- */
-const FAMS_EASY = ["spellEasy","vocabEasy"];
-const FAMS_ALL  = ["spellEasy","spellHard","vocabEasy","vocabHard"];
-const FAMS_HARD = ["spellHard","vocabHard"];
-/* door 1..5 -> {tier, families}. Tier starts at 1 and rises to 3. */
-const PLAN = [
-  { tier:1, fams:FAMS_EASY },
-  { tier:1, fams:FAMS_EASY },
-  { tier:2, fams:FAMS_ALL  },
-  { tier:2, fams:FAMS_ALL  },
-  { tier:3, fams:FAMS_HARD }
-];
-/* used only if the bank scripts fail to load (file:// with no server, etc.) */
-const FALLBACK = [
-  { w:"TORCH",  c:"🔥 A stick with fire on the end." },
-  { w:"CASTLE", c:"🏰 A huge stone home with towers and walls." },
-  { w:"RIDDLE", c:"❓ A puzzle question with a tricky answer." },
-  { w:"DRAGON", c:"🐉 A giant scaly beast that breathes fire." },
-  { w:"SHIELD", c:"🛡️ You hold it up to block a hit." }
-];
+/* =====================================================================
+   WORD SOURCE
 
+   Three pools feed the doors:
+     dungeon -> the 48 hand-written words right below, each with its own
+                dungeon-flavoured clue. Baked into this file, so the room
+                still works with no bank scripts and no server.
+     spell   -> spellEasy + spellHard harvested from the shared bank
+     vocab   -> vocabEasy + vocabHard harvested from the shared bank
+   A run picks a GATE, the gate says which pools to draw from, and a word
+   already used in this run is never drawn again.
+   ===================================================================== */
 const WORD_RE = /^[A-Za-z]{3,11}$/;
 
-function drawWord(plan, avoid){
-  if (typeof MathBank !== "undefined" && MathBank && typeof MathBank.ask === "function"){
-    for (let i = 0; i < 60; i++){
-      let r = null;
-      try { r = MathBank.ask(plan.tier, { rawTier:true, only: plan.fams }); }
-      catch (e) { r = null; }
-      if (!r || typeof r.a !== "string") continue;
-      const w = r.a.trim();
-      if (!WORD_RE.test(w)) continue;
-      const up = w.toUpperCase();
-      if (avoid && avoid.indexOf(up) !== -1) continue;
-      return { word: up, clue: clueFor(r, up), kind: r.kind || "bank" };
-    }
-  }
-  const f = FALLBACK[(S.door + Math.floor(Math.random()*FALLBACK.length)) % FALLBACK.length];
-  return { word: f.w, clue: f.c, kind: "fallback" };
-}
+const DUNGEON_WORDS = [
+  /* ---- short (tier 1) ---- */
+  { w:"TORCH", c:"🔥 A stick with fire on the end that lights the hall." },
+  { w:"CHEST", c:"🧰 A wooden box where treasure is locked away." },
+  { w:"SWORD", c:"⚔️ A long sharp blade a knight swings." },
+  { w:"CROWN", c:"👑 The gold hat a king wears on his head." },
+  { w:"GHOST", c:"👻 A see-through spirit that floats and moans." },
+  { w:"BONES", c:"🦴 What is left of a skeleton after a very long time." },
+  { w:"TRAP",  c:"🕳️ A hidden thing that catches you by surprise." },
+  { w:"CAVE",  c:"🗻 A big dark hole in a hill or a mountain." },
+  { w:"GOLD",  c:"🪙 The shiny yellow metal that coins are made of." },
+  { w:"MAZE",  c:"🌀 Twisty paths that are very easy to get lost in." },
+  { w:"BEAST", c:"🐺 A big wild animal you would not want to meet." },
+  { w:"SLIME", c:"🟢 A wobbly green blob that oozes along the floor." },
+  { w:"CLOAK", c:"🧥 A long cape you wear over your shoulders." },
+  { w:"VAULT", c:"🔐 A very strong locked room built for treasure." },
+  { w:"SPELL", c:"✨ Magic words a wizard says to make something happen." },
+  { w:"WITCH", c:"🧙 A magic woman with a bubbling pot and a broom." },
+  { w:"GUARD", c:"🛡️ Someone whose whole job is to watch and protect." },
+  { w:"TOWER", c:"🗼 The tall skinny part of a castle." },
+  { w:"STONE", c:"🪨 The hard grey rock these walls are built from." },
+  { w:"CLAWS", c:"🐾 The sharp curved nails on a monster's paw." },
+  /* ---- medium (tier 2) ---- */
+  { w:"DRAGON",  c:"🐉 A giant scaly beast that breathes fire." },
+  { w:"CASTLE",  c:"🏰 A huge stone home with towers and thick walls." },
+  { w:"SHIELD",  c:"🛡️ You hold it up to block a hit." },
+  { w:"RIDDLE",  c:"❓ A tricky puzzle question with a sneaky answer." },
+  { w:"WIZARD",  c:"🧙 A person who studies magic and casts spells." },
+  { w:"GOBLIN",  c:"👺 A small green sneaky dungeon creature." },
+  { w:"TUNNEL",  c:"🚇 A long hole dug straight through the rock." },
+  { w:"POTION",  c:"🧪 A magic drink in a little glass bottle." },
+  { w:"KNIGHT",  c:"🐴 A warrior in armour who rides a horse." },
+  { w:"SILVER",  c:"🥈 A shiny white metal, the colour of a new coin." },
+  { w:"CANDLE",  c:"🕯️ Wax with a string inside that gives a small light." },
+  { w:"SHADOW",  c:"🌑 The dark shape you make when you block the light." },
+  { w:"ARMORY",  c:"🗡️ The room where all the weapons are kept." },
+  { w:"BRIDGE",  c:"🌉 It lets you walk across a river or a big gap." },
+  { w:"CAVERN",  c:"🕳️ A cave so huge your voice echoes back at you." },
+  { w:"LANTERN", c:"🏮 A light inside a little glass cage you carry." },
+  { w:"MONSTER", c:"👹 A scary creature straight out of a story." },
+  { w:"WHISPER", c:"🤫 To talk so softly it is almost silent." },
+  { w:"CRYSTAL", c:"💎 A clear shiny rock that catches the light." },
+  { w:"VILLAGE", c:"🏘️ A tiny town with only a few houses in it." },
+  { w:"MYSTERY", c:"🔎 Something nobody has figured out yet." },
+  { w:"PHANTOM", c:"👻 A ghost that appears and then vanishes again." },
+  { w:"DUNGEON", c:"🔒 The dark stone rooms underneath a castle." },
+  /* ---- chunky (tier 3) ---- */
+  { w:"TREASURE",  c:"💰 A pile of gold and jewels worth hunting for." },
+  { w:"SKELETON",  c:"💀 A body made only of bones, walking around." },
+  { w:"GUARDIAN",  c:"🗿 A creature that guards one place forever." },
+  { w:"CHAMPION",  c:"🏆 The very best fighter, the one who wins." },
+  { w:"CREATURE",  c:"🐾 Any living animal or beast, big or small." },
+  { w:"MERCHANT",  c:"💰 A person who buys and sells things for a living." },
+  { w:"FORTRESS",  c:"🏯 A castle built strong and ready for a fight." },
+  { w:"SORCERER",  c:"🔮 A very powerful wizard." },
+  { w:"LABYRINTH", c:"🌀 A giant maze of twisting stone paths." },
+  { w:"ENCHANTED", c:"✨ Put under a magic spell." },
+  { w:"ADVENTURE", c:"🗺️ An exciting journey with danger in it." }
+];
+
+/* tier straight off the length, so every pool grades the same way */
+const tierOf = w => w.length <= 5 ? 1 : (w.length <= 7 ? 2 : 3);
 
 /* The bank question is the clue. Spelling questions ask "which word is
    spelled correctly?", which on a scrambled rack reads exactly right;
@@ -330,6 +398,93 @@ function clueFor(r, up){
     q = "✏️ Build the word that is spelled <span class='accent'>correctly</span>.";
   }
   return q + " <span style='color:#8a97a3'>(" + up.length + " letters)</span>";
+}
+const lenTag = up => " <span style='color:#8a97a3'>(" + up.length + " letters)</span>";
+
+/* Pull as many DISTINCT words out of the bank families as we can. The bank
+   answers one random question per call, so we ask a lot and keep the set. */
+function harvest(fams, tiers, tries){
+  const seen = {};
+  if (typeof MathBank === "undefined" || !MathBank || typeof MathBank.ask !== "function") return [];
+  for (let i = 0; i < tries; i++){
+    let r = null;
+    try { r = MathBank.ask(tiers[i % tiers.length], { rawTier:true, only: fams }); }
+    catch (e) { r = null; }
+    if (!r || typeof r.a !== "string") continue;
+    const w = r.a.trim();
+    if (!WORD_RE.test(w)) continue;
+    const up = w.toUpperCase();
+    if (!seen[up]) seen[up] = { w: up, c: clueFor(r, up) };
+  }
+  return Object.keys(seen).map(k => seen[k]);
+}
+
+const POOLS = {
+  dungeon: DUNGEON_WORDS.map(e => ({ w:e.w, c:e.c + lenTag(e.w), tier:tierOf(e.w), kind:"dungeon" })),
+  spell:   harvest(["spellEasy","spellHard"], [1,2,3,4,5,6], 500).map(e => ({ w:e.w, c:e.c, tier:tierOf(e.w), kind:"spell" })),
+  vocab:   harvest(["vocabEasy","vocabHard"], [1,2,3,4,5,6], 500).map(e => ({ w:e.w, c:e.c, tier:tierOf(e.w), kind:"vocab" }))
+};
+
+/* ---------- themed door sets: a run feels different every time ---------- */
+const GATES = [
+  { id:"deep",     name:"THE DEEP GATE",      sub:"Every kind of word lives behind this one.",       src:["dungeon","spell","vocab"] },
+  { id:"spelling", name:"THE SPELLING GATE",  sub:"Words that are easy to spell wrong. Say them slowly.", src:["spell"] },
+  { id:"meaning",  name:"THE RIDDLE GATE",    sub:"Read the meaning, then build the word it describes.",  src:["vocab"] },
+  { id:"dungeon",  name:"THE DUNGEON GATE",   sub:"Words from deep under the castle.",               src:["dungeon"] },
+  { id:"long",     name:"THE LONG WORD GATE", sub:"Every word is longer than the one before it.",    src:["dungeon","spell","vocab"], grow:true }
+];
+/* a gate with an empty pool (bank scripts missing) is dropped, never offered */
+function liveGates(){
+  const ok = GATES.filter(g => g.src.some(s => POOLS[s] && POOLS[s].length));
+  return ok.length ? ok : [GATES[3]];
+}
+
+function gatePool(gate){
+  const out = [];
+  gate.src.forEach(s => { (POOLS[s] || []).forEach(e => out.push(e)); });
+  return out;
+}
+
+/* target tier ramps from 1 up to 3 across the run */
+function tierForDoor(i){
+  if (DOORS <= 1) return 1;
+  const f = i / (DOORS - 1);
+  return f < 0.34 ? 1 : (f < 0.7 ? 2 : 3);
+}
+
+function drawWord(){
+  const gate = S.gate || liveGates()[0];
+  const pool = gatePool(gate).filter(e => S.used.indexOf(e.w) === -1);
+  if (!pool.length){
+    /* every word in the gate is used up: fall back to the whole catalogue,
+       and only then allow a repeat rather than leave the door blank */
+    const all = POOLS.dungeon.concat(POOLS.spell, POOLS.vocab);
+    const fresh = all.filter(e => S.used.indexOf(e.w) === -1);
+    const e = (fresh.length ? fresh : all)[Math.floor(Math.random() * (fresh.length ? fresh.length : all.length))];
+    return { word:e.w, clue:e.c, kind:e.kind };
+  }
+  let cand;
+  if (gate.grow){
+    /* always the SHORTEST word that still beats the last one, so the run
+       never jumps to an 11-letter word on door 2 and then has nowhere left
+       to grow. Only if the whole pool is exhausted upward do we hold at the
+       longest words instead of shrinking back down. */
+    const longer = pool.filter(e => e.w.length > S.lastLen);
+    if (longer.length){
+      const min = longer.reduce((m,e) => Math.min(m, e.w.length), 99);
+      cand = longer.filter(e => e.w.length === min);
+    } else {
+      const max = pool.reduce((m,e) => Math.max(m, e.w.length), 0);
+      cand = pool.filter(e => e.w.length === max);
+    }
+  } else {
+    const want = tierForDoor(S.door);
+    cand = pool.filter(e => e.tier === want);
+    if (!cand.length) cand = pool.filter(e => Math.abs(e.tier - want) === 1);
+    if (!cand.length) cand = pool;
+  }
+  const e = cand[Math.floor(Math.random() * cand.length)];
+  return { word:e.w, clue:e.c, kind:e.kind };
 }
 
 /* ---------- tile helpers ---------- */
@@ -356,10 +511,10 @@ const tileById = id => S.tiles.find(t => t.id === id) || null;
 
 /* ---------- build a door ---------- */
 function loadDoor(){
-  const plan = PLAN[Math.min(S.door, PLAN.length-1)];
-  const avoid = [S.word];
-  const pickd = drawWord(plan, avoid);
+  const pickd = drawWord();
   S.word = pickd.word; S.clue = pickd.clue; S.kind = pickd.kind;
+  if (S.used.indexOf(S.word) === -1) S.used.push(S.word);
+  S.lastLen = Math.max(S.lastLen, S.word.length);
   S.missed = false; S.locked = false;
   S.slots = new Array(S.word.length).fill(null);
   S.tiles = shuffle(S.word.split("").concat(decoyLetters(S.word)))
@@ -367,7 +522,8 @@ function loadDoor(){
   sel = null;
   doorEl.classList.remove("open","shake");
   $("clue").innerHTML = S.clue;
-  say("", "");
+  $("runes").textContent = S.gate ? "✦ " + S.gate.name + " ✦" : "✦ ✧ ✦ ✧ ✦";
+  say(S.door === 0 && S.gate ? S.gate.sub : "", S.door === 0 ? "hint" : "");
   renderAll();
   fitTiles();
 }
@@ -591,13 +747,24 @@ function win(){
   }, 1400);
 }
 
+function postSolved(){
+  if (!EMBED || S.posted) return;
+  S.posted = true;
+  toGame({ type:"solved", doors: DOORS, score: S.score });
+}
+
 function runWon(){
   S.running = false;
-  $("winLine").innerHTML = "You opened all 5 doors with <b>" + S.hearts + "</b> " +
+  $("winTitle").textContent = DOORS === 1 ? "THE DOOR IS OPEN" : ("ALL " + DOORS + " DOORS OPEN");
+  $("winLine").innerHTML = "You opened " + (DOORS === 1 ? "the door" : "all " + DOORS + " doors") +
+    " with <b>" + S.hearts + "</b> " +
     (S.hearts === 1 ? "heart" : "hearts") + " left.<br><b>SCORE " + S.score + "</b> · 🪙 " + S.coins + " coins left" +
     (S.hintsUsed ? " · " + S.hintsUsed + " hint" + (S.hintsUsed===1?"":"s") + " used" : " · no hints used");
   $("winScreen").classList.add("on");
   $("winBtn").textContent = EMBED ? "⚔️ Back to the dungeon" : "Play again";
+  /* one door handed over by the dungeon: roll straight back instead of
+     making a seven-year-old tap through a trophy screen */
+  if (EMBED && DOORS === 1) setTimeout(postSolved, 1400);
 }
 
 function gameOver(){
@@ -744,7 +911,7 @@ $("muteBtn").onclick = () => { Snd.toggle(); hud(); };
 $("startBtn").onclick = () => { $("startScreen").classList.remove("on"); start(); };
 $("winBtn").onclick = () => {
   $("winScreen").classList.remove("on");
-  if (EMBED) toGame({ type:"solved", doors: DOORS, score: S.score });
+  if (EMBED) postSolved();
   else start();
 };
 $("overBtn").onclick = () => {
@@ -760,6 +927,9 @@ function backToStart(){
 /* ---------- run control ---------- */
 function start(){
   S.door = 0; S.hearts = HEARTS; S.score = 0; S.hintsUsed = 0;
+  S.used = []; S.lastLen = 3; S.posted = false;
+  const gs = liveGates();
+  S.gate = gs[Math.floor(Math.random() * gs.length)];
   if (!EMBED) S.coins = START_COINS;
   S.running = true; S.locked = false;
   $("winScreen").classList.remove("on");
@@ -780,11 +950,240 @@ if (EMBED){
   fitTiles();
 }
 
+/* =====================================================================
+   THE CHOSEN HERO, standing next to the rack and cheering the door open.
+   Self-contained on purpose: this file stays independent of every other
+   game file, so the sprite code lives here rather than in a shared helper.
+   ===================================================================== */
+const HERO_ART = {
+  knight:   {body:"#b9c6d4", trim:"#8795a5", skin:"#f0c9a0", accent:"#ffd23f", name:"The Knight"},
+  wizard:   {body:"#7b5cd6", trim:"#4a35a0", skin:"#f0c9a0", accent:"#ffd23f", name:"The Mage"},
+  ninja:    {body:"#263445", trim:"#151f2b", skin:"#f0c9a0", accent:"#ff4d5e", name:"The Shadow"},
+  robot:    {body:"#cfd8e3", trim:"#8b9bad", skin:"#cfd8e3", accent:"#4ff0ff", name:"BEEP-9"},
+  explorer: {body:"#c8a86a", trim:"#8a6f3c", skin:"#f0c9a0", accent:"#6d8f4a", name:"The Explorer"},
+  dragon:   {body:"#4fbf6a", trim:"#2f8f4a", skin:"#4fbf6a", accent:"#f5e6a8", name:"Lil' Dragon"}
+};
+
+function drawHeroSprite(g, X, Y, u, id, o){
+  o = o || {};
+  const A = HERO_ART[id] || HERO_ART.knight;
+  const b = o.bob || 0;
+  const ex = Math.max(-1, Math.min(1, o.fx || 0)) * u * 0.06;
+  const ey = Math.max(-1, Math.min(1, o.fy || 0)) * u * 0.04;
+  const cheer = !!o.cheer;
+  const HY = Y - u*0.20 + b, HR = u*0.22;
+  const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
+
+  g.fillStyle = "rgba(0,0,0,.45)";
+  g.beginPath(); g.ellipse(X, Y + u*0.34, u*0.30, u*0.12, 0, 0, 7); g.fill();
+
+  if (id === "dragon"){
+    g.fillStyle = A.trim;
+    g.beginPath();
+    g.moveTo(X + u*0.16, Y + u*0.18 + b);
+    g.quadraticCurveTo(X + u*0.66, Y + u*0.30 + b, X + u*0.52, Y - u*0.06 + b);
+    g.quadraticCurveTo(X + u*0.44, Y + u*0.16 + b, X + u*0.16, Y + u*0.30 + b);
+    g.closePath(); g.fill();
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.14, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.54, Y - u*0.40 + b);
+      g.lineTo(X + s*u*0.46, Y + u*0.08 + b);
+      g.closePath(); g.fill();
+    });
+  }
+  if (id === "explorer"){
+    g.fillStyle = "#6b4a24"; g.fillRect(X - u*0.36, Y - u*0.12 + b, u*0.21, u*0.36);
+    g.fillStyle = "#4e3518"; g.fillRect(X - u*0.36, Y + u*0.02 + b, u*0.21, u*0.06);
+  }
+  if (id === "wizard"){
+    g.strokeStyle = "#8a5a2b"; g.lineWidth = Math.max(1.5, u*0.06);
+    g.beginPath(); g.moveTo(X + u*0.32, Y + u*0.34 + b); g.lineTo(X + u*0.36, Y - u*0.44 + b); g.stroke();
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X + u*0.36, Y - u*0.50 + b, u*0.09, 0, 7); g.fill();
+  }
+
+  if (id === "robot"){
+    g.fillStyle = A.body; g.fillRect(X - u*0.26, Y - u*0.10 + b, u*0.52, u*0.40);
+    g.fillStyle = A.trim; g.fillRect(X - u*0.26, Y + u*0.16 + b, u*0.52, u*0.07);
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X, Y + u*0.03 + b, u*0.07, 0, 7); g.fill();
+    g.fillStyle = A.trim; g.fillRect(X - u*0.30, Y + u*0.30 + b, u*0.60, u*0.08);
+  } else {
+    const flare = id === "wizard" ? 0.38 : 0.30;
+    g.fillStyle = A.body;
+    g.beginPath();
+    g.moveTo(X - u*flare, Y + u*0.32 + b);
+    g.lineTo(X - u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*flare, Y + u*0.32 + b);
+    g.closePath(); g.fill();
+    g.fillStyle = A.trim;
+    g.fillRect(X - u*0.22, Y + u*0.05 + b, u*0.44, u*0.06);
+    if (id === "knight"){
+      g.fillStyle = A.trim;
+      [-1, 1].forEach(s => { g.beginPath(); g.ellipse(X + s*u*0.24, Y - u*0.06 + b, u*0.12, u*0.09, 0, 0, 7); g.fill(); });
+    }
+    if (id === "ninja"){
+      g.fillStyle = A.accent;
+      g.beginPath();
+      g.moveTo(X + u*0.16, Y - u*0.06 + b);
+      g.lineTo(X + u*0.46, Y + u*0.04 + b);
+      g.lineTo(X + u*0.18, Y + u*0.06 + b);
+      g.closePath(); g.fill();
+    }
+    if (id === "dragon"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.ellipse(X, Y + u*0.13 + b, u*0.15, u*0.17, 0, 0, 7); g.fill();
+    }
+    if (id === "explorer"){
+      g.fillStyle = A.trim;
+      g.fillRect(X - u*0.02, Y - u*0.08 + b, u*0.04, u*0.14);
+    }
+  }
+
+  if (cheer){
+    /* arms in the TRIM colour so they read against the body, with a hand
+       blob on the end: waving arms are the whole point of a cheer */
+    g.strokeStyle = id === "ninja" ? A.accent : A.trim;
+    g.lineWidth = Math.max(2, u*0.11);
+    g.lineCap = "round";
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.19, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.40, Y - u*0.42 + b);
+      g.stroke();
+    });
+    g.lineCap = "butt";
+    g.fillStyle = id === "robot" ? A.accent : A.skin;
+    [-1, 1].forEach(s => { g.beginPath(); g.arc(X + s*u*0.40, Y - u*0.44 + b, u*0.075, 0, 7); g.fill(); });
+  }
+
+  if (id === "robot"){
+    g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
+    g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    g.fillStyle = "#e3e9f0"; g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.32);
+    g.fillStyle = A.trim;    g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.05);
+    g.fillStyle = "#0a1418"; g.fillRect(X - u*0.17, Y - u*0.30 + b, u*0.34, u*0.13);
+    g.fillStyle = A.accent;
+    g.fillRect(X - u*0.14 + ex, Y - u*0.27 + ey + b, u*0.28, u*0.07);
+    g.save(); g.globalAlpha = 0.45;
+    g.fillRect(X - u*0.18 + ex, Y - u*0.29 + ey + b, u*0.36, u*0.11);
+    g.restore();
+  } else if (id === "dragon"){
+    g.fillStyle = A.body; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.trim;
+    g.beginPath(); g.ellipse(X + ex*1.4, HY + u*0.09 + ey, u*0.16, u*0.10, 0, 0, 7); g.fill();
+    g.fillStyle = A.accent;
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.12, HY - u*0.18);
+      g.lineTo(X + s*u*0.22, HY - u*0.40);
+      g.lineTo(X + s*u*0.02, HY - u*0.22);
+      g.closePath(); g.fill();
+    });
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    g.fillStyle = "#0d1a12";
+    g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+    g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+  } else if (id === "ninja"){
+    g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
+    g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);   // eye slit
+    g.fillStyle = A.trim; g.fillRect(X - u*0.23, HY + u*0.06, u*0.46, u*0.15);   // mask
+    g.fillStyle = A.accent;                                                      // headband + tail
+    g.fillRect(X - u*0.25, HY - u*0.17, u*0.50, u*0.08);
+    g.beginPath();
+    g.moveTo(X - u*0.23, HY - u*0.16);
+    g.lineTo(X - u*0.46, HY - u*0.04);
+    g.lineTo(X - u*0.23, HY - u*0.07);
+    g.closePath(); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+  } else {
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
+    if (id === "knight"){
+      g.fillStyle = "#cfdae6";
+      g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
+      g.fillStyle = "#1a2129";
+      g.fillRect(X - u*0.13, HY - u*0.05, u*0.26, u*0.045);
+      g.fillStyle = A.accent;
+      [-1, 1].forEach(s => {
+        g.beginPath();
+        g.moveTo(X + s*u*0.20, HY - u*0.12);
+        g.lineTo(X + s*u*0.40, HY - u*0.30);
+        g.lineTo(X + s*u*0.22, HY - u*0.01);
+        g.closePath(); g.fill();
+      });
+    } else if (id === "wizard"){
+      g.fillStyle = "#eef1f5";
+      g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
+      g.fillStyle = A.trim;
+      g.beginPath();
+      g.moveTo(X - u*0.26, HY - u*0.14);
+      g.lineTo(X + u*0.08, HY - u*0.62);
+      g.lineTo(X + u*0.26, HY - u*0.14);
+      g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
+    } else if (id === "explorer"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
+      g.fillStyle = "#54713a";
+      g.beginPath(); g.ellipse(X + u*0.16, HY - u*0.02, u*0.20, u*0.055, 0, 0, 7); g.fill();
+    }
+  }
+}
+
+/* the little canvas beside the rack: idle breath, then a jump when the door
+   swings open. Wrapped so a missing 2d context can never stop the game. */
+function paintHero(t){
+  try {
+    const c = $("heroCv"); if (!c) return;
+    const r = c.getBoundingClientRect();
+    const w = Math.max(24, Math.round(r.width)), h = Math.max(24, Math.round(r.height));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w*dpr) || c.height !== Math.round(h*dpr)){
+      c.width = Math.round(w*dpr); c.height = Math.round(h*dpr);
+    }
+    const g = c.getContext("2d"); if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const open = doorEl.classList.contains("open");
+    const u = Math.min(w, h) * 0.70;
+    const bob = open ? -Math.abs(Math.sin(t/130)) * u * 0.20 : Math.sin(t/620) * u * 0.02;
+    drawHeroSprite(g, w/2, h*0.60, u, HERO, { bob: bob, fx: 0, fy: 1, cheer: open });
+  } catch (e) { /* a hero that will not draw never breaks the puzzle */ }
+}
+(function heroLoop(t){ paintHero(t || 0); requestAnimationFrame(heroLoop); })(0);
+
+/* the start screen names the hero he picked back in the dungeon */
+(function(){
+  const A = HERO_ART[HERO] || HERO_ART.knight;
+  $("startLine").innerHTML = "Drag a letter into a slot, or tap the letter then tap the slot. <b>" +
+    DOORS + " door" + (DOORS === 1 ? "" : "s") + ", " + HEARTS + " hearts.</b><br>" +
+    "A hint costs 🪙3 and carves one letter into the right place for you.";
+  $("gateLine").innerHTML = "Standing with you at the door: <span style=\"color:" + A.body + "\">" + A.name + "</span>";
+})();
+
 /* ---------- test hook ---------- */
 window.RUNE = {
   start: start,
   loadDoor: loadDoor,                 // reroll the current door (tests / layout checks)
   state: S,
+  DOORS: DOORS,
+  HERO: HERO,
+  HERO_ART: HERO_ART,
+  drawHeroSprite: drawHeroSprite,       /* lets a test render every hero big */
+  heroName: (HERO_ART[HERO] || HERO_ART.knight).name,
+  GATES: GATES,
+  poolSizes: function(){ return { dungeon: POOLS.dungeon.length, spell: POOLS.spell.length, vocab: POOLS.vocab.length,
+                                  total: POOLS.dungeon.length + POOLS.spell.length + POOLS.vocab.length }; },
+  get gate(){ return S.gate ? S.gate.id : null; },
+  get used(){ return S.used.slice(); },
+  nextDoor: function(){ S.locked = false; S.door++; if (S.door >= DOORS){ runWon(); return null; } loadDoor(); return S.word; },
   get word(){ return S.word; },
   get built(){ return S.slots.map(id => { const t = tileById(id); return t ? t.ch : "."; }).join(""); },
   get rack(){ return S.tiles.filter(t => t.where === "rack").map(t => t.ch); },
@@ -817,5 +1216,6 @@ window.RUNE = {
 };
 })();
 </script>
+<script src="home-button.js"></script>
 </body>
 </html>

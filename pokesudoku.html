@@ -84,7 +84,7 @@ img{-webkit-user-drag:none;user-drag:none}
 .pk-tile .art{width:var(--sprite);height:var(--sprite);display:flex;align-items:center;justify-content:center}
 .pk-tile .art img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
 .pk-tile .art .fb{width:100%;height:100%;font-size:calc(var(--sprite)*.5)}
-.pk-tile .nm{font-size:9px;font-weight:800;letter-spacing:0;color:#cfd8e0;line-height:1;
+.pk-tile .nm{font-size:clamp(9px,calc(var(--tile)*0.15),15px);font-weight:800;letter-spacing:0;color:#cfd8e0;line-height:1;
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pk-tile.on .nm{color:var(--gold)}
 .pk-tile.era{background:#4a2f36;border-color:#6d444e;box-shadow:0 3px 0 #201216}
@@ -146,8 +146,7 @@ img{-webkit-user-drag:none;user-drag:none}
   .tool .txt{display:none}
   #stage{flex-direction:row;gap:6px;padding:3px}
   #picker{flex-wrap:wrap;width:136px;gap:4px}
-  .pk-tile{width:64px;padding:3px 2px 2px}
-  :root{--tile:64px;--sprite:30px}
+  .pk-tile{width:var(--tile);padding:3px 2px 2px}
   .pk-tile .nm{font-size:9px}
   #hero{width:48px;height:48px;left:4px;bottom:4px}
   /* landscape: the board fills the middle, so the toast sits in the left gutter */
@@ -716,8 +715,16 @@ function layout(){
   }
   var cell = Math.floor(Math.min(availW / N, availH / N));
   if (!isFinite(cell) || cell <= 0) cell = 40;
-  cell = Math.max(30, Math.min(cell, 66));
-  document.documentElement.style.setProperty("--cell", cell + "px");
+  /* Will, 2026-09-19: "the Pokemon icons are super small. We definitely need a
+     larger ux gameplay". The board now grows into whatever room it has, and
+     the picker tiles and sprites grow with it instead of staying fixed. */
+  cell = Math.max(30, Math.min(cell, compact ? 78 : 132));
+  var tile   = Math.round(cell * (compact ? 1.02 : 1.15));
+  var sprite = Math.round(cell * (compact ? 0.72 : 0.80));
+  var root = document.documentElement.style;
+  root.setProperty("--cell", cell + "px");
+  root.setProperty("--tile", Math.max(52, Math.min(tile, compact ? 84 : 132)) + "px");
+  root.setProperty("--sprite", Math.max(26, Math.min(sprite, compact ? 60 : 104)) + "px");
 }
 window.addEventListener("resize", function(){ layout(); });
 window.addEventListener("orientationchange", function(){ setTimeout(layout, 150); });
@@ -733,19 +740,11 @@ function pushHistory(){
 function onCellTap(e){
   if (S.done) return;
   var i = parseInt(e.currentTarget.dataset.i, 10);
-  if (S.given[i]){ S.sel = i; render(); return; }
-  /* a Pokemon is already chosen in the picker: drop it straight in */
-  if (S.selPk !== null && S.selPk > 0 && S.G[i] === 0){
-    S.sel = i;
-    doPlace(i, S.selPk);
-    return;
-  }
-  if (S.selPk === 0 && S.G[i] !== 0){        /* eraser armed */
-    S.sel = i;
-    doPlace(i, 0);
-    return;
-  }
+  /* Tapping a square ONLY picks the square. Nothing drops into it until he
+     taps a Pokemon. (Will, 2026-09-19: the old "armed Pokemon" behaviour put
+     the last Pokemon into the next square he touched and cost him the answer.) */
   S.sel = i;
+  S.selPk = null;
   render();
 }
 
@@ -1138,5 +1137,6 @@ window.POKE = {
 
 })();
 </script>
+<script src="home-button.js"></script>
 </body>
 </html>
