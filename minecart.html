@@ -20,6 +20,13 @@
   #hud .sp{flex:1}
   #coinBox{color:#ffd23f}
   #speedBox{color:#7fe9ff}
+  #gemBox{color:#9ff7ff}
+  #routeBox{font-size:11px;font-weight:800;letter-spacing:.8px;color:#cfe0ff;background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:2px 7px;transition:color .6s,border-color .6s}
+  /* the fork line rides inside the question box, so it never covers the track */
+  #qfork{display:none;font-size:14px;font-weight:900;margin-top:3px;letter-spacing:.3px}
+  #qfork.on{display:block}
+  #qbox.fork{box-shadow:0 0 30px var(--fork, #ffd23f);border-color:var(--fork, #ffd23f)}
   /* the question rides at the top so the track stays clear */
   #qbox{position:absolute;left:50%;top:38px;transform:translateX(-50%);width:min(94vw,760px);
     background:rgba(8,12,34,.86);border:2px solid #2c4bd8;border-radius:14px;padding:8px 14px;text-align:center;
@@ -70,6 +77,8 @@
     #qbox{top:30px;padding:5px 10px}
     #qtext{font-size:19px}
     #qkind{font-size:10px}
+    #qfork{font-size:11px;margin-top:1px}
+    #routeBox{font-size:9px;padding:1px 5px}
     #msg{font-size:26px}
     .panel h1{font-size:22px} .panel p{font-size:13px}
     .big{font-size:16px;padding:9px 18px}
@@ -84,13 +93,15 @@
   <div id="hud">
     <span id="hearts"></span>
     <span class="sp"></span>
+    <span id="routeBox" title="The tunnel you are riding">MINE</span>
+    <span id="gemBox" title="Gems grabbed this ride">💎 0</span>
     <span id="coinBox">🪙 0</span>
     <span id="scoreBox">SCORE 0</span>
     <span id="speedBox"></span>
     <span id="muteBtn" style="cursor:pointer;margin-left:8px" title="Sound on / off">🔊</span>
   </div>
 
-  <div id="qbox" class="hide"><div id="qkind"></div><div id="qtext"></div></div>
+  <div id="qbox" class="hide"><div id="qkind"></div><div id="qtext"></div><div id="qfork"></div></div>
   <div id="msg"></div>
   <div id="flash"></div>
   <div id="steer" class="hide"><div>◀</div><div>▶</div></div>
@@ -109,7 +120,8 @@
         <button data-s="other">🧪 Other</button>
       </div>
       <button class="big gold" id="goBtn" style="margin-top:14px">GO! ▶</button>
-      <p style="font-size:12px;color:#8fa0d0;margin-top:10px">A wrong lane costs a heart, but the cart rolls on. 8 gates to the station.</p>
+      <p style="font-size:12px;color:#8fa0d0;margin-top:10px">A wrong lane costs a heart, but the cart rolls on. 8 gates to the station.<br>
+        💎 Steer into the glowing gems for coins. 🔀 Every third gate is a FORK: the right answer picks a new tunnel.</p>
     </div>
   </div>
 
@@ -127,6 +139,8 @@
 <script src="three.min.js"></script>
 <script src="math-bank.js"></script>
 <script src="story-bank.js"></script>
+<script src="brain.js"></script>
+<script src="wallet.js"></script>
 <script>
 (function(){
 "use strict";
@@ -214,6 +228,22 @@ const Snd = (function(){
       }catch(e){}
     },
     pick(list, vol){ this.file(list[(Math.random()*list.length)|0], vol); },
+    /* a gem: two bright bell partials, stepping up the scale as he chains a pattern */
+    chime(step){
+      if (!ctx || !on) return;
+      const SCALE = [0, 2, 4, 7, 9, 12, 14, 16];
+      const base = 1046.5 * Math.pow(2, SCALE[Math.max(0, step|0) % SCALE.length] / 12);   // C6 upward
+      const t = ctx.currentTime;
+      [[base, 0.16, 0.5], [base*2.01, 0.07, 0.28], [base*3.02, 0.03, 0.16]].forEach(([f, v, len]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(v, t + 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+        o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + len + 0.02);
+      });
+    },
+    isOn(){ return on; },
     toggle(){ on = !on; if (!on && rollGain) rollGain.gain.value = 0; return on; }
   };
 })();
@@ -239,7 +269,8 @@ const HERO_LOOK = {
 /* ============================ state ============================ */
 const S = {
   running:false, z:0, x:0, speed:SPEED0, hearts:5, coins:55, score:0,
-  subject:"math", gate:0, right:0, asked:0, invT:0, shakeT:0, paused:false, ended:false
+  subject:"math", gate:0, right:0, asked:0, invT:0, shakeT:0, paused:false, ended:false,
+  gems:0, route:"mine", timeScale:1
 };
 let camShakeSeed = 0;
 /* The track rolls: gentle hills everywhere, plus a DIVE (a deep dip that
@@ -312,21 +343,78 @@ woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
 const mat = {
   wall:  new THREE.MeshBasicMaterial({map:rockTex}),
   floor: new THREE.MeshBasicMaterial({map:rockTex, color:0x8899bb}),
+  ceil:  new THREE.MeshBasicMaterial({map:rockTex, color:0x5a6782}),
   wood:  new THREE.MeshBasicMaterial({map:woodTex}),
   rail:  new THREE.MeshBasicMaterial({color:0x9fb4d8}),
   torch: new THREE.MeshBasicMaterial({color:0xffb347}),
+  glow:  new THREE.MeshBasicMaterial({color:0xff9c3f, transparent:true, opacity:0.22, depthWrite:false}),
   cart:  new THREE.MeshBasicMaterial({color:0x8a5a2b}),
   iron:  new THREE.MeshBasicMaterial({color:0x50607e})
 };
+
+/* ============================ tunnel themes (the fork routes) ============================
+   Every segment shares these few materials, so a new route is a RECOLOUR of the
+   materials and the fog over about a second. The geometry is never rebuilt or
+   rotated. Colours are multipliers on the rock texture (1 = the texture as
+   painted), so a value above 1 brightens the dark rock toward ice or gold.   */
+const sc = (r,g,b) => new THREE.Color().setRGB(r, g, b, THREE.SRGBColorSpace);
+const hx = h => new THREE.Color(h);
+const THEMES = {
+  mine:    {name:"MINE",         icon:"⛏", ui:"#cfe0ff",
+            wall:sc(1,1,1), floor:hx(0x8899bb), ceil:hx(0x5a6782), rail:hx(0x9fb4d8),
+            torch:hx(0xffb347), glow:hx(0xff9c3f), glowA:0.22, fog:hx(0x04060f), fogD:0.011},
+  crystal: {name:"CRYSTAL CAVE", icon:"💎", ui:"#6fd8ff",
+            wall:sc(0.55,1.0,2.1), floor:sc(0.45,0.75,1.6), ceil:sc(0.4,0.7,1.8), rail:hx(0xbff2ff),
+            torch:hx(0x7ff6ff), glow:hx(0x39c8ff), glowA:0.5, fog:hx(0x031033), fogD:0.012},
+  lava:    {name:"LAVA TUNNEL",  icon:"🌋", ui:"#ff9a4a",
+            wall:sc(1.7,0.62,0.3), floor:sc(1.3,0.45,0.22), ceil:sc(0.95,0.32,0.18), rail:hx(0xffc27a),
+            torch:hx(0xffe070), glow:hx(0xff5a1a), glowA:0.55, fog:hx(0x3a0a02), fogD:0.014},
+  ice:     {name:"ICE TUNNEL",   icon:"🧊", ui:"#dff4ff",
+            wall:sc(1.4,1.52,1.66), floor:sc(1.3,1.42,1.58), ceil:sc(1.2,1.32,1.5), rail:hx(0xeaf8ff),
+            torch:hx(0xcff4ff), glow:hx(0xbfeaff), glowA:0.30, fog:hx(0x5a7890), fogD:0.012},
+  gold:    {name:"GOLD MINE",    icon:"🪙", ui:"#ffd23f",
+            wall:sc(1.75,1.35,0.55), floor:sc(1.45,1.1,0.45), ceil:sc(1.05,0.8,0.35), rail:hx(0xffe9a0),
+            torch:hx(0xffe45a), glow:hx(0xffd23f), glowA:0.50, fog:hx(0x241904), fogD:0.011},
+  dusty:   {name:"DUSTY TUNNEL", icon:"💨", ui:"#c9b48f",
+            wall:sc(1.3,1.12,0.85), floor:sc(1.15,0.98,0.75), ceil:sc(0.85,0.72,0.55), rail:hx(0x8f8474),
+            torch:hx(0xa8845a), glow:hx(0x9a7d5c), glowA:0.12, fog:hx(0x2e2619), fogD:0.019}
+};
+const FORK_ROUTES = ["crystal","lava","ice","gold"];
+scene.background = THEMES.mine.fog.clone();
+const Theme = (function(){
+  const KEYS = ["wall","floor","ceil","rail","torch","glow","fog"];
+  const from = {}, to = {};
+  let fromA = 0.22, toA = 0.22, fromD = 0.011, toD = 0.011, t = 1, cur = "mine";
+  const target = k => k === "fog" ? scene.fog.color : mat[k].color;
+  function apply(k1){
+    const e = k1*k1*(3 - 2*k1);                      // smoothstep, so the change eases in and out
+    for (const k of KEYS) target(k).lerpColors(from[k], to[k], e);
+    scene.background.copy(scene.fog.color);
+    mat.glow.opacity = fromA + (toA - fromA)*e;
+    scene.fog.density = fromD + (toD - fromD)*e;
+  }
+  return {
+    get name(){ return cur; },
+    get t(){ return t; },
+    /* recolour to a route over `secs` (0 = instantly, used when a ride restarts) */
+    to(key, secs){
+      const th = THEMES[key]; if (!th) return;
+      for (const k of KEYS){ from[k] = target(k).clone(); to[k] = th[k]; }
+      fromA = mat.glow.opacity; toA = th.glowA; fromD = scene.fog.density; toD = th.fogD;
+      cur = key; t = 0; this.dur = Math.max(0.001, secs === undefined ? 1 : secs);
+      if (!secs) { t = 1; apply(1); }
+    },
+    tick(dt){ if (t >= 1) return; t = Math.min(1, t + dt/this.dur); apply(t); }
+  };
+})();
 
 /* ---- one tunnel segment: floor, two walls, ceiling, sleepers, rails, torches ---- */
 function makeSegment(){
   const g = new THREE.Group();
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF_W*2, SEG), mat.floor);
   floor.rotation.x = -Math.PI/2; g.add(floor);
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HALF_W*2, SEG), mat.wall);
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HALF_W*2, SEG), mat.ceil);   // shared, so a route recolours it
   ceil.rotation.x = Math.PI/2; ceil.position.y = CEIL; g.add(ceil);
-  ceil.material = new THREE.MeshBasicMaterial({map:rockTex, color:0x5a6782});
   for (const s of [-1,1]){
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(SEG, CEIL), mat.wall);
     wall.rotation.y = -s * Math.PI/2;   // face INTO the tunnel, or the wall is culled and reads as black
@@ -349,9 +437,7 @@ function makeSegment(){
     const t = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.9,0.3), mat.torch);
     t.position.set(s*(HALF_W-0.35), 3.4, 0);
     g.add(t);
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(4,4), new THREE.MeshBasicMaterial({
-      color:0xff9c3f, transparent:true, opacity:0.22, depthWrite:false
-    }));
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(4,4), mat.glow);
     glow.position.set(s*(HALF_W-0.5), 3.4, 0); glow.rotation.y = -s*Math.PI/2;
     g.add(glow);
   }
@@ -476,22 +562,35 @@ function nextQuestion(){
 }
 
 /* ============================ gates ============================ */
+const gateZ = index => 120 + index*GATE_GAP;
+// gates 3, 6, 9 ... are forks, but never the last gate: that one runs into the station
+const isForkGate = index => index % 3 === 2 && index < GATES - 1;
 let gates = [];
+let lastForkRoute = null;
+function pickForkRoute(){
+  // never promise the tunnel he is already in, and never the same route twice in a row
+  const pool = FORK_ROUTES.filter(r => r !== S.route && r !== lastForkRoute);
+  lastForkRoute = pool[(Math.random()*pool.length)|0];
+  return lastForkRoute;
+}
 function spawnGate(index){
-  const z = 120 + index*GATE_GAP;
+  const z = gateZ(index);
   const qd = nextQuestion();
+  const fork = isForkGate(index);
+  const route = fork ? pickForkRoute() : null;
   const group = new THREE.Group();
   group.position.z = z;
   group.userData.onHill = true;
-  const kindLabel = {reading:"📖 READING", other:"🧪 OTHER"}[S.subject] || "🔢 MATH";
 
   // the question itself rides in the top bar: an in-world board would block the track
-  // lane banners + dividing pillars
+  // lane banners + dividing pillars. A fork gate is dressed in its route's colour on
+  // EVERY lane, so the dressing never gives the answer away.
+  const rc = fork ? THEMES[route].ui : null;
   const banners = [];
   LANES.forEach((lx,i) => {
     const b = makeBoard(String(qd.choices[i]), 2.7, 1.5, {
       w:512, h:256, size:96,
-      bg: "#0b1030", border: "#4a7dff", fg:"#ffffff"
+      bg: fork ? "#1a0f2e" : "#0b1030", border: fork ? rc : "#4a7dff", fg:"#ffffff"
     });
     b.position.set(lx, 2.5, 0);
     group.add(b); banners.push(b);
@@ -500,31 +599,167 @@ function spawnGate(index){
   });
   const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.22,3.4,0.22), mat.wood);
   post2.position.set(LANES[3]-1.35, 1.7, 0); group.add(post2);
-  const beam = new THREE.Mesh(new THREE.BoxGeometry(13.4,0.3,0.3), mat.wood);
+  let beamMat = mat.wood;
+  if (fork){
+    beamMat = new THREE.MeshBasicMaterial({color:rc});
+    const bm = beamMat;
+    const sign = makeBoard("🔀 FORK · " + THEMES[route].name, 7.2, 1.3, {
+      w:1024, h:184, size:84, bg:"#12081f", border:rc, fg:rc
+    });
+    sign.position.set(0, 4.5, 0.2);
+    group.add(sign);
+    const holder = new THREE.Object3D(); holder.userData.dispose = () => bm.dispose(); group.add(holder);
+  }
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(13.4,0.3,0.3), beamMat);
   beam.position.set(0,3.5,0); group.add(beam);
 
   // the stretch AFTER this gate: a dip and a banked curve, both visible long before they arrive
   hills.push({z: z + GATE_GAP*0.34, depth: 4.2});
   banks.push({z: z + GATE_GAP*0.70, dir: (index % 2) ? 1 : -1});
+  // the stretch BEFORE this gate gets its gems (never in the last quarter)
+  placeGems(index);
   scene.add(group);
-  gates.push({z, qd, group, banners, done:false, index});
+  gates.push({z, qd, group, banners, done:false, index, fork, route});
 }
 function clearGate(g){
   scene.remove(g.group);
   g.group.traverse(o => { if (o.userData.dispose) o.userData.dispose(); });
 }
 
+/* ============================ gems ============================
+   Gems float over the lanes in the stretch between two gates, laid out in
+   short patterns so steering to grab them is a little game of its own.
+   HARD RULE: nothing in the last GEM_CLEAR of the gap before a gate, so
+   chasing a gem never drags him out of the lane he needs for the answer. */
+const GEM_CLEAR = 0.27;                 // a bit more than the last quarter of a gate gap stays empty
+const GEM_AFTER = 16;                   // and nothing right on top of the gate he just smashed
+const GEM_R = 1.25, GEM_REACH_Z = 1.3;  // how close the cart has to pass to grab one
+const GEM_COLORS = [0x5ff3ff, 0xff5fd8, 0x7dff6a, 0xffe04a, 0xb58cff];
+const gemGeo = new THREE.OctahedronGeometry(0.66, 0);
+const haloGeo = new THREE.PlaneGeometry(2.5, 2.5);
+const sparkGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+const haloTex = paint(64, 64, (g,w,h) => {
+  const r = g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+  r.addColorStop(0,"rgba(255,255,255,1)"); r.addColorStop(0.35,"rgba(255,255,255,.45)"); r.addColorStop(1,"rgba(255,255,255,0)");
+  g.fillStyle = r; g.fillRect(0,0,w,h);
+});
+const gemMats = GEM_COLORS.map(c => ({
+  core: new THREE.MeshBasicMaterial({color:c, fog:false}),
+  halo: new THREE.MeshBasicMaterial({color:c, map:haloTex, transparent:true, opacity:0.75,
+        depthWrite:false, blending:THREE.AdditiveBlending, fog:false})
+}));
+/* patterns are lists of [lane index, distance along the track] */
+const PATTERNS = {
+  line(){    const l = (Math.random()*4)|0; return [0,5,10,15,20].map(d => [l, d]); },
+  zigzag(){  const a = (Math.random()*3)|0; return [0,6,12,18,24,30].map((d,i) => [a + (i%2), d]); },
+  diamond(){ const b = 1 + ((Math.random()*2)|0);
+             return [[b,0],[b-1,7],[b+1,7],[b,14]]; },
+  sweep(){   const up = Math.random() < 0.5; return [0,1,2,3].map(i => [up ? i : 3-i, i*6]); }
+};
+const PATTERN_KEYS = Object.keys(PATTERNS);
+let gems = [];            // live gems in the world
+let sparks = [];          // burst particles
+const gemLog = [];        // every gem ever placed this ride, for the checks
+function placeGems(index){
+  const gz = gateZ(index);
+  const prev = index === 0 ? 0 : gateZ(index - 1);
+  const lo = prev + (index === 0 ? 24 : GEM_AFTER);
+  const hi = gz - GATE_GAP*GEM_CLEAR;           // the no-gem zone starts here
+  let z = lo + Math.random()*6, colour = (Math.random()*GEM_COLORS.length)|0;
+  let last = null;
+  for (let guard = 0; guard < 8; guard++){
+    let key = PATTERN_KEYS[(Math.random()*PATTERN_KEYS.length)|0];
+    if (key === last) key = PATTERN_KEYS[(PATTERN_KEYS.indexOf(key)+1) % PATTERN_KEYS.length];
+    const pts = PATTERNS[key]();
+    const len = Math.max(...pts.map(p => p[1]));
+    if (z + len > hi) break;
+    const m = gemMats[colour % gemMats.length];
+    pts.forEach(([lane, d], k) => {
+      const g = {x: LANES[lane], z: z + d, lane, gate:index, pattern:key, step:k, taken:false, t:Math.random()*6};
+      const holder = new THREE.Group();
+      const core = new THREE.Mesh(gemGeo, m.core);
+      const halo = new THREE.Mesh(haloGeo, m.halo); halo.rotation.y = Math.PI;
+      holder.add(halo); holder.add(core);
+      holder.position.set(g.x, trackY(g.z) + 1.75, g.z);
+      g.mesh = holder; g.core = core; g.color = GEM_COLORS[colour % GEM_COLORS.length];
+      scene.add(holder); gems.push(g);
+      gemLog.push({gate:index, z:+g.z.toFixed(2), x:g.x, pattern:key, prevGateZ:prev, gateZ:gz,
+                   distBeforeGate:+(gz - g.z).toFixed(2), fracOfGap:+((gz - g.z)/GATE_GAP).toFixed(3)});
+    });
+    last = key; colour++;
+    z += len + 9 + Math.random()*8;
+  }
+}
+function burst(x, y, z, color){
+  const m = new THREE.MeshBasicMaterial({color, transparent:true, opacity:1, fog:false, depthWrite:false});
+  const group = new THREE.Group(); group.position.set(x, y, z);
+  const parts = [];
+  for (let i=0;i<14;i++){
+    const p = new THREE.Mesh(sparkGeo, m);
+    const a = Math.random()*Math.PI*2, up = Math.random()*2 - 0.4, sp = 3 + Math.random()*4;
+    p.userData.v = new THREE.Vector3(Math.cos(a)*sp, up*sp*0.8 + 2, Math.sin(a)*sp*0.6 + 6);
+    group.add(p); parts.push(p);
+  }
+  scene.add(group);
+  sparks.push({group, parts, m, life:0.55, t:0});
+}
+function collectGem(g){
+  g.taken = true;
+  S.gems++; S.coins++;
+  Snd.chime(g.step);                     // the notes climb as he chains a pattern
+  burst(g.x, g.mesh.position.y, g.z, g.color);
+  scene.remove(g.mesh);
+  hud();
+  const pop = $("gemBox"); pop.style.transform = "scale(1.35)"; setTimeout(() => pop.style.transform = "", 140);
+}
+function updateGems(dt, prevZ){
+  for (const g of gems){
+    if (g.taken) continue;
+    g.t += dt;
+    g.core.rotation.y += dt*2.4; g.core.rotation.x = 0.35;
+    g.mesh.position.y = trackY(g.z) + 1.75 + Math.sin(g.t*3)*0.18;
+    g.mesh.visible = g.z < S.z + 150;    // gems ignore fog to glow, so hide the ones past the tunnel's end
+    // swept test: the cart may move most of a unit per frame, so check the whole step
+    if (g.z >= prevZ - GEM_REACH_Z && g.z <= S.z + GEM_REACH_Z && Math.abs(S.x - g.x) < GEM_R) collectGem(g);
+  }
+  gems = gems.filter(g => {
+    if (g.taken) return false;
+    if (g.z < S.z - 12){ scene.remove(g.mesh); return false; }
+    return true;
+  });
+  sparks = sparks.filter(s => {
+    s.t += dt;
+    for (const p of s.parts){
+      p.position.addScaledVector(p.userData.v, dt);
+      p.userData.v.y -= 14*dt;
+      p.rotation.x += dt*9; p.rotation.y += dt*7;
+    }
+    s.m.opacity = Math.max(0, 1 - s.t/s.life);
+    if (s.t >= s.life){ scene.remove(s.group); s.m.dispose(); return false; }
+    return true;
+  });
+}
+function clearGems(){
+  gems.forEach(g => scene.remove(g.mesh)); gems = [];
+  sparks.forEach(s => { scene.remove(s.group); s.m.dispose(); }); sparks = [];
+  gemLog.length = 0;
+}
+
 /* ============================ HUD + messages ============================ */
 function hud(){
   $("hearts").textContent = "❤️".repeat(Math.max(0,S.hearts)) + "🖤".repeat(Math.max(0,5-S.hearts));
   $("coinBox").textContent = "🪙 " + S.coins;
+  if (!EMBED && window.Wallet) Wallet.syncFrom(S.coins);
+  $("gemBox").textContent = "💎 " + S.gems;
+  const th = THEMES[S.route] || THEMES.mine;
+  const rb = $("routeBox"); rb.textContent = th.icon + " " + th.name; rb.style.color = th.ui; rb.style.borderColor = th.ui;
   $("scoreBox").textContent = "SCORE " + S.score;
   $("speedBox").textContent = "⛏ " + Math.round(S.speed*3) + " mph";
 }
 let msgT = 0;
-function flashMsg(text, color){
+function flashMsg(text, color, secs){
   const m = $("msg"); m.textContent = text; m.style.color = color || "#ffd23f";
-  m.classList.add("show"); msgT = 1.1;
+  m.classList.add("show"); msgT = secs || 1.1;
 }
 function hurtFlash(){
   const f = $("flash"); f.style.opacity = "1";
@@ -590,6 +825,17 @@ function updateQuestionUI(){
     $("qkind").textContent = ({reading:"📖 READING", other:"🧪 OTHER"}[S.subject] || "🔢 MATH")
       + "  ·  GATE " + (g.index+1) + " / " + GATES;
     $("qtext").textContent = g.qd.q;
+    // a fork is announced the moment its question comes up, long before the gate
+    const qf = $("qfork");
+    if (g.fork){
+      const th = THEMES[g.route];
+      qf.textContent = "🔀 FORK AHEAD! The right answer takes the " + th.icon + " " + th.name.split(" ")[0] + " route";
+      qf.style.color = th.ui; qf.classList.add("on");
+      box.classList.add("fork"); box.style.setProperty("--fork", th.ui);
+      setTimeout(() => { if (shownGate === g && !g.done) flashMsg("🔀 FORK AHEAD!", th.ui, 2); }, 1300);
+    } else {
+      qf.classList.remove("on"); box.classList.remove("fork");
+    }
     row.innerHTML = "";
     g.qd.choices.forEach((c,i) => {
       const d = document.createElement("div");
@@ -644,8 +890,10 @@ function start(){
   $("steer").classList.remove("hide");
   S.running = true; S.ended = false; S.z = 0; S.x = 0; S.speed = SPEED0;
   S.hearts = 5; S.score = 0; S.gate = 0; S.right = 0; S.asked = 0; S.steerTo = null;
+  S.gems = 0; S.route = "mine"; lastForkRoute = null; routeLog.length = 0;
   Snd.start();
   gates.forEach(clearGate); gates = []; hills.length = 0; banks.length = 0; shownGate = null;
+  clearGems(); Theme.to("mine", 0);                   // a second ride starts back in the plain mine
   // put the tunnel back under the cart: on a second ride the segments were
   // still parked far down the track, so the whole ride rendered black
   segments.forEach((sg,i) => { sg.position.z = i*SEG; });
@@ -659,9 +907,10 @@ if (EMBED){
   const g = parseInt(QS.get("gates"),10); if (isFinite(g) && g >= 1 && g <= 20) GATES = g;
   addEventListener("keydown", e => { if (e.key === "Escape") toGame({type:"close"}); });
   setTimeout(() => { $("startOv").classList.add("hide"); start(); }, 250);
-}
+} else if (window.Wallet){ S.coins = Wallet.coins(); Wallet.resetSync(S.coins); }   // shared arcade wallet
 $("againBtn").onclick = restart;
 $("muteBtn").onclick = () => { $("muteBtn").textContent = Snd.toggle() ? "🔊" : "🔇"; };
+if (QS.get("mute") === "1"){ Snd.toggle(); $("muteBtn").textContent = "🔇"; }   // start silent (used by tests)
 $("subjRow").onclick = e => {
   const b = e.target.closest("button"); if (!b) return;
   document.querySelectorAll("#subjRow button").forEach(x => x.classList.remove("on"));
@@ -674,14 +923,28 @@ function endRun(won){
   $("answers").classList.add("hide"); shownGate = null;
   $("endTitle").textContent = won ? "🏁 STATION!" : "💥 THE CART STOPPED";
   $("endLine").innerHTML = `You got <b>${S.right}</b> of <b>${S.asked}</b> right`
-    + ` · <b>${S.score}</b> points · <b>🪙 ${S.coins}</b> coins`
+    + ` · <b>${S.score}</b> points · <b>💎 ${S.gems}</b> gems · <b>🪙 ${S.coins}</b> coins`
     + (won ? "" : "<br>Out of hearts! Jump back on.");
   $("endOv").classList.remove("hide");
   if (EMBED){
     $("againBtn").textContent = "⚔️ Back to the dungeon!";
-    $("againBtn").onclick = () => toGame({type:"solved", right:S.right, asked:S.asked, score:S.score});
-    setTimeout(() => toGame({type:"solved", right:S.right, asked:S.asked, score:S.score}), 4500);
+    $("againBtn").onclick = () => toGame({type:"solved", right:S.right, asked:S.asked, score:S.score, gems:S.gems});
+    setTimeout(() => toGame({type:"solved", right:S.right, asked:S.asked, score:S.score, gems:S.gems}), 4500);
   }
+}
+
+/* ============================ fork routes ============================ */
+const routeLog = [];      // every fork taken this ride, for the checks
+function takeRoute(key, right){
+  S.route = key;
+  Theme.to(key, 1);                                   // a one-second recolour, never a rebuild
+  routeLog.push({gate:S.asked, route:key, right});
+  const th = THEMES[key];
+  setTimeout(() => {
+    if (!S.running) return;
+    flashMsg(right ? th.icon + " " + th.name + "!" : "💨 Dusty tunnel...", th.ui, 1.6);
+  }, 1000);
+  hud();
 }
 
 /* ============================ the gate check ============================ */
@@ -695,6 +958,7 @@ function judge(g){
     S.coins += 5;
     S.speed = Math.min(SPEED_MAX, S.speed + SPEED_STEP);
     flashMsg("✅ YES! +" + (100 + Math.round(S.speed*2)), "#3ddc84");
+    if (g.fork) takeRoute(g.route, true);
     Snd.smash();                                   // burst through the wooden gate
     setTimeout(() => Snd.pick(SFX_WIN, 0.8), 260);   // a funny win sound every single time
     if (hasBank()) MathBank.record(true, g.qd.kind);
@@ -702,6 +966,7 @@ function judge(g){
     S.hearts--;
     S.speed = Math.max(SPEED0, S.speed - SPEED_STEP*2);
     flashMsg("❌ It was " + g.qd.a, "#ff6675");
+    if (g.fork) takeRoute("dusty", false);
     hurtFlash(); S.shakeT = 0.4;
     Snd.pick(SFX_MISS, 0.8);
     if (hasBank()) MathBank.record(false, g.qd.kind);
@@ -716,10 +981,16 @@ function judge(g){
 let last = performance.now();
 function frame(now){
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last)/1000); last = now;
+  const dt = Math.min(0.05, (now - last)/1000) * S.timeScale; last = now;
+  step(dt, now);
+}
+/* one simulation step + render; the test hook can drive it directly when the tab is hidden */
+function step(dt, now){
+  Theme.tick(dt);
 
   Snd.roll(dt, S.speed + boostAt(S.z), S.running && !S.paused && !S.ended);
   if (S.running && !S.paused){
+    const prevZ = S.z;
     S.z += (S.speed + boostAt(S.z)) * dt;
     for (const g of gates) g.group.position.y = trackY(g.z);
     while (hills.length && hills[0].z < S.z - 80) hills.shift();
@@ -734,6 +1005,7 @@ function frame(now){
     }
     S.x = Math.max(LANES[3]-0.8, Math.min(LANES[0]+0.8, S.x));
 
+    updateGems(dt, prevZ);
     for (const g of gates) if (!g.done && S.z >= g.z) judge(g);
     gates = gates.filter(g => {
       if (g.z < S.z - 30){ clearGate(g); return false; }
@@ -774,7 +1046,15 @@ hud();
 /* test hook */
 window.CART = {
   S, start, judge, nextQuestion, gates:()=>gates, current:currentGate,
-  steerTo:(x)=>S.x=x, openHelper, endRun
+  steerTo:(x)=>S.x=x, openHelper, endRun,
+  LANES, GATE_GAP, GEM_CLEAR, gateZ, isForkGate,
+  gems:()=>gems, gemLog, routeLog, THEMES,
+  tick:(secs, dt)=>{ dt = dt || 1/60; let t = performance.now();
+                     for (let k=0; k<Math.round(secs/dt); k++){ t += dt*1000; step(dt, t); } last = performance.now(); },
+  theme:()=>({name:Theme.name, t:Theme.t, wall:mat.wall.color.getHexString(), fog:scene.fog.color.getHexString(),
+              fogD:+scene.fog.density.toFixed(4), glow:mat.glow.color.getHexString()}),
+  soundOn:()=>Snd.isOn(), mute:()=>{ if (Snd.isOn()){ Snd.toggle(); $("muteBtn").textContent = "🔇"; } return Snd.isOn(); },
+  segmentsZ:()=>segments.map(s=>s.position.z)
 };
 })();
 </script>

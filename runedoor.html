@@ -225,6 +225,8 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 
 <script src="math-bank.js"></script>
 <script src="story-bank.js"></script>
+<script src="brain.js"></script>
+<script src="wallet.js"></script>
 <script>
 (function(){
 "use strict";
@@ -585,6 +587,7 @@ function paintSel(){
 function hud(){
   $("heartBox").textContent = "❤️".repeat(Math.max(0,S.hearts)) + "🖤".repeat(Math.max(0, HEARTS - S.hearts));
   $("coinBox").textContent = "🪙 " + S.coins;
+  if (!EMBED && window.Wallet) Wallet.syncFrom(S.coins);
   $("scoreBox").textContent = "SCORE " + S.score;
   $("doorBox").textContent = "DOOR " + Math.min(S.door+1, DOORS) + "/" + DOORS;
   $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
@@ -930,7 +933,7 @@ function start(){
   S.used = []; S.lastLen = 3; S.posted = false;
   const gs = liveGates();
   S.gate = gs[Math.floor(Math.random() * gs.length)];
-  if (!EMBED) S.coins = START_COINS;
+  if (!EMBED){ S.coins = window.Wallet ? Wallet.coins() : START_COINS; if (window.Wallet) Wallet.resetSync(S.coins); }   // shared arcade wallet
   S.running = true; S.locked = false;
   $("winScreen").classList.remove("on");
   $("overScreen").classList.remove("on");

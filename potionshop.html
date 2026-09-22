@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Potion Shop">
+<title>Potion Shop</title>
+<style>
+:root{
+  --bg:#141a22; --stone:#2b3843; --stone2:#1f2a33; --chalk:#f4f1e8; --dim:#8a97a3;
+  --gold:#ffd23f; --good:#3ddc84; --bad:#ff4d5e; --blue:#4fc3ff;
+  --wood:#6b4526; --wood2:#4a2e17; --woodhi:#8a5a31;
+  --bw:44px;           /* shelf bottle width */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk);overflow:hidden;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+.accent{color:var(--gold)}
+
+#app{display:flex;flex-direction:column;height:100%;width:100%}
+
+/* ---------- HUD ---------- */
+#hud{display:flex;align-items:center;gap:10px;padding:6px 12px;font-weight:800;font-size:15px;
+  text-shadow:0 2px 4px #000;background:linear-gradient(180deg,rgba(6,10,16,.9),rgba(6,10,16,0));flex:0 0 auto;z-index:6}
+#hud .sp{flex:1}
+#dayBox{color:var(--chalk)}
+#custBox{color:var(--blue)}
+#lvlBox{color:var(--dim);font-size:13px}
+#coinBox{color:var(--gold)}
+#coinBox.spend{animation:spend .5s}
+@keyframes spend{30%{transform:scale(1.18);color:var(--bad)}}
+#coinBox.earn{animation:earn .6s}
+@keyframes earn{30%{transform:scale(1.3)}}
+#muteBtn{background:#0c1117;border:2px solid #2b3843;border-radius:999px;font-size:16px;
+  min-width:44px;height:36px;display:flex;align-items:center;justify-content:center}
+
+/* ---------- main split: shop scene | work panel ---------- */
+#main{flex:1 1 auto;min-height:0;display:flex;gap:10px;padding:0 10px 10px;width:100%;max-width:1180px;margin:0 auto}
+#scene{flex:1 1 auto;min-width:0;position:relative;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;
+  background:
+    repeating-linear-gradient(0deg,rgba(0,0,0,.30) 0 2px,rgba(0,0,0,0) 2px 38px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,rgba(0,0,0,0) 2px 76px),
+    radial-gradient(ellipse at 50% 30%,#3a4753 0%,#2a353f 55%,#1a222a 100%);
+  box-shadow:0 0 0 3px #313f4b,0 10px 22px rgba(0,0,0,.55)}
+#panel{flex:0 0 310px;display:flex;flex-direction:column;gap:6px;background:linear-gradient(180deg,#1f2a33,#161e26);
+  border:2px solid #313f4b;border-radius:16px;padding:8px 10px;min-height:0}
+
+/* ---------- lanterns + sign (upgrades) ---------- */
+.lantern{position:absolute;top:0;font-size:24px;z-index:2;display:none;filter:drop-shadow(0 0 10px rgba(255,170,60,.9));
+  animation:sway 3s ease-in-out infinite;transform-origin:50% 0}
+.lantern::before{content:"";position:absolute;left:50%;top:-40px;width:2px;height:40px;background:#555}
+#lanL{left:6px} #lanR{right:6px;animation-delay:-1.5s}
+#scene.u-lantern .lantern{display:block}
+#scene.u-lantern{background:
+    radial-gradient(circle at 5% 5%,rgba(255,170,60,.28),rgba(255,170,60,0) 30%),
+    radial-gradient(circle at 95% 5%,rgba(255,170,60,.28),rgba(255,170,60,0) 30%),
+    repeating-linear-gradient(0deg,rgba(0,0,0,.30) 0 2px,rgba(0,0,0,0) 2px 38px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,rgba(0,0,0,0) 2px 76px),
+    radial-gradient(ellipse at 50% 30%,#3a4753 0%,#2a353f 55%,#1a222a 100%)}
+@keyframes sway{50%{transform:rotate(6deg)}}
+#sign{display:none;position:absolute;left:50%;top:4px;transform:translateX(-50%);z-index:2;white-space:nowrap;
+  background:linear-gradient(180deg,#8a5a31,#5a3a1d);border:2px solid #2a1a0c;border-radius:8px;padding:2px 12px;
+  font-weight:800;font-size:13px;color:var(--gold);text-shadow:0 0 8px rgba(255,210,63,.7);letter-spacing:1px}
+#scene.u-sign #sign{display:block}
+
+/* ---------- shelf ---------- */
+#shelfWrap{flex:0 0 auto;padding:8px 10px 0;position:relative;z-index:1}
+#scene.u-sign #shelfWrap{padding-top:26px}
+#shelf{display:flex;align-items:flex-end;justify-content:center;gap:10px;flex-wrap:nowrap;padding:0 8px 4px}
+#plank{height:12px;border-radius:4px;background:linear-gradient(180deg,var(--woodhi),var(--wood2));box-shadow:0 5px 8px rgba(0,0,0,.5)}
+#scene.u-shelf #plank{height:16px;background:linear-gradient(180deg,#b8860d,#8a5a31 30%,var(--wood2));box-shadow:0 0 0 2px #ffd23f55,0 6px 10px rgba(0,0,0,.55)}
+.deco{display:none;font-size:calc(var(--bw)*.62);align-self:flex-end;opacity:.95;line-height:1}
+#scene.u-shelf .deco{display:block}
+.pbtn{background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px;min-height:44px;
+  border-radius:10px;touch-action:manipulation}
+.pbtn:active .bottle{transform:scale(.92)}
+.pbtn.no{animation:nope .4s}
+@keyframes nope{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.tag{background:#0c1117;border:2px solid #7a6526;border-radius:7px;padding:1px 6px;font-weight:800;font-size:14px;color:var(--gold);white-space:nowrap}
+
+/* a glowing bottle, all CSS */
+.bottle{position:relative;width:var(--bw);height:calc(var(--bw)*1.3);flex:0 0 auto;transition:transform .1s}
+.bottle .neck{position:absolute;left:34%;width:32%;top:9%;height:26%;background:linear-gradient(90deg,rgba(210,230,245,.35),rgba(255,255,255,.55),rgba(210,230,245,.3));
+  border-radius:3px 3px 0 0}
+.bottle .cork{position:absolute;left:31%;width:38%;top:0;height:13%;background:linear-gradient(180deg,#c89a62,#8a5a31);border-radius:3px}
+.bottle .body{position:absolute;left:0;right:0;bottom:0;height:68%;border-radius:48% 48% 40% 40%;
+  background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.85) 0 7%,var(--pc) 34%,var(--pd) 100%);
+  box-shadow:0 0 14px var(--pc),inset 0 -4px 8px rgba(0,0,0,.35);animation:glow 2.4s ease-in-out infinite}
+.bottle .star{position:absolute;left:0;right:0;bottom:12%;text-align:center;font-size:calc(var(--bw)*.34);line-height:1;color:#fff8}
+@keyframes glow{50%{box-shadow:0 0 22px var(--pc),inset 0 -4px 8px rgba(0,0,0,.35)}}
+.bottle.sm{--bw:26px}
+.bottle.sm .body{animation:none;box-shadow:0 0 8px var(--pc),inset 0 -3px 5px rgba(0,0,0,.35)}
+
+/* ---------- the shop floor ---------- */
+#floor{flex:1 1 auto;min-height:0;position:relative}
+#keeper{position:absolute;left:2%;bottom:30%;height:50%;max-height:250px;width:auto;aspect-ratio:1/1;display:block;z-index:1}
+#cust{position:absolute;right:3%;bottom:30%;z-index:1;line-height:1;font-size:clamp(46px,15vh,118px);
+  filter:drop-shadow(0 6px 6px rgba(0,0,0,.5));transition:transform .55s cubic-bezier(.3,.7,.3,1),opacity .4s}
+#cust.out{transform:translateX(130%);opacity:0}
+#cust.bob{animation:custbob 1.6s ease-in-out infinite}
+@keyframes custbob{50%{margin-bottom:4px}}
+#cust.frown{animation:shake .45s}
+#cust.happy{animation:hop .5s 2}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+@keyframes hop{50%{transform:translateY(-16px)}}
+#mood{position:absolute;right:-6px;top:-8px;font-size:.36em;filter:drop-shadow(0 2px 2px #000)}
+#bubble{position:absolute;top:5%;left:max(30%,calc(100% - 24% - 360px));right:24%;z-index:3;background:#f4f1e8;color:#1b1406;border-radius:14px;
+  padding:7px 10px;font-weight:800;font-size:clamp(14px,2.3vw,19px);line-height:1.3;text-align:center;
+  box-shadow:0 5px 12px rgba(0,0,0,.5);transition:opacity .25s}
+#bubble::after{content:"";position:absolute;right:-12px;bottom:14px;border:8px solid transparent;border-left:14px solid #f4f1e8}
+#bubble.hide{opacity:0}
+#bubble .who{display:block;font-size:.72em;color:#6b5a3a;font-weight:700}
+.oline{display:inline-flex;align-items:center;gap:4px;margin:1px 5px;white-space:nowrap}
+.oline .dot{display:inline-block;width:.8em;height:.8em;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.4)}
+.oline.done{color:#1d7a45}
+.oline.done::after{content:"✓";color:#1d7a45}
+#bubble .say{display:block;font-size:.8em;color:#5a4a2a;margin-top:2px}
+#bubble.cross .say{color:#b3202e}
+.pay{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;flex-wrap:wrap;justify-content:center}
+
+#counter{position:absolute;left:0;right:0;bottom:0;height:32%;z-index:2;
+  background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 2px,rgba(0,0,0,0) 2px 64px),
+    linear-gradient(180deg,var(--woodhi) 0,var(--woodhi) 12%,var(--wood) 13%,var(--wood2) 100%);
+  border-top:3px solid #a8743f;box-shadow:0 -4px 10px rgba(0,0,0,.4)}
+#counterItems{position:absolute;left:30%;right:26%;top:-24px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:flex-end;min-height:30px}
+#counterItems .ci{background:none;padding:0;min-width:30px;min-height:36px;display:flex;align-items:flex-end;justify-content:center}
+#counterItems .ci.pop .bottle{animation:popin .3s}
+@keyframes popin{0%{transform:translateY(-30px) scale(1.3)}100%{transform:none}}
+#counterNote{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:13px;font-weight:800;color:#f1dcb8;text-shadow:0 1px 2px #000}
+#cat{display:none;position:absolute;right:23%;top:-30px;font-size:30px;z-index:3;animation:catbob 2.6s ease-in-out infinite;cursor:pointer}
+#scene.u-cat #cat{display:block}
+@keyframes catbob{50%{transform:translateY(-3px) rotate(-4deg)}}
+
+/* ---------- work panel ---------- */
+#stepTitle{display:flex;align-items:center;gap:6px;font-weight:800;font-size:17px;color:var(--gold)}
+#stepTitle .sp{flex:1}
+#hintBtn{background:var(--blue);color:#06121b;font-size:14px;font-weight:800;padding:8px 10px;border-radius:10px;min-height:40px;box-shadow:0 3px 0 #1d6f99}
+#hintBtn:active{transform:translateY(2px);box-shadow:0 1px 0 #1d6f99}
+#msg{min-height:20px;font-size:14px;font-weight:700;color:var(--dim);line-height:1.3}
+#msg.bad{color:var(--bad)} #msg.good{color:var(--good)} #msg.hint{color:var(--blue)}
+#receipt{font-size:14px;font-weight:700;color:#cfd8e0;line-height:1.35;background:#0c1117;border:2px solid #2b3843;border-radius:10px;padding:5px 8px}
+#receipt .rl{display:flex;align-items:center;gap:6px}
+#receipt .rl .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
+#receipt .rl .pr{margin-left:auto;color:var(--gold)}
+
+/* total entry */
+#totalBox{display:flex;flex-direction:column;gap:6px;min-height:0}
+#display{background:#0c1117;border:3px solid #7a6526;border-radius:12px;min-height:50px;display:flex;align-items:center;justify-content:center;
+  font-size:30px;font-weight:800;color:var(--gold);letter-spacing:2px;font-family:"Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif}
+#display.wait{font-size:15px;color:var(--dim);letter-spacing:0;font-family:inherit}
+#display.bad{border-color:var(--bad);animation:shake .4s}
+#pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+#pad button{height:50px;font-size:26px;font-weight:800;border-radius:12px;background:#2b3843;color:var(--chalk);box-shadow:0 4px 0 #111820}
+#pad button:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+#pad button.back{background:#4a2f36;font-size:22px}
+#pad button.ok{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
+#pad.off{opacity:.3;pointer-events:none}
+
+/* making change */
+#changeBox{display:none;flex-direction:column;gap:6px;min-height:0}
+#paidLine{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:800;font-size:15px;background:#0c1117;border:2px solid #2b3843;border-radius:10px;padding:5px 8px}
+#paidLine b{color:var(--gold)}
+#till{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;background:linear-gradient(180deg,#3a2716,#24170c);border:2px solid #5a3a1d;border-radius:12px;padding:6px}
+.tbtn{background:none;padding:0;min-width:46px;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.tbtn:active{transform:scale(.92)}
+#tray{min-height:58px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;background:#0c1117;border:2px dashed #4a5a68;border-radius:12px;padding:4px}
+#tray.empty::before{content:"Tap coins in the till to hand them over";font-size:13px;color:var(--dim);font-weight:700}
+#tray .tc{position:relative;background:none;padding:0;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+#tray .cnt{position:absolute;right:-3px;top:-3px;background:var(--blue);color:#06121b;border-radius:999px;padding:0 5px;font-weight:900;font-size:12px;line-height:17px;box-shadow:0 2px 3px rgba(0,0,0,.5)}
+#handLine{text-align:center;font-weight:800;font-size:16px}
+#handLine b{color:var(--gold)}
+#chBtns{display:flex;gap:8px}
+.btn{background:#2b3843;font-size:16px;font-weight:800;padding:10px 14px;border-radius:12px;box-shadow:0 4px 0 #111820;min-height:46px}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+.btn.blue{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99;flex:1}
+.btn.blue:active{box-shadow:0 1px 0 #1d6f99}
+.btn.gold{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
+.btn.ghost{color:var(--dim);font-size:14px}
+
+/* money pieces */
+.coin{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-weight:900;flex:0 0 auto;
+  font-family:"Trebuchet MS",sans-serif;box-shadow:0 3px 0 rgba(0,0,0,.45),inset 0 -3px 0 rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.4)}
+.coin.gold{background:radial-gradient(circle at 35% 30%,#fff3b0,#ffd23f 45%,#b8860d);color:#5a3f02;border:2px solid #a3830f}
+.coin.copper{background:radial-gradient(circle at 35% 30%,#ffd0a8,#c8793a 50%,#7a3f14);color:#3a1a05;border:2px solid #7a3f14}
+.coin.silver{background:radial-gradient(circle at 35% 30%,#ffffff,#c9d2dc 50%,#7d8a97);color:#1f2a33;border:2px solid #7d8a97}
+.bill{display:inline-flex;align-items:center;justify-content:center;border-radius:5px;font-weight:900;flex:0 0 auto;
+  box-shadow:0 3px 0 rgba(0,0,0,.45);font-family:"Trebuchet MS",sans-serif}
+.bill.gbar{background:linear-gradient(180deg,#fff3b0,#ffd23f 40%,#b8860d);color:#5a3f02;border:2px solid #a3830f;clip-path:polygon(10% 0,90% 0,100% 100%,0 100%)}
+.bill.usd{background:linear-gradient(180deg,#cfe8c4,#8fbf7a);color:#1c3a14;border:2px solid #4f7a3f}
+
+/* ---------- overlays ---------- */
+.screen{position:fixed;inset:0;background:rgba(10,14,20,.95);display:none;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:16px;z-index:20;overflow:auto}
+.screen.on{display:flex}
+.screen h1{font-size:clamp(26px,6vw,44px);margin:0 0 6px;color:var(--gold)}
+.screen p{margin:4px 0;font-size:clamp(14px,2.6vw,18px);color:var(--dim);line-height:1.45;max-width:640px}
+.big{font-size:60px;line-height:1;margin-bottom:6px}
+.bigbtn{background:var(--blue);color:#06121b;font-size:21px;font-weight:800;padding:14px 26px;border-radius:14px;
+  margin:12px 6px 0;box-shadow:0 5px 0 #1d6f99;min-height:52px}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #1d6f99}
+.bigbtn.gold{background:var(--gold);color:#1a1405;box-shadow:0 5px 0 #a3830f}
+.bigbtn.gold:active{box-shadow:0 2px 0 #a3830f}
+#levels{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;max-width:760px}
+.lvl{background:#2b3843;border-radius:12px;padding:8px 12px;min-height:48px;font-weight:800;font-size:15px;box-shadow:0 4px 0 #111820;text-align:left;line-height:1.2}
+.lvl small{display:block;font-size:11px;color:var(--dim);font-weight:700}
+.lvl.on{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
+.lvl.on small{color:#5a4a12}
+.lvl.lock{opacity:.45;cursor:default}
+#upgrades{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;max-width:820px}
+.up{background:#1f2a33;border:2px solid #313f4b;border-radius:12px;padding:6px 10px;min-width:118px;min-height:48px;display:flex;align-items:center;gap:8px;text-align:left;font-weight:800;font-size:14px}
+.up .ic{font-size:26px;line-height:1}
+.up small{display:block;color:var(--gold);font-size:13px}
+.up.owned{border-color:#1d6b3f;background:#071a10}
+.up.owned small{color:var(--good)}
+.up.poor small{color:var(--dim)}
+#dayStats{font-weight:800;color:var(--chalk)!important}
+
+/* ---------- portrait phone: scene on top, panel below ---------- */
+@media (max-aspect-ratio:4/5){
+  #main{flex-direction:column}
+  #panel{flex:0 0 auto}
+  #scene{min-height:220px}
+}
+
+/* ---------- phone held sideways ---------- */
+@media (max-height:430px){
+  :root{--bw:34px}
+  #hud{font-size:12px;padding:3px 10px;gap:8px}
+  #lvlBox{font-size:11px}
+  #muteBtn{height:30px;min-width:44px;font-size:13px}
+  #main{gap:8px;padding:0 8px 6px}
+  #panel{flex-basis:300px;padding:5px 8px;gap:4px;border-radius:12px}
+  #stepTitle{font-size:14px}
+  #hintBtn{font-size:12px;padding:5px 8px;min-height:34px}
+  #msg{font-size:12px;min-height:15px}
+  #receipt{font-size:12px;padding:3px 6px;line-height:1.25}
+  #display{min-height:38px;font-size:24px;border-width:2px}
+  #display.wait{font-size:13px}
+  #pad{gap:5px;grid-template-columns:repeat(4,1fr)}
+  #pad button{height:44px;font-size:22px;border-radius:10px}
+  #pad button.zero{order:1} #pad button.back{order:2} #pad button.ok{order:3}
+  #paidLine{font-size:13px;padding:3px 6px}
+  #till{gap:4px;padding:4px}
+  .tbtn{min-width:44px;min-height:44px}
+  #tray{min-height:48px;padding:1px;gap:2px}
+  #handLine{font-size:14px}
+  .btn{font-size:14px;padding:7px 10px;min-height:44px}
+  #shelfWrap{padding:4px 8px 0}
+  #scene.u-sign #shelfWrap{padding-top:22px}
+  #sign{font-size:11px;top:2px;padding:1px 10px}
+  .tag{font-size:12px;padding:0 5px}
+  #shelf{gap:8px}
+  #bubble{font-size:13px;padding:5px 8px;left:28%;right:22%}
+  #counterNote{font-size:11px;bottom:3px}
+  #cat{font-size:24px;top:-24px}
+  .lantern{font-size:18px}
+  .big{font-size:38px}
+  .bigbtn{font-size:17px;padding:10px 18px;min-height:44px;margin-top:8px}
+  .screen{padding:8px}
+  .screen h1{font-size:24px;margin-bottom:2px}
+  .screen p{font-size:13px;margin:2px 0}
+  .lvl{padding:5px 10px;font-size:13px;min-height:44px}
+  .up{padding:4px 8px;min-width:108px;font-size:12px;min-height:44px}
+  .up .ic{font-size:20px}
+  #upgrades,#levels{margin-top:4px;gap:6px}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="hud">
+    <span id="dayBox">DAY 1</span>
+    <span id="custBox">CUSTOMER 1/6</span>
+    <span id="lvlBox"></span>
+    <span class="sp"></span>
+    <span id="coinBox">🪙 55</span>
+    <button id="muteBtn" title="Sound on / off" aria-label="Sound on or off">🔊</button>
+  </div>
+
+  <div id="main">
+    <div id="scene">
+      <span class="lantern" id="lanL">🏮</span>
+      <span class="lantern" id="lanR">🏮</span>
+      <div id="sign">✦ POTION SHOP ✦</div>
+      <div id="shelfWrap">
+        <div id="shelf"></div>
+        <div id="plank"></div>
+      </div>
+      <div id="floor">
+        <canvas id="keeper" aria-label="you, the shopkeeper"></canvas>
+        <div id="bubble" class="hide"></div>
+        <div id="cust" class="out"><span id="custFace">🧝</span><span id="mood"></span></div>
+        <div id="counter">
+          <div id="counterItems"></div>
+          <span id="cat" title="the shop cat">🐈</span>
+          <div id="counterNote"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel">
+      <div id="stepTitle"><span id="stepName">1. Ring it up</span><span class="sp"></span><button id="hintBtn">💡 Hint 🪙2</button></div>
+      <div id="msg"></div>
+
+      <div id="totalBox">
+        <div id="receipt"></div>
+        <div id="display" class="wait">Tap the potions onto the counter</div>
+        <div id="pad" class="off"></div>
+      </div>
+
+      <div id="changeBox">
+        <div id="paidLine"><span>Total <b id="plTotal">0</b></span><span>Paid <b id="plPaid">0</b></span></div>
+        <div id="till"></div>
+        <div id="handLine">In your hand: <b id="handAmt">0</b></div>
+        <div id="tray" class="empty"></div>
+        <div id="chBtns">
+          <button class="btn" id="clearBtn">↩︎ Take back</button>
+          <button class="btn blue" id="giveBtn">Give change ✓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- START -->
+<div class="screen on" id="startScreen">
+  <div class="big">🧪</div>
+  <h1>POTION SHOP</h1>
+  <p>Heroes and friendly monsters come to your counter with an order.
+     Tap the potions onto the counter, add up the total, then give back the right change.</p>
+  <p id="heroLine" class="accent" style="font-weight:800"></p>
+  <div id="levels"></div>
+  <button class="bigbtn gold" id="startBtn">Open the shop</button>
+</div>
+
+<!-- END OF DAY + UPGRADES -->
+<div class="screen" id="dayScreen">
+  <h1 id="dayTitle">DAY 1 DONE</h1>
+  <p id="dayStats"></p>
+  <p id="dayUnlock" class="accent" style="font-weight:800"></p>
+  <p style="margin-top:4px">Spend your tips on your shop (just for fun):</p>
+  <div id="upgrades"></div>
+  <div>
+    <button class="bigbtn" id="nextDayBtn">Open day 2</button>
+    <button class="bigbtn gold" id="nextLvlBtn" style="display:none">Try the next level ➜</button>
+  </div>
+</div>
+
+<!-- EMBED WIN -->
+<div class="screen" id="winScreen">
+  <div class="big">🏆</div>
+  <h1 id="winTitle">SHOP CLOSED</h1>
+  <p id="winLine"></p>
+  <button class="bigbtn" id="winBtn">⚔️ Back to the dungeon</button>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   POTION SHOP: money math for the math dungeon.
+   Step 1 RING IT UP: tap the ordered potions onto the counter, then type
+   the total on the number pad (multiplication shows up as "3 at 4 gold").
+   Step 2 MAKE CHANGE: the customer pays with a bigger coin or note, and
+   he taps coins out of the till until the change is right.
+   No fail state: a mistake only shrinks the tip.
+   ===================================================================== */
+
+/* ---------- embed contract (same shape as runedoor.html) ---------- */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get("embed") === "1";
+const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
+
+const START_COINS = 55, PER_DAY = 6, COST_HINT = 2, BASE_TIP = 5;
+/* ?customers=N -> in the dungeon, serving N customers posts `solved` (default 3) */
+const EMBED_CUSTOMERS = (function(){
+  const n = parseInt(QS.get("customers"), 10);
+  if (!isFinite(n) || n < 1) return 3;
+  return Math.max(1, Math.min(n, 30));
+})();
+const GOOD_SFX = ["13-got-em","40-noice","48-ez","62-toasty","12-sheesh"];
+const BAD_SFX  = ["01-oof","10-bruh","61-say-what","67-ba-dun-dun"];
+
+/* ?hero=knight|wizard|ninja|robot|explorer|dragon  (default knight) */
+const HERO_IDS = ["knight","wizard","ninja","robot","explorer","dragon"];
+const HERO_ALIAS = {mage:"wizard", shadow:"ninja", bot:"robot", beep9:"robot", "lil'dragon":"dragon"};
+const HERO = (function(){
+  let h = String(QS.get("hero") || "").toLowerCase().trim().replace(/\s+/g,"");
+  if (HERO_ALIAS[h]) h = HERO_ALIAS[h];
+  return HERO_IDS.indexOf(h) >= 0 ? h : "knight";
+})();
+
+/* ---------- guarded storage ---------- */
+function lsGet(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+function lsJSON(k, d){ try { const v = JSON.parse(lsGet(k, "")); return (v && typeof v === "object") ? v : d; } catch (e) { return d; } }
+const hasWallet = () => { try { return typeof Wallet !== "undefined" && !!Wallet && typeof Wallet.coins === "function"; } catch (e) { return false; } };
+
+/* ---------- sound: sfx files + a synthesised till ---------- */
+const Snd = (function(){
+  let on = lsGet("potion_mute", "0") !== "1";
+  let ctx = null;
+  const cache = {};
+  function init(){
+    if (ctx) return ctx;
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ctx = null; }
+    return ctx;
+  }
+  function blip(type, freq, endFreq, vol, dur, delay){
+    if (!on) return;
+    try {
+      const c = init(); if (!c) return;
+      const t = c.currentTime + (delay || 0);
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t);
+      if (endFreq) o.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), t + dur);
+      g.gain.setValueAtTime(0.0008, c.currentTime);
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + dur + 0.03);
+    } catch (e) { /* never let audio break the game */ }
+  }
+  function noise(vol, dur, hz, delay){
+    if (!on) return;
+    try {
+      const c = init(); if (!c) return;
+      const t = c.currentTime + (delay || 0), len = Math.max(1, Math.floor(c.sampleRate * dur));
+      const buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random()*2 - 1) * (1 - i/len);
+      const s = c.createBufferSource(); s.buffer = buf;
+      const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = hz;
+      const g = c.createGain(); g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      s.connect(f); f.connect(g); g.connect(c.destination);
+      s.start(t); s.stop(t + dur + 0.03);
+    } catch (e) { /* never let audio break the game */ }
+  }
+  function file(name, vol){
+    if (!on || !name) return;
+    try {
+      const a = cache[name] || (cache[name] = new Audio("sfx/" + name + ".mp3"));
+      a.currentTime = 0;
+      a.volume = (typeof vol === "number" && vol >= 0 && vol <= 1) ? vol : 0.7;
+      const p = a.play();
+      if (p && typeof p.catch === "function") p.catch(function(){ /* autoplay blocked */ });
+    } catch (e) { /* never let audio break the game */ }
+  }
+  function stopAll(){
+    Object.keys(cache).forEach(k => { try { cache[k].pause(); } catch (e) { /* ignore */ } });
+  }
+  return {
+    start(){ try { const c = init(); if (c && c.state === "suspended") c.resume(); } catch (e) { /* ignore */ } },
+    /* the till drawer: a bell "ka" then a bright "ching" with some shimmer */
+    kaching(){ noise(0.10, 0.06, 2500); blip("square", 520, 380, 0.06, 0.07); blip("triangle", 1568, 0, 0.16, 0.35, 0.08);
+               blip("triangle", 2093, 0, 0.12, 0.45, 0.12); noise(0.05, 0.25, 6000, 0.1); },
+    tick(){ blip("triangle", 1900, 1500, 0.07, 0.06); },
+    pop(){ blip("sine", 500, 900, 0.10, 0.08); },
+    nope(){ blip("sine", 200, 120, 0.12, 0.12); },
+    good(){ file(GOOD_SFX[Math.floor(Math.random()*GOOD_SFX.length)], 0.7); },
+    bad(){ file(BAD_SFX[Math.floor(Math.random()*BAD_SFX.length)], 0.7); },
+    file: file,
+    set(v){ on = !!v; lsSet("potion_mute", on ? "0" : "1"); if (!on) stopAll(); return on; },
+    toggle(){ return this.set(!on); },
+    isOn(){ return on; }
+  };
+})();
+
+/* ---------- potions ---------- */
+const POTIONS = {
+  red:    { name:"red",    c:"#ff5a3a", d:"#6e1208", dot:"#ff5a3a" },
+  blue:   { name:"blue",   c:"#3f8cff", d:"#0d2a66", dot:"#3f8cff" },
+  green:  { name:"green",  c:"#3ddc84", d:"#0b4a26", dot:"#3ddc84" },
+  purple: { name:"purple", c:"#b066ff", d:"#3a1070", dot:"#b066ff" },
+  star:   { name:"star",   c:"#ffe066", d:"#8a6400", dot:"#ffd23f", star:true }
+};
+const BASE_COLORS = ["red","blue"];
+
+/* ---------- levels ----------
+   money "gold": whole dungeon coins.  money "usd": amounts are CENTS. */
+const LEVELS = [
+  { n:1, name:"Coin Counter", sub:"small gold prices", money:"gold",
+    fixed:{ red:3, blue:5, green:2, purple:4, star:6 }, qty:[1,2], types:[1,2], maxTotal:15,
+    pay:[5,10,20], till:[1,2,5,10] },
+  { n:2, name:"Big Orders", sub:"3 potions at 4 gold", money:"gold",
+    price:[2,6,1], qty:[2,5], types:[1,2], maxTotal:40,
+    pay:[10,20,50], till:[1,2,5,10] },
+  { n:3, name:"Dragon Hoard", sub:"big gold orders", money:"gold",
+    price:[3,9,1], qty:[2,6], types:[2,3], maxTotal:95,
+    pay:[20,50,100], till:[1,2,5,10,20] },
+  { n:4, name:"Market Money", sub:"real US money", money:"usd",
+    price:[25,150,5], qty:[1,2], types:[1,2], maxTotal:495,
+    pay:[100,200,500], till:[5,10,25,100] },
+  { n:5, name:"Penny Pro", sub:"US money with pennies", money:"usd",
+    price:[11,199,1], qty:[1,3], types:[1,3], maxTotal:995,
+    pay:[100,500,1000], till:[1,5,10,25,100,500] }
+];
+
+/* ---------- customers (original, dungeon-themed) ---------- */
+const CUSTOMERS = [
+  { e:"🧝", n:"Elf Ranger" }, { e:"🧙", n:"Old Wizard" }, { e:"🐸", n:"Frog Knight" },
+  { e:"👻", n:"Friendly Ghost" }, { e:"🧌", n:"Troll Chef" }, { e:"🦊", n:"Fox Thief" },
+  { e:"💀", n:"Skeleton Bard" }, { e:"🐙", n:"Cave Squid" }, { e:"🦉", n:"Owl Librarian" },
+  { e:"🧚", n:"Tiny Fairy" }, { e:"🐲", n:"Baby Dragon" }, { e:"🦇", n:"Bat Mail Carrier" },
+  { e:"🧛", n:"Sleepy Vampire" }, { e:"🐌", n:"Speedy Snail" }, { e:"🦄", n:"Unicorn" },
+  { e:"🧟", n:"Zombie Gardener" }, { e:"🤖", n:"Clockwork Robot" }, { e:"🐻", n:"Bear Miner" }
+];
+
+/* ---------- upgrades (cosmetic; the potion colours just add variety) ---------- */
+const UPGRADES = [
+  { id:"sign",    ic:"🪧", name:"Shop Sign",      price:10 },
+  { id:"green",   ic:"🟢", name:"Green Potion",   price:15 },
+  { id:"cat",     ic:"🐈", name:"Shop Cat",       price:20 },
+  { id:"lantern", ic:"🏮", name:"Glow Lanterns",  price:20 },
+  { id:"purple",  ic:"🟣", name:"Purple Potion",  price:25 },
+  { id:"shelf",   ic:"📚", name:"Bigger Shelf",   price:30 },
+  { id:"star",    ic:"⭐", name:"Star Potion",    price:40 }
+];
+
+/* ---------- state ---------- */
+const S = {
+  level: 1,
+  unlocked: Math.max(1, Math.min(LEVELS.length, parseInt(lsGet("potion_unlocked", "1"), 10) || 1)),
+  day: 1,
+  served: 0,           // customers served today
+  servedTotal: 0,      // customers served this run (embed counts toward `solved`)
+  prices: {},          // color -> price (gold or cents) for today
+  cust: null,          // { face, name, order:[{color,qty}], total, paid, change, onlyHas }
+  step: "idle",        // idle | counter | total | change | leaving
+  counter: {},         // color -> qty placed on the counter
+  typed: "",
+  tray: [],            // coin values handed over
+  mistakes: 0,         // this customer
+  happy: 0,            // happy customers today
+  dayTips: 0,
+  tipsRun: 0,
+  coins: START_COINS,  // used when there is no shared Wallet (and always in embed)
+  upgrades: lsJSON("potion_upgrades", {}),
+  running: false,
+  posted: false,
+  dry: false,          // test mode: no coins, no saved progress
+  pending: null,
+  cheerUntil: 0
+};
+if (!EMBED && !hasWallet()){
+  const c = parseInt(lsGet("potion_coins", String(START_COINS)), 10);
+  S.coins = isFinite(c) && c >= 0 ? c : START_COINS;
+}
+(function(){
+  const l = parseInt(QS.get("level"), 10);
+  if (isFinite(l) && l >= 1 && l <= LEVELS.length){ S.level = l; S.unlocked = Math.max(S.unlocked, l); }   /* a link straight to a level opens it for this visit */
+  else S.level = Math.min(S.unlocked, LEVELS.length);
+})();
+const LV = () => LEVELS[S.level - 1];
+
+/* ---------- dom ---------- */
+const $ = id => document.getElementById(id);
+
+/* ---------- money helpers ---------- */
+function fmt(v, money){
+  money = money || LV().money;
+  if (money === "usd") return "$" + (v / 100).toFixed(2);
+  return v + " gold";
+}
+function fmtShort(v, money){
+  money = money || LV().money;
+  if (money === "usd") return v < 100 ? v + "¢" : "$" + (v % 100 === 0 ? (v/100) : (v/100).toFixed(2));
+  return v + "🪙";
+}
+/* one piece of money as HTML. size = px of a mid coin */
+function pieceHTML(v, money, size){
+  size = size || 40;
+  if (money === "usd"){
+    if (v >= 100){
+      const w = Math.round(size * 1.5), h = Math.round(size * 0.78);
+      return '<span class="bill usd" style="width:' + w + 'px;height:' + h + 'px;font-size:' + Math.round(size*0.42) + 'px">$' + (v/100) + '</span>';
+    }
+    const scale = { 1:0.86, 5:0.95, 10:0.78, 25:1.05 }[v] || 0.9;
+    const d = Math.round(size * scale);
+    const cls = v === 1 ? "copper" : "silver";
+    return '<span class="coin ' + cls + '" style="width:' + d + 'px;height:' + d + 'px;font-size:' + Math.round(d*0.36) + 'px">' + v + '¢</span>';
+  }
+  if (v >= 20){
+    const w = Math.round(size * 1.45), h = Math.round(size * 0.78);
+    return '<span class="bill gbar" style="width:' + w + 'px;height:' + h + 'px;font-size:' + Math.round(size*0.42) + 'px">' + v + '</span>';
+  }
+  const scale = { 1:0.78, 2:0.86, 5:0.95, 10:1.05 }[v] || 0.9;
+  const d = Math.round(size * scale);
+  return '<span class="coin gold" style="width:' + d + 'px;height:' + d + 'px;font-size:' + Math.round(d*0.44) + 'px">' + v + '</span>';
+}
+/* can `amount` be made from the till's denominations (unlimited coins)? */
+function makeable(amount, till){
+  if (!isFinite(amount) || amount < 0 || Math.floor(amount) !== amount) return false;
+  const ok = new Array(amount + 1).fill(false); ok[0] = true;
+  for (let a = 1; a <= amount; a++){
+    for (let i = 0; i < till.length; i++){ if (till[i] <= a && ok[a - till[i]]){ ok[a] = true; break; } }
+  }
+  return ok[amount];
+}
+/* fewest pieces for an amount (greedy is exact for these coin systems) */
+function breakdown(amount, denoms){
+  const out = []; let left = amount;
+  denoms.slice().sort((a,b) => b - a).forEach(d => { while (left >= d){ out.push(d); left -= d; } });
+  return left === 0 ? out : null;
+}
+
+/* ---------- random helpers ---------- */
+const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+
+/* ---------- shelf colours on offer ---------- */
+function shelfColors(){
+  const out = BASE_COLORS.slice();
+  ["green","purple","star"].forEach(c => { if (S.upgrades[c]) out.push(c); });
+  return out;
+}
+
+/* ---------- prices for a day: distinct per colour, fixed at level 1 ---------- */
+function rollPrices(){
+  const L = LV(), cols = shelfColors(), p = {};
+  if (L.fixed){ cols.forEach(c => { p[c] = L.fixed[c]; }); }
+  else {
+    const [lo, hi, step] = L.price;
+    const steps = Math.floor((hi - lo) / step) + 1;
+    const pool = shuffle(Array.from({length: steps}, (_, i) => lo + i * step));
+    cols.forEach((c, i) => { p[c] = pool[i % pool.length]; });
+  }
+  S.prices = p;
+}
+
+/* ---------- a customer's order ---------- */
+function makeOrder(){
+  const L = LV(), cols = shelfColors();
+  const maxPay = Math.max.apply(null, L.pay);
+  for (let tries = 0; tries < 400; tries++){
+    const nTypes = Math.min(cols.length, rint(L.types[0], L.types[1]));
+    const chosen = shuffle(cols.slice()).slice(0, nTypes);
+    const order = chosen.map(c => ({ color:c, qty: rint(L.qty[0], L.qty[1]) }));
+    const total = order.reduce((s, o) => s + o.qty * S.prices[o.color], 0);
+    if (total <= 0 || total > L.maxTotal || total >= maxPay) continue;
+    const bigger = L.pay.filter(p => p > total);
+    let paid = bigger[0], onlyHas = false;
+    if (S.level > 1 && bigger.length > 1 && Math.random() < 0.3){ paid = bigger[1]; onlyHas = true; }
+    else if (Math.random() < 0.35) onlyHas = true;
+    const change = paid - total;
+    if (change <= 0 || !makeable(change, L.till)) continue;
+    return { order: order, total: total, paid: paid, change: change, onlyHas: onlyHas };
+  }
+  /* fallback that always works: one cheapest potion */
+  const c = cols[0], total = S.prices[c];
+  const paid = L.pay.filter(p => p > total)[0] || (total + L.till[0]);
+  return { order:[{ color:c, qty:1 }], total: total, paid: paid, change: paid - total, onlyHas:false };
+}
+
+/* ---------- coins ---------- */
+function coinsNow(){
+  if (!EMBED && hasWallet()){ try { return Wallet.coins(); } catch (e) { return S.coins; } }
+  return S.coins;
+}
+function flashCoins(cls){ const b = $("coinBox"); b.classList.remove("spend","earn"); void b.offsetWidth; b.classList.add(cls); }
+function addCoins(n, why){
+  if (n <= 0 || S.dry) return;
+  if (EMBED){ S.coins += n; }
+  else if (hasWallet()){ try { Wallet.add(n, why || "potion shop"); } catch (e) { S.coins += n; } }
+  else { S.coins += n; lsSet("potion_coins", String(S.coins)); }
+  flashCoins("earn"); hud();
+}
+/* never blocked when coins are low: spends down to 0 and keeps working */
+function spendCoins(n, why){
+  let real = Math.min(coinsNow(), n);
+  if (S.dry){ return real; }
+  if (EMBED){ S.coins = Math.max(0, S.coins - n); toGame({ type:"spend", n: real }); }
+  else if (hasWallet()){ try { real = Wallet.spend(n, why || "potion shop"); } catch (e) { S.coins = Math.max(0, S.coins - n); } }
+  else { S.coins = Math.max(0, S.coins - n); lsSet("potion_coins", String(S.coins)); }
+  flashCoins("spend"); hud();
+  return real;
+}
+
+/* ---------- render: shelf ---------- */
+function bottleHTML(color, small){
+  const P = POTIONS[color];
+  return '<span class="bottle' + (small ? " sm" : "") + '" style="--pc:' + P.c + ';--pd:' + P.d + '">' +
+         '<span class="neck"></span><span class="cork"></span><span class="body"></span>' +
+         (P.star ? '<span class="star">★</span>' : "") + '</span>';
+}
+function renderShelf(){
+  const sh = $("shelf");
+  let h = '<span class="deco">🕯️</span><span class="deco">📜</span>';
+  shelfColors().forEach(c => {
+    h += '<button class="pbtn" data-color="' + c + '" aria-label="' + POTIONS[c].name + ' potion, ' + fmt(S.prices[c]) + '">' +
+         bottleHTML(c, false) + '<span class="tag">' + fmtShort(S.prices[c]) + '</span></button>';
+  });
+  h += '<span class="deco">🫙</span><span class="deco">🦴</span>';
+  sh.innerHTML = h;
+  sh.querySelectorAll(".pbtn").forEach(b => { b.onclick = () => tapPotion(b.dataset.color, b); });
+  fitShelf();
+}
+/* shrink the bottles until the whole shelf fits on one row */
+function fitShelf(){
+  try {
+    const short = window.innerHeight <= 430;
+    const n = shelfColors().length + (S.upgrades.shelf ? 4 : 0);
+    const w = Math.max(200, $("shelf").clientWidth - 16);
+    const gap = short ? 8 : 10;
+    const per = Math.floor((w - (n - 1) * gap) / Math.max(n, 1));
+    const cap = short ? 34 : Math.min(54, Math.max(36, Math.round(window.innerHeight * 0.06)));
+    const bw = Math.max(26, Math.min(cap, per - 6));
+    document.documentElement.style.setProperty("--bw", bw + "px");
+  } catch (e) { /* layout only */ }
+}
+window.addEventListener("resize", fitShelf);
+
+/* ---------- render: bubble / counter ---------- */
+function orderLines(){
+  return S.cust.order.map(o => {
+    const have = S.counter[o.color] || 0;
+    const done = have >= o.qty;
+    return '<span class="oline' + (done ? " done" : "") + '"><i class="dot" style="background:' + POTIONS[o.color].dot + '"></i>' +
+           '<b>' + o.qty + '</b> ' + POTIONS[o.color].name + '</span>';
+  }).join(" ");
+}
+function paidHTML(){
+  const L = LV();
+  const bills = L.money === "usd" ? breakdown(S.cust.paid, [1000,500,100]) : [S.cust.paid];
+  return '<span class="pay">' + (bills || [S.cust.paid]).map(v => pieceHTML(v, L.money, 30)).join("") + '</span>';
+}
+function bubble(extra, cross){
+  const b = $("bubble");
+  if (!S.cust){ b.classList.add("hide"); return; }
+  let h = '<span class="who">' + S.cust.name + '</span>';
+  if (S.step === "change" || S.step === "leaving"){
+    h += (S.cust.onlyHas ? "I only have " : "Here is ") + '<b>' + fmt(S.cust.paid) + '</b> ' + paidHTML();
+  } else {
+    h += "I need " + orderLines();
+  }
+  if (extra) h += '<span class="say">' + extra + '</span>';
+  b.innerHTML = h;
+  b.classList.toggle("cross", !!cross);
+  b.classList.remove("hide");
+}
+function renderCounter(popColor){
+  const box = $("counterItems");
+  let h = "";
+  Object.keys(S.counter).forEach(c => {
+    for (let i = 0; i < S.counter[c]; i++){
+      const last = (c === popColor && i === S.counter[c] - 1);
+      h += '<button class="ci' + (last ? " pop" : "") + '" data-color="' + c + '" aria-label="' + c + ' potion on the counter">' + bottleHTML(c, true) + '</button>';
+    }
+  });
+  box.innerHTML = h;
+  box.querySelectorAll(".ci").forEach(b => { b.onclick = () => takeBack(b.dataset.color); });
+  const n = Object.keys(S.counter).reduce((s, c) => s + S.counter[c], 0);
+  $("counterNote").textContent = S.step === "counter" ? (n ? "" : "tap the potions on the shelf") : "";
+}
+
+/* ---------- render: panel ---------- */
+function receiptHTML(){
+  return S.cust.order.map(o =>
+    '<div class="rl"><span class="dot" style="background:' + POTIONS[o.color].dot + '"></span>' +
+    '<span>' + o.qty + ' ' + POTIONS[o.color].name + '</span>' +
+    '<span class="pr">' + fmtShort(S.prices[o.color]) + ' each</span></div>').join("");
+}
+function renderDisplay(){
+  const d = $("display");
+  if (S.step === "counter"){ d.className = "wait"; d.textContent = "Tap the potions onto the counter"; return; }
+  d.className = "";
+  if (LV().money === "usd"){
+    const cents = parseInt(S.typed || "0", 10);
+    d.textContent = "$" + (cents / 100).toFixed(2);
+  } else {
+    d.textContent = (S.typed || "?") + " 🪙";
+  }
+}
+function renderTill(){
+  const L = LV();
+  $("till").innerHTML = L.till.map(v =>
+    '<button class="tbtn" data-v="' + v + '" aria-label="give ' + fmt(v) + '">' + pieceHTML(v, L.money, 42) + '</button>').join("");
+  $("till").querySelectorAll(".tbtn").forEach(b => { b.onclick = () => addToTray(parseInt(b.dataset.v, 10)); });
+}
+function renderTray(){
+  const L = LV(), t = $("tray");
+  /* one pile per coin kind with a "×N" count, so ten coins never overflow the tray */
+  const piles = L.till.slice().sort((a,b) => b - a).map(v => ({ v: v, n: S.tray.filter(x => x === v).length })).filter(p => p.n);
+  t.innerHTML = piles.map(p => '<button class="tc" data-v="' + p.v + '" aria-label="take back one ' + fmt(p.v) + '">' +
+    pieceHTML(p.v, L.money, window.innerHeight <= 430 ? 28 : 32) + (p.n > 1 ? '<span class="cnt">×' + p.n + '</span>' : "") + '</button>').join("");
+  t.classList.toggle("empty", !S.tray.length);
+  t.querySelectorAll(".tc").forEach(b => { b.onclick = () => removeFromTray(S.tray.lastIndexOf(parseInt(b.dataset.v, 10))); });
+  $("handAmt").textContent = fmt(trayTotal());
+}
+const trayTotal = () => S.tray.reduce((s, v) => s + v, 0);
+
+function renderPanel(){
+  const chg = S.step === "change" || S.step === "leaving";
+  $("totalBox").style.display = chg ? "none" : "flex";
+  $("changeBox").style.display = chg ? "flex" : "none";
+  $("stepName").textContent = chg ? "2. Make change" : "1. Ring it up";
+  if (!S.cust) return;
+  if (!chg){
+    $("receipt").innerHTML = receiptHTML();
+    $("pad").classList.toggle("off", S.step !== "total");
+    renderDisplay();
+  } else {
+    $("plTotal").textContent = fmt(S.cust.total);
+    $("plPaid").textContent = fmt(S.cust.paid);
+    renderTray();
+  }
+}
+function say(t, cls){ const m = $("msg"); m.innerHTML = t || ""; m.className = cls || ""; }
+
+function hud(){
+  $("dayBox").textContent = EMBED ? "SHOP" : "DAY " + S.day;
+  const goal = EMBED ? EMBED_CUSTOMERS : PER_DAY;
+  const idx = EMBED ? S.servedTotal : S.served;
+  $("custBox").textContent = "CUSTOMER " + Math.min(idx + 1, goal) + "/" + goal;
+  $("lvlBox").textContent = "LV " + S.level + " · " + LV().name;
+  $("coinBox").textContent = "🪙 " + coinsNow();
+  $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
+}
+function applyUpgrades(){
+  const sc = $("scene");
+  ["sign","cat","lantern","shelf"].forEach(id => sc.classList.toggle("u-" + id, !!S.upgrades[id]));
+  const A = HERO_ART[HERO] || HERO_ART.knight;
+  $("sign").textContent = "✦ " + A.name.replace(/^The /, "").toUpperCase() + "'S POTIONS ✦";
+}
+
+/* ---------- timers: one at a time, so a test can cancel cleanly ---------- */
+function later(fn, ms){ clearTimeout(S.pending); S.pending = setTimeout(() => { S.pending = null; fn(); }, ms); }
+
+/* ---------- flow ---------- */
+function newCustomer(){
+  const c = pick(CUSTOMERS);
+  const o = makeOrder();
+  S.cust = { face:c.e, name:c.n, order:o.order, total:o.total, paid:o.paid, change:o.change, onlyHas:o.onlyHas };
+  S.counter = {}; S.typed = ""; S.tray = []; S.mistakes = 0;
+  S.step = "counter";
+  $("custFace").textContent = c.e;
+  $("mood").textContent = "";
+  const cu = $("cust");
+  cu.classList.remove("frown","happy","bob");
+  cu.classList.add("out");
+  void cu.offsetWidth;
+  cu.classList.remove("out");
+  cu.classList.add("bob");
+  bubble(S.served === 0 && S.day === 1 && !EMBED ? "Tap my potions on the shelf!" : "");
+  renderCounter();
+  renderPanel();
+  renderTill();
+  say("Tap the potions they want onto the counter.", "hint");
+  hud();
+}
+
+function tapPotion(color, btn){
+  if (!S.running || S.step !== "counter" || !S.cust) return false;
+  Snd.start();
+  const line = S.cust.order.find(o => o.color === color);
+  const have = S.counter[color] || 0;
+  if (!line || have >= line.qty){
+    Snd.nope();
+    if (btn){ btn.classList.remove("no"); void btn.offsetWidth; btn.classList.add("no"); }
+    bubble(line ? ("I only need " + line.qty + " " + POTIONS[color].name + "!") : ("No " + POTIONS[color].name + " for me, thanks!"), true);
+    return false;
+  }
+  S.counter[color] = have + 1;
+  Snd.pop();
+  renderCounter(color);
+  if (counterDone()){
+    S.step = "total";
+    bubble("How much is that?");
+    say("Now add it up and type the total.", "hint");
+  } else bubble("");
+  renderPanel();
+  return true;
+}
+function takeBack(color){
+  if (!S.running || S.step !== "counter" || !S.counter[color]) return;
+  S.counter[color]--;
+  if (!S.counter[color]) delete S.counter[color];
+  renderCounter(); bubble(""); renderPanel();
+}
+function counterDone(){ return S.cust.order.every(o => (S.counter[o.color] || 0) === o.qty); }
+function fillCounter(){
+  if (!S.cust) return false;
+  S.counter = {};
+  S.cust.order.forEach(o => { S.counter[o.color] = o.qty; });
+  if (S.step === "counter") S.step = "total";
+  renderCounter(); bubble("How much is that?"); renderPanel();
+  return true;
+}
+
+/* ---------- pad ---------- */
+function press(v){
+  if (!S.running || S.step !== "total") return;
+  Snd.start();
+  const max = LV().money === "usd" ? 4 : 3;
+  if (v === "back") S.typed = S.typed.slice(0, -1);
+  else if (v === "ok"){ submitTotal(); return; }
+  else if (S.typed.length < max){ S.typed = (S.typed + String(v)).replace(/^0+(?=\d)/, ""); Snd.tick(); }
+  renderDisplay();
+}
+function submitTotal(){
+  if (S.step !== "total") return { ok:false, reason:"not-total-step" };
+  if (!S.typed){ say("Type the total first.", "hint"); return { ok:false, reason:"empty" }; }
+  const n = parseInt(S.typed, 10);
+  return checkTotal(n);
+}
+function checkTotal(n){
+  if (n === S.cust.total){
+    Snd.kaching();
+    S.step = "change";
+    S.cheerUntil = performance.now() + 900;
+    $("mood").textContent = "🙂";
+    S.tray = [];
+    bubble("");
+    say("Right! " + fmt(S.cust.total) + ". Now give back the change.", "good");
+    renderPanel();
+    return { ok:true };
+  }
+  S.mistakes++;
+  Snd.bad();
+  const cu = $("cust"); cu.classList.remove("frown"); void cu.offsetWidth; cu.classList.add("frown");
+  $("mood").textContent = "😠";
+  const d = $("display"); d.classList.remove("bad"); void d.offsetWidth; d.classList.add("bad");
+  bubble("Hmm, that is not right!", true);
+  say("Not quite. " + (n > S.cust.total ? "That is too much." : "That is too little.") + " Try again!", "bad");
+  S.typed = "";
+  setTimeout(renderDisplay, 420);
+  return { ok:false, reason: n > S.cust.total ? "high" : "low" };
+}
+
+/* ---------- change ---------- */
+function addToTray(v){
+  if (!S.running || S.step !== "change") return;
+  Snd.start(); Snd.tick();
+  if (S.tray.length >= 40) return;
+  S.tray.push(v); renderTray();
+}
+function removeFromTray(i){
+  if (!S.running || S.step !== "change" || i < 0 || i >= S.tray.length) return;
+  S.tray.splice(i, 1); renderTray();
+}
+function checkChange(){
+  if (S.step !== "change") return { ok:false, reason:"not-change-step" };
+  const gave = trayTotal(), need = S.cust.change;
+  if (gave === need){
+    completeCustomer();
+    return { ok:true, gave: gave, need: need };
+  }
+  S.mistakes++;
+  Snd.bad();
+  const cu = $("cust"); cu.classList.remove("frown"); void cu.offsetWidth; cu.classList.add("frown");
+  $("mood").textContent = "😠";
+  const tooMuch = gave > need;
+  bubble(tooMuch ? "Whoa, that is too much!" : "Hey, I need more back!", true);
+  say((tooMuch ? "Too much. " : "Too little. ") + "Change is " + fmt(S.cust.paid) + " take away " + fmt(S.cust.total) + ".", "bad");
+  return { ok:false, reason: tooMuch ? "high" : "low", gave: gave, need: need };
+}
+function completeCustomer(){
+  S.step = "leaving";
+  const tip = Math.max(1, BASE_TIP - S.mistakes);
+  const happy = S.mistakes === 0;
+  if (happy) S.happy++;
+  S.dayTips += tip; S.tipsRun += tip;
+  S.served++; S.servedTotal++;
+  Snd.kaching(); Snd.good();
+  S.cheerUntil = performance.now() + 1400;
+  const cu = $("cust"); cu.classList.remove("frown","bob"); void cu.offsetWidth; cu.classList.add("happy");
+  $("mood").textContent = happy ? "😄" : "🙂";
+  bubble((happy ? "Perfect! " : "Thanks! ") + "Here is a tip: " + tip + " 🪙");
+  say("Tip +" + tip + " 🪙" + (happy ? " (perfect!)" : ""), "good");
+  addCoins(tip, "potion shop tip");
+  renderPanel();
+  hud();
+  later(() => {
+    cu.classList.remove("happy"); cu.classList.add("out");
+    $("bubble").classList.add("hide");
+    S.counter = {}; renderCounter();
+    later(afterCustomer, 550);
+  }, 1300);
+}
+function afterCustomer(){
+  if (EMBED && S.servedTotal >= EMBED_CUSTOMERS){ embedDone(); return; }
+  if (!EMBED && S.served >= PER_DAY){ endDay(); return; }
+  newCustomer();
+}
+
+/* ---------- hint ---------- */
+function hint(){
+  if (!S.running || !S.cust || S.step === "leaving" || S.step === "idle") return false;
+  spendCoins(COST_HINT, "potion shop hint");
+  if (S.step === "counter"){
+    say("💡 Put " + S.cust.order.map(o => o.qty + " " + POTIONS[o.color].name).join(" and ") + " on the counter.", "hint");
+  } else if (S.step === "total"){
+    const parts = S.cust.order.map(o => o.qty === 1 ? fmtShort(S.prices[o.color]) : (o.qty + " × " + fmtShort(S.prices[o.color]) + " = " + fmtShort(o.qty * S.prices[o.color])));
+    say("💡 " + parts.join(", ") + (S.cust.order.length > 1 ? ". Now add them up!" : ""), "hint");
+  } else if (S.step === "change"){
+    const left = S.cust.change - trayTotal();
+    if (left < 0) say("💡 Too much in your hand. Tap a coin to take it back.", "hint");
+    else if (left === 0) say("💡 That is exactly right. Tap Give change!", "hint");
+    else {
+      const fit = LV().till.filter(v => v <= left).sort((a,b) => b - a)[0];
+      say("💡 Count up from " + fmt(S.cust.total) + " to " + fmt(S.cust.paid) + ". Try a " + fmtShort(fit) + " next.", "hint");
+    }
+  }
+  return true;
+}
+
+/* ---------- day end + upgrades ---------- */
+function endDay(){
+  S.step = "idle"; S.cust = null;
+  const great = S.happy >= 5;
+  let bonus = 0;
+  if (S.happy === PER_DAY){ bonus = 10; addCoins(bonus, "potion shop perfect day"); S.dayTips += bonus; S.tipsRun += bonus; }
+  if (great) Snd.file("50-ta-daaa", 0.7);
+  let unlockMsg = "";
+  if (S.happy >= 4 && S.level === S.unlocked && S.unlocked < LEVELS.length){
+    S.unlocked++;
+    if (!S.dry) lsSet("potion_unlocked", String(S.unlocked));
+    unlockMsg = "🔓 New level unlocked: " + LEVELS[S.unlocked - 1].name + " (" + LEVELS[S.unlocked - 1].sub + ")!";
+  }
+  $("dayTitle").textContent = great ? "GREAT DAY! DAY " + S.day + " DONE" : "DAY " + S.day + " DONE";
+  $("dayStats").innerHTML = "😄 " + S.happy + " of " + PER_DAY + " customers perfectly happy · tips +" + S.dayTips + " 🪙" +
+    (bonus ? " (includes a +" + bonus + " perfect-day bonus)" : "") + " · you have 🪙 " + coinsNow();
+  $("dayUnlock").textContent = unlockMsg || (S.happy < 4 && S.level < LEVELS.length && S.level === S.unlocked ? "Get 4 perfect customers in a day to unlock the next level." : "");
+  $("nextDayBtn").textContent = "Open day " + (S.day + 1);
+  const nb = $("nextLvlBtn");
+  if (S.level < S.unlocked){ nb.style.display = ""; nb.textContent = "Try " + LEVELS[S.level].name + " ➜"; }
+  else nb.style.display = "none";
+  renderUpgrades();
+  $("dayScreen").classList.add("on");
+  hud();
+}
+function renderUpgrades(){
+  const have = coinsNow();
+  $("upgrades").innerHTML = UPGRADES.map(u => {
+    const owned = !!S.upgrades[u.id];
+    return '<button class="up' + (owned ? " owned" : (have < u.price ? " poor" : "")) + '" data-id="' + u.id + '">' +
+      '<span class="ic">' + u.ic + '</span><span>' + u.name + '<small>' + (owned ? "✓ in your shop" : "🪙 " + u.price) + '</small></span></button>';
+  }).join("");
+  $("upgrades").querySelectorAll(".up").forEach(b => { b.onclick = () => buyUpgrade(b.dataset.id); });
+}
+function buyUpgrade(id){
+  const u = UPGRADES.find(x => x.id === id);
+  if (!u) return { ok:false, reason:"unknown" };
+  if (S.upgrades[id]) return { ok:false, reason:"owned" };
+  const have = coinsNow();
+  if (have < u.price){
+    $("dayUnlock").textContent = "You need " + (u.price - have) + " more 🪙 for the " + u.name + ".";
+    Snd.nope();
+    return { ok:false, reason:"short", short: u.price - have };
+  }
+  spendCoins(u.price, "potion shop " + u.name);
+  S.upgrades[id] = true;
+  if (!S.dry) lsSet("potion_upgrades", JSON.stringify(S.upgrades));
+  Snd.kaching();
+  $("dayUnlock").textContent = u.ic + " " + u.name + " added to your shop!";
+  applyUpgrades(); renderUpgrades(); hud();
+  return { ok:true };
+}
+function startDay(){
+  $("dayScreen").classList.remove("on");
+  S.served = 0; S.happy = 0; S.dayTips = 0;
+  rollPrices(); renderShelf(); applyUpgrades();
+  S.running = true;
+  newCustomer();
+}
+
+/* ---------- embed finish ---------- */
+function postSolved(){
+  if (!EMBED || S.posted) return;
+  S.posted = true;
+  toGame({ type:"solved", customers: S.servedTotal, tips: S.tipsRun });
+}
+function embedDone(){
+  S.running = false; S.step = "idle";
+  $("winTitle").textContent = "SHOP CLOSED";
+  $("winLine").innerHTML = "You served <b>" + S.servedTotal + "</b> customer" + (S.servedTotal === 1 ? "" : "s") +
+    " and earned <b>" + S.tipsRun + "</b> 🪙 in tips.";
+  $("winScreen").classList.add("on");
+  if (EMBED_CUSTOMERS === 1) setTimeout(postSolved, 1400);
+}
+
+/* ---------- run control ---------- */
+function start(level){
+  if (level && level >= 1 && level <= LEVELS.length) S.level = level;
+  clearTimeout(S.pending); S.pending = null;
+  S.day = 1; S.servedTotal = 0; S.tipsRun = 0; S.posted = false;
+  ["startScreen","dayScreen","winScreen"].forEach(id => $(id).classList.remove("on"));
+  startDay();
+}
+
+/* ---------- level picker on the start screen ---------- */
+function renderLevels(){
+  $("levels").innerHTML = LEVELS.map(L => {
+    const lock = L.n > S.unlocked;
+    return '<button class="lvl' + (L.n === S.level ? " on" : "") + (lock ? " lock" : "") + '" data-n="' + L.n + '">' +
+      (lock ? "🔒 " : "") + L.n + ". " + L.name + '<small>' + L.sub + '</small></button>';
+  }).join("");
+  $("levels").querySelectorAll(".lvl").forEach(b => {
+    b.onclick = () => {
+      const n = parseInt(b.dataset.n, 10);
+      if (n > S.unlocked){ Snd.nope(); return; }
+      S.level = n; renderLevels(); hud();
+    };
+  });
+}
+
+/* ---------- pad build ---------- */
+(function(){
+  const pad = $("pad");
+  [1,2,3,4,5,6,7,8,9].forEach(n => pad.appendChild(padBtn(n, n)));
+  pad.appendChild(padBtn("⌫", "back", "back"));
+  pad.appendChild(padBtn(0, 0, "zero"));
+  pad.appendChild(padBtn("✓", "ok", "ok"));
+  function padBtn(label, val, cls){
+    const b = document.createElement("button");
+    b.textContent = label; if (cls) b.className = cls;
+    b.setAttribute("aria-label", val === "back" ? "delete" : (val === "ok" ? "check the total" : String(label)));
+    b.onclick = () => press(val);
+    return b;
+  }
+})();
+window.addEventListener("keydown", e => {
+  if (/^[0-9]$/.test(e.key)) press(Number(e.key));
+  else if (e.key === "Backspace") press("back");
+  else if (e.key === "Enter"){ if (S.step === "total") press("ok"); else if (S.step === "change") checkChange(); }
+});
+document.addEventListener("pointerdown", () => Snd.start(), { passive:true });
+
+/* ---------- buttons ---------- */
+$("muteBtn").onclick = () => { Snd.toggle(); hud(); };
+$("hintBtn").onclick = hint;
+$("giveBtn").onclick = () => { if (S.running) checkChange(); };
+$("clearBtn").onclick = () => { if (S.running && S.step === "change"){ S.tray = []; renderTray(); } };
+$("cat").onclick = () => { Snd.pop(); $("cat").textContent = $("cat").textContent === "🐈" ? "😺" : "🐈"; };
+$("startBtn").onclick = () => start(S.level);
+$("nextDayBtn").onclick = () => { S.day++; startDay(); };
+$("nextLvlBtn").onclick = () => { S.day++; S.level = Math.min(S.unlocked, S.level + 1); startDay(); };
+$("winBtn").onclick = () => { $("winScreen").classList.remove("on"); postSolved(); };
+
+/* =====================================================================
+   THE CHOSEN HERO, standing behind the counter as the shopkeeper.
+   Copied from runedoor.html so this file stays independent.
+   ===================================================================== */
+const HERO_ART = {
+  knight:   {body:"#b9c6d4", trim:"#8795a5", skin:"#f0c9a0", accent:"#ffd23f", name:"The Knight"},
+  wizard:   {body:"#7b5cd6", trim:"#4a35a0", skin:"#f0c9a0", accent:"#ffd23f", name:"The Mage"},
+  ninja:    {body:"#263445", trim:"#151f2b", skin:"#f0c9a0", accent:"#ff4d5e", name:"The Shadow"},
+  robot:    {body:"#cfd8e3", trim:"#8b9bad", skin:"#cfd8e3", accent:"#4ff0ff", name:"BEEP-9"},
+  explorer: {body:"#c8a86a", trim:"#8a6f3c", skin:"#f0c9a0", accent:"#6d8f4a", name:"The Explorer"},
+  dragon:   {body:"#4fbf6a", trim:"#2f8f4a", skin:"#4fbf6a", accent:"#f5e6a8", name:"Lil' Dragon"}
+};
+
+function drawHeroSprite(g, X, Y, u, id, o){
+  o = o || {};
+  const A = HERO_ART[id] || HERO_ART.knight;
+  const b = o.bob || 0;
+  const ex = Math.max(-1, Math.min(1, o.fx || 0)) * u * 0.06;
+  const ey = Math.max(-1, Math.min(1, o.fy || 0)) * u * 0.04;
+  const cheer = !!o.cheer;
+  const HY = Y - u*0.20 + b, HR = u*0.22;
+  const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
+
+  g.fillStyle = "rgba(0,0,0,.45)";
+  g.beginPath(); g.ellipse(X, Y + u*0.34, u*0.30, u*0.12, 0, 0, 7); g.fill();
+
+  if (id === "dragon"){
+    g.fillStyle = A.trim;
+    g.beginPath();
+    g.moveTo(X + u*0.16, Y + u*0.18 + b);
+    g.quadraticCurveTo(X + u*0.66, Y + u*0.30 + b, X + u*0.52, Y - u*0.06 + b);
+    g.quadraticCurveTo(X + u*0.44, Y + u*0.16 + b, X + u*0.16, Y + u*0.30 + b);
+    g.closePath(); g.fill();
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.14, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.54, Y - u*0.40 + b);
+      g.lineTo(X + s*u*0.46, Y + u*0.08 + b);
+      g.closePath(); g.fill();
+    });
+  }
+  if (id === "explorer"){
+    g.fillStyle = "#6b4a24"; g.fillRect(X - u*0.36, Y - u*0.12 + b, u*0.21, u*0.36);
+    g.fillStyle = "#4e3518"; g.fillRect(X - u*0.36, Y + u*0.02 + b, u*0.21, u*0.06);
+  }
+  if (id === "wizard"){
+    g.strokeStyle = "#8a5a2b"; g.lineWidth = Math.max(1.5, u*0.06);
+    g.beginPath(); g.moveTo(X + u*0.32, Y + u*0.34 + b); g.lineTo(X + u*0.36, Y - u*0.44 + b); g.stroke();
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X + u*0.36, Y - u*0.50 + b, u*0.09, 0, 7); g.fill();
+  }
+
+  if (id === "robot"){
+    g.fillStyle = A.body; g.fillRect(X - u*0.26, Y - u*0.10 + b, u*0.52, u*0.40);
+    g.fillStyle = A.trim; g.fillRect(X - u*0.26, Y + u*0.16 + b, u*0.52, u*0.07);
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X, Y + u*0.03 + b, u*0.07, 0, 7); g.fill();
+    g.fillStyle = A.trim; g.fillRect(X - u*0.30, Y + u*0.30 + b, u*0.60, u*0.08);
+  } else {
+    const flare = id === "wizard" ? 0.38 : 0.30;
+    g.fillStyle = A.body;
+    g.beginPath();
+    g.moveTo(X - u*flare, Y + u*0.32 + b);
+    g.lineTo(X - u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*flare, Y + u*0.32 + b);
+    g.closePath(); g.fill();
+    g.fillStyle = A.trim;
+    g.fillRect(X - u*0.22, Y + u*0.05 + b, u*0.44, u*0.06);
+    if (id === "knight"){
+      g.fillStyle = A.trim;
+      [-1, 1].forEach(s => { g.beginPath(); g.ellipse(X + s*u*0.24, Y - u*0.06 + b, u*0.12, u*0.09, 0, 0, 7); g.fill(); });
+    }
+    if (id === "ninja"){
+      g.fillStyle = A.accent;
+      g.beginPath();
+      g.moveTo(X + u*0.16, Y - u*0.06 + b);
+      g.lineTo(X + u*0.46, Y + u*0.04 + b);
+      g.lineTo(X + u*0.18, Y + u*0.06 + b);
+      g.closePath(); g.fill();
+    }
+    if (id === "dragon"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.ellipse(X, Y + u*0.13 + b, u*0.15, u*0.17, 0, 0, 7); g.fill();
+    }
+    if (id === "explorer"){
+      g.fillStyle = A.trim;
+      g.fillRect(X - u*0.02, Y - u*0.08 + b, u*0.04, u*0.14);
+    }
+  }
+
+  if (cheer){
+    g.strokeStyle = id === "ninja" ? A.accent : A.trim;
+    g.lineWidth = Math.max(2, u*0.11);
+    g.lineCap = "round";
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.19, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.40, Y - u*0.42 + b);
+      g.stroke();
+    });
+    g.lineCap = "butt";
+    g.fillStyle = id === "robot" ? A.accent : A.skin;
+    [-1, 1].forEach(s => { g.beginPath(); g.arc(X + s*u*0.40, Y - u*0.44 + b, u*0.075, 0, 7); g.fill(); });
+  }
+
+  if (id === "robot"){
+    g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
+    g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    g.fillStyle = "#e3e9f0"; g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.32);
+    g.fillStyle = A.trim;    g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.05);
+    g.fillStyle = "#0a1418"; g.fillRect(X - u*0.17, Y - u*0.30 + b, u*0.34, u*0.13);
+    g.fillStyle = A.accent;
+    g.fillRect(X - u*0.14 + ex, Y - u*0.27 + ey + b, u*0.28, u*0.07);
+    g.save(); g.globalAlpha = 0.45;
+    g.fillRect(X - u*0.18 + ex, Y - u*0.29 + ey + b, u*0.36, u*0.11);
+    g.restore();
+  } else if (id === "dragon"){
+    g.fillStyle = A.body; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.trim;
+    g.beginPath(); g.ellipse(X + ex*1.4, HY + u*0.09 + ey, u*0.16, u*0.10, 0, 0, 7); g.fill();
+    g.fillStyle = A.accent;
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.12, HY - u*0.18);
+      g.lineTo(X + s*u*0.22, HY - u*0.40);
+      g.lineTo(X + s*u*0.02, HY - u*0.22);
+      g.closePath(); g.fill();
+    });
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    g.fillStyle = "#0d1a12";
+    g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+    g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+  } else if (id === "ninja"){
+    g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
+    g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);
+    g.fillStyle = A.trim; g.fillRect(X - u*0.23, HY + u*0.06, u*0.46, u*0.15);
+    g.fillStyle = A.accent;
+    g.fillRect(X - u*0.25, HY - u*0.17, u*0.50, u*0.08);
+    g.beginPath();
+    g.moveTo(X - u*0.23, HY - u*0.16);
+    g.lineTo(X - u*0.46, HY - u*0.04);
+    g.lineTo(X - u*0.23, HY - u*0.07);
+    g.closePath(); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+  } else {
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
+    if (id === "knight"){
+      g.fillStyle = "#cfdae6";
+      g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
+      g.fillStyle = "#1a2129";
+      g.fillRect(X - u*0.13, HY - u*0.05, u*0.26, u*0.045);
+      g.fillStyle = A.accent;
+      [-1, 1].forEach(s => {
+        g.beginPath();
+        g.moveTo(X + s*u*0.20, HY - u*0.12);
+        g.lineTo(X + s*u*0.40, HY - u*0.30);
+        g.lineTo(X + s*u*0.22, HY - u*0.01);
+        g.closePath(); g.fill();
+      });
+    } else if (id === "wizard"){
+      g.fillStyle = "#eef1f5";
+      g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
+      g.fillStyle = A.trim;
+      g.beginPath();
+      g.moveTo(X - u*0.26, HY - u*0.14);
+      g.lineTo(X + u*0.08, HY - u*0.62);
+      g.lineTo(X + u*0.26, HY - u*0.14);
+      g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
+    } else if (id === "explorer"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
+      g.fillStyle = "#54713a";
+      g.beginPath(); g.ellipse(X + u*0.16, HY - u*0.02, u*0.20, u*0.055, 0, 0, 7); g.fill();
+    }
+  }
+}
+
+/* the shopkeeper: idle breath, a hop and a cheer on every sale */
+function paintKeeper(t){
+  try {
+    const c = $("keeper"); if (!c) return;
+    const r = c.getBoundingClientRect();
+    const w = Math.max(24, Math.round(r.width)), h = Math.max(24, Math.round(r.height));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w*dpr) || c.height !== Math.round(h*dpr)){
+      c.width = Math.round(w*dpr); c.height = Math.round(h*dpr);
+    }
+    const g = c.getContext("2d"); if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const cheer = performance.now() < S.cheerUntil;
+    const u = Math.min(w, h) * 0.78;
+    const bob = cheer ? -Math.abs(Math.sin(t/130)) * u * 0.16 : Math.sin(t/620) * u * 0.02;
+    drawHeroSprite(g, w/2, h*0.62, u, HERO, { bob: bob, fx: 0.6, fy: 0.3, cheer: cheer });
+  } catch (e) { /* a hero that will not draw never breaks the shop */ }
+}
+(function keeperLoop(t){ paintKeeper(t || 0); requestAnimationFrame(keeperLoop); })(0);
+
+/* start screen names the hero running the shop */
+(function(){
+  const A = HERO_ART[HERO] || HERO_ART.knight;
+  $("heroLine").innerHTML = "Behind the counter today: <span style=\"color:" + A.body + "\">" + A.name + "</span>";
+})();
+
+/* ---------- boot ---------- */
+if (!EMBED && hasWallet() && typeof Wallet.onChange === "function"){
+  try { Wallet.onChange(function(){ hud(); }); } catch (e) { /* the HUD still refreshes on our own changes */ }
+}
+applyUpgrades();
+rollPrices();
+renderShelf();
+renderLevels();
+renderPanel();
+hud();
+if (EMBED){
+  const c = parseInt(QS.get("coins"), 10);
+  if (isFinite(c) && c >= 0) S.coins = c;
+  start(S.level);
+}
+
+/* ---------- test hook ---------- */
+window.SHOP = {
+  state: S,
+  LEVELS: LEVELS,
+  HERO: HERO,
+  EMBED_CUSTOMERS: EMBED_CUSTOMERS,
+  start: start,
+  /* test mode: no coins earned or spent, nothing saved */
+  setDry: v => { S.dry = !!v; return S.dry; },
+  mute: v => { Snd.set(!v); hud(); return !Snd.isOn(); },
+  isMuted: () => !Snd.isOn(),
+  setLevel: n => { if (n >= 1 && n <= LEVELS.length){ S.level = n; rollPrices(); renderShelf(); renderTill(); hud(); } return S.level; },
+  /* skip every animation and put a fresh customer at the counter */
+  nextCustomer: function(){
+    clearTimeout(S.pending); S.pending = null;
+    ["startScreen","dayScreen","winScreen"].forEach(id => $(id).classList.remove("on"));
+    if (!EMBED && S.served >= PER_DAY){ S.day++; S.served = 0; S.happy = 0; S.dayTips = 0; rollPrices(); renderShelf(); }
+    S.running = true;
+    newCustomer();
+    return this.snapshot();
+  },
+  snapshot: () => S.cust ? {
+    order: S.cust.order.map(o => ({ color:o.color, qty:o.qty, price:S.prices[o.color] })),
+    total: S.cust.total, paid: S.cust.paid, change: S.cust.change,
+    till: LV().till.slice(), money: LV().money, step: S.step, level: S.level
+  } : null,
+  tapPotion: c => tapPotion(c, null),
+  fillCounter: fillCounter,
+  /* amounts are in the level's units: whole gold, or CENTS on US levels */
+  answerTotal: function(n){
+    if (!S.cust) return { ok:false, reason:"no-customer" };
+    if (S.step === "counter") fillCounter();
+    if (S.step !== "total") return { ok:false, reason:"not-total-step" };
+    return checkTotal(Number(n));
+  },
+  giveChange: function(coins){
+    if (!S.cust || S.step !== "change") return { ok:false, reason:"not-change-step" };
+    if (!Array.isArray(coins)) return { ok:false, reason:"bad-input" };
+    const till = LV().till;
+    if (coins.some(v => till.indexOf(v) < 0)) return { ok:false, reason:"not-in-till" };
+    S.tray = coins.slice(); renderTray();
+    return checkChange();
+  },
+  makeable: makeable,
+  breakdown: breakdown,
+  hint: hint,
+  buyUpgrade: buyUpgrade,
+  endDay: endDay,
+  coins: coinsNow,
+  fmt: fmt
+};
+})();
+</script>
+<script src="home-button.js"></script>
+</body>
+</html>

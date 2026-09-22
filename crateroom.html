@@ -208,6 +208,8 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
 
 <script src="math-bank.js"></script>
 <script src="story-bank.js"></script>
+<script src="brain.js"></script>
+<script src="wallet.js"></script>
 <script>
 (function(){
 "use strict";
@@ -464,6 +466,7 @@ const toGame = msg => {
 };
 let coins = 55;
 if (EMBED){ const c = parseInt(QS.get("coins"), 10); if (isFinite(c) && c >= 0) coins = c; }
+else if (window.Wallet){ coins = Wallet.coins(); Wallet.resetSync(coins); }   // shared arcade wallet
 
 /* ?level=N starts on one room. In embed mode that also means SINGLE room
    mode: solving it reports back and stops instead of rolling onward. */
@@ -966,6 +969,7 @@ function syncHud(){
   }
   $("movesV").textContent = S.moves;
   $("coinV").textContent = coins;
+  if (!EMBED && window.Wallet) Wallet.syncFrom(coins);
   $("roomV").textContent = (S.li + 1) + "/" + LEVELS.length;
   $("undoBtn").disabled = S.hist.length === 0 || S.open;
 }

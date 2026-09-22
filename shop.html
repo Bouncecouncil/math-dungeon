@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#04060f">
+<title>Math Dungeon Shop</title>
+<style>
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#16204a 0%,#070a1a 60%,#04060f 100%);
+    color:#fff;font-family:"Avenir Next","Trebuchet MS",Verdana,sans-serif;padding:8px 16px 28px;
+    padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));}
+  button{font:inherit;cursor:pointer;}
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  /* header: title left, coins right, the home button (home-button.js) floats in the middle */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;margin-bottom:10px;}
+  h1{margin:0;font-size:clamp(22px,4.4vw,38px);font-weight:900;letter-spacing:1px;color:#ffd23f;
+    text-shadow:0 3px 0 #7a5a00,0 0 24px rgba(255,210,63,.25);white-space:nowrap;}
+  .purse{display:flex;align-items:center;gap:8px;background:#ffd23f;color:#2a1f00;font-weight:900;
+    font-size:clamp(20px,3.6vw,28px);border-radius:999px;padding:6px 16px;box-shadow:0 4px 0 #8a6200;white-space:nowrap;}
+  .purse.bump{animation:bump .45s;}
+  @keyframes bump{30%{transform:scale(1.15);}100%{transform:scale(1);}}
+
+  .layout{display:flex;gap:16px;align-items:flex-start;}
+  .stage{flex:0 0 280px;position:sticky;top:8px;background:linear-gradient(180deg,rgba(27,38,80,.95),rgba(14,20,46,.95));
+    border:2px solid #34458f;border-radius:18px;padding:10px;text-align:center;}
+  .stage canvas{width:100%;height:auto;display:block;border-radius:12px;background:#0b1233;}
+  .stage .who{font-weight:900;font-size:16px;margin-top:8px;color:#ffe08a;}
+  .stage .wear{font-size:13px;color:#b3c2e6;margin-top:4px;line-height:1.35;min-height:18px;}
+  .stage .try{font-size:12px;color:#8fe9ff;margin-top:4px;min-height:16px;}
+  .shelves{flex:1;min-width:0;}
+
+  .slot{margin-bottom:16px;}
+  .slot h2{margin:4px 0 8px;font-size:15px;font-weight:900;letter-spacing:2px;color:#ffd23f;text-transform:uppercase;}
+  .items{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .item{background:linear-gradient(180deg,rgba(27,38,80,.95),rgba(14,20,46,.95));border:2px solid #34458f;border-radius:16px;
+    padding:10px 8px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;
+    box-shadow:0 5px 0 rgba(0,0,0,.35);cursor:pointer;}
+  .item.on{border-color:#3ddc84;box-shadow:0 0 0 2px rgba(61,220,132,.35),0 5px 0 rgba(0,0,0,.35);}
+  .item.peek{border-color:#8fe9ff;}
+  .item canvas{width:64px;height:64px;}
+  .item .nm{font-weight:900;font-size:15px;line-height:1.15;}
+  .item .pr{font-weight:900;font-size:15px;color:#ffe08a;}
+  .item .own{font-size:12px;font-weight:800;color:#9ff0b8;}
+  .act{width:100%;min-height:48px;border:none;border-radius:12px;font-weight:900;font-size:15px;padding:8px 6px;margin-top:4px;line-height:1.15;}
+  .act.buy{background:#ffd23f;color:#2a1f00;box-shadow:0 4px 0 #8a6200;}
+  .act.sure{background:#ff8a1a;color:#2a1000;box-shadow:0 4px 0 #8a3a00;}
+  .act.poor{background:#3a4263;color:#aab3cf;box-shadow:0 4px 0 #1c2140;}
+  .act.equip{background:#3ddc84;color:#062a14;box-shadow:0 4px 0 #1a7a44;}
+  .act.off{background:#2a3470;color:#e6ecff;box-shadow:0 4px 0 #141a40;}
+  .act:active{transform:translateY(2px);box-shadow:none;}
+
+  .msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#16204a;border:2px solid #ffd23f;color:#fff;
+    font-weight:900;font-size:17px;border-radius:14px;padding:10px 18px;opacity:0;pointer-events:none;transition:opacity .2s;
+    max-width:92vw;text-align:center;z-index:50;}
+  .msg.show{opacity:1;}
+  .foot{text-align:center;color:#6f7fae;font-size:12px;margin-top:10px;}
+
+  @media (max-width:980px){.items{grid-template-columns:repeat(3,1fr);}}
+  /* phone portrait: the preview sits on top, two items per row */
+  @media (max-width:640px){
+    .layout{flex-direction:column;align-items:stretch;}
+    .stage{position:relative;top:0;flex:none;display:flex;align-items:center;gap:10px;text-align:left;padding:8px;}
+    .stage canvas{width:150px;flex:0 0 150px;}
+    .items{grid-template-columns:repeat(2,1fr);}
+    h1{font-size:22px;}
+  }
+  /* narrow phones: the title would run under the centred 🏠, so drop the header below it */
+  @media (max-width:480px){ .top{padding-top:38px;} }
+  /* phone landscape (e.g. 812x375): short screen, keep the preview beside the shelves */
+  @media (max-height:500px) and (orientation:landscape){
+    body{padding-top:4px;}
+    .top{min-height:42px;margin-bottom:6px;}
+    h1{font-size:24px;}
+    .purse{font-size:20px;padding:4px 14px;}
+    .layout{flex-direction:row;}
+    .stage{flex:0 0 210px;display:block;text-align:center;position:sticky;top:4px;padding:8px;}
+    .stage canvas{width:100%;}
+    .stage .wear{display:none;}
+    .items{grid-template-columns:repeat(3,1fr);gap:8px;}
+    .item canvas{width:52px;height:52px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>&#x1F6CD;&#xFE0F; THE SHOP</h1>
+    <div class="purse" id="purse" aria-live="polite">&#x1FA99; <span id="coinNum">0</span></div>
+  </div>
+  <div class="layout">
+    <div class="stage">
+      <canvas id="stage" width="400" height="330" aria-label="Your hero with the things you are wearing"></canvas>
+      <div>
+        <div class="who" id="who">Your hero</div>
+        <div class="wear" id="wear"></div>
+        <div class="try" id="try"></div>
+      </div>
+    </div>
+    <div class="shelves" id="shelves"></div>
+  </div>
+  <div class="foot">Coins come from every game in the arcade. Tap a thing to try it on.</div>
+</div>
+<div class="msg" id="msg"></div>
+
+<script src="wallet.js"></script>
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  if (!window.Wallet){ $("shelves").textContent = "The shop could not load. Try again."; return; }
+
+  /* the same six heroes as the arcade main screen */
+  var HEROES = {
+    knight:   { n:"The Knight",   e:"\u{1F6E1}️", body:"#8c9bb5", trim:"#d4dbe8", skin:"#f2c9a0" },
+    wizard:   { n:"The Mage",     e:"\u{1F9D9}",       body:"#4b2ca8", trim:"#ffd23f", skin:"#f2c9a0" },
+    ninja:    { n:"The Shadow",   e:"\u{1F977}",       body:"#23232e", trim:"#e0263b", skin:"#f2c9a0" },
+    robot:    { n:"BEEP-9",       e:"\u{1F916}",       body:"#9aa7b8", trim:"#4fc3ff", skin:"#c8d3e6" },
+    explorer: { n:"The Explorer", e:"\u{1F9ED}",       body:"#a0703a", trim:"#3ddc84", skin:"#f2c9a0" },
+    dragon:   { n:"Lil' Dragon",  e:"\u{1F409}",       body:"#2f9d57", trim:"#ffb800", skin:"#5be35b" }
+  };
+  var heroId = "knight";
+  try { var h = localStorage.getItem("mathDungeonChar"); if (h && HEROES[h]) heroId = h; } catch(e){}
+  try { var q = new URLSearchParams(location.search).get("hero"); if (q && HEROES[q]) heroId = q; } catch(e){}
+  var HERO = HEROES[heroId];
+
+  var peek = null;           // an item he tapped to try on (not bought yet)
+  var sure = null, sureT = 0; // two-tap buy: first tap asks "sure?"
+
+  function say(t){
+    var m = $("msg"); m.textContent = t; m.classList.add("show");
+    clearTimeout(say._t); say._t = setTimeout(function(){ m.classList.remove("show"); }, 2200);
+  }
+
+  /* ---------------- the preview stage ---------------- */
+  var cv = $("stage"), g = cv.getContext("2d");
+  var t0 = performance.now();
+  function look(slot){
+    if (peek && peek.slot === slot) return peek;
+    return Wallet.equipped(slot);
+  }
+  function drawHero(x, y, s, bob){
+    // body
+    g.save(); g.translate(0, bob);
+    g.fillStyle = HERO.body; g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(x - s*.32, y + s*.55); g.quadraticCurveTo(x - s*.34, y + s*.05, x, y + s*.02);
+    g.quadraticCurveTo(x + s*.34, y + s*.05, x + s*.32, y + s*.55); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = HERO.trim; g.fillRect(x - s*.3, y + s*.3, s*.6, s*.07);
+    // head
+    var hr = s*.3, hy = y - s*.25;
+    g.fillStyle = HERO.skin;
+    if (heroId === "robot"){ g.beginPath(); g.rect(x - hr, hy - hr, hr*2, hr*2); g.fill(); g.stroke();
+      g.fillStyle = HERO.trim; g.fillRect(x - hr*.55, hy - hr*.25, hr*.35, hr*.3); g.fillRect(x + hr*.2, hy - hr*.25, hr*.35, hr*.3); }
+    else { g.beginPath(); g.arc(x, hy, hr, 0, Math.PI*2); g.fill(); g.stroke();
+      if (heroId === "ninja"){ g.fillStyle = HERO.body; g.fillRect(x - hr, hy - hr*.1, hr*2, hr*.9); g.fillStyle = HERO.skin; g.fillRect(x - hr*.8, hy - hr*.35, hr*1.6, hr*.4); g.fillStyle = HERO.trim; g.fillRect(x - hr, hy - hr*.75, hr*2, hr*.22); }
+      g.fillStyle = "#1a1a1a"; g.beginPath(); g.arc(x - hr*.35, hy - hr*.15, hr*.12, 0, Math.PI*2); g.arc(x + hr*.35, hy - hr*.15, hr*.12, 0, Math.PI*2); g.fill();
+      if (heroId !== "ninja"){ g.strokeStyle = "#1a1a1a"; g.lineWidth = 3; g.beginPath(); g.arc(x, hy + hr*.2, hr*.3, .15*Math.PI, .85*Math.PI); g.stroke(); }
+      if (heroId === "dragon"){ g.fillStyle = HERO.trim; [-1,1].forEach(function(d){ g.beginPath(); g.moveTo(x + d*hr*.5, hy - hr*.8); g.lineTo(x + d*hr*.75, hy - hr*1.35); g.lineTo(x + d*hr*.9, hy - hr*.6); g.fill(); }); }
+    }
+    // hero badge
+    g.font = Math.round(s*.2) + "px 'Apple Color Emoji','Segoe UI Emoji',sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(HERO.e, x, y + s*.18);
+    // hat sits on top of the head
+    var hat = look("hat"); if (hat) Wallet.drawItem(g, hat.id, x, hy - hr*.72, s*.62);
+    g.restore();
+  }
+  function frame(now){
+    var t = (now - t0)/1000, W = cv.width, H = cv.height;
+    g.clearRect(0,0,W,H);
+    // floor
+    var grd = g.createLinearGradient(0, H*.7, 0, H); grd.addColorStop(0,"#1b2658"); grd.addColorStop(1,"#0b1233");
+    g.fillStyle = grd; g.fillRect(0, H*.78, W, H*.22);
+    g.strokeStyle = "#5b4a33"; g.lineWidth = 6; g.beginPath(); g.moveTo(0, H*.92); g.lineTo(W, H*.92); g.stroke();
+    var cx = W*.46, bob = Math.sin(t*2.2)*3;
+    // trail streams out behind (to the left)
+    var tr = look("trail");
+    if (tr){
+      for (var i = 0; i < 7; i++){
+        var ph = (t*0.9 + i/7) % 1, px = cx - 70 - ph*120, py = H*.62 - Math.sin(ph*Math.PI*2 + i)*18;
+        g.globalAlpha = 1 - ph;
+        g.font = Math.round(26 - ph*10) + "px 'Apple Color Emoji','Segoe UI Emoji',sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(tr.emoji, px, py);
+      }
+      g.globalAlpha = 1;
+    }
+    drawHero(cx, H*.42, 150, bob);
+    // cart (painted, or plain wood)
+    var cart = look("cart");
+    if (cart) Wallet.drawItem(g, cart.id, cx, H*.78, 170);
+    else { g.fillStyle = "#7a5230"; g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = 4; g.beginPath();
+      g.moveTo(cx-85, H*.78-42); g.lineTo(cx+85, H*.78-42); g.lineTo(cx+68, H*.78+42); g.lineTo(cx-68, H*.78+42); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = "#2a2a33"; [-44,44].forEach(function(p){ g.beginPath(); g.arc(cx+p, H*.78+50, 18, 0, Math.PI*2); g.fill(); }); }
+    // pet floats beside him
+    var pet = look("pet");
+    if (pet) Wallet.drawItem(g, pet.id, cx + 125, H*.3 + Math.sin(t*3)*10, 56);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function paintStage(){
+    $("who").textContent = HERO.n;
+    var parts = [];
+    Wallet.slots().forEach(function(s){ var it = Wallet.equipped(s.id); if (it) parts.push(it.emoji + " " + it.name); });
+    $("wear").textContent = parts.length ? "Wearing: " + parts.join(", ") : "Nothing on yet. Buy something!";
+    $("try").textContent = peek && !Wallet.owned(peek.id) ? "Trying on: " + peek.name : "";
+  }
+
+  /* ---------------- the shelves ---------------- */
+  function iconFor(c, it){
+    var x = c.getContext("2d"); c.width = 128; c.height = 128; x.clearRect(0,0,128,128);
+    if (it.slot === "hat") Wallet.drawItem(x, it.id, 64, 104, 96);
+    else if (it.slot === "cart") Wallet.drawItem(x, it.id, 64, 58, 100);
+    else Wallet.drawItem(x, it.id, 64, 66, 84);
+  }
+  function button(it){
+    var b = document.createElement("button"), have = Wallet.coins();
+    b.className = "act";
+    if (it.owned){
+      if (it.equipped){ b.className += " off"; b.textContent = "✔ Wearing. Take off"; }
+      else { b.className += " equip"; b.textContent = "Put it on"; }
+    } else if (have < it.price){
+      b.className += " poor"; b.textContent = "Need " + (it.price - have) + " more \u{1FA99}";
+      b.setAttribute("aria-disabled", "true");
+    } else if (sure === it.id && Date.now() < sureT){
+      b.className += " sure"; b.textContent = "Tap again to buy!";
+    } else { b.className += " buy"; b.textContent = "Buy"; }
+    b.onclick = function(ev){ ev.stopPropagation(); act(it); };
+    return b;
+  }
+  function act(it){
+    if (it.owned){
+      Wallet.equip(it.slot, it.equipped ? null : it.id);
+      say(it.equipped ? "Took off the " + it.name : "Now wearing the " + it.name + "!");
+      peek = null; return render();
+    }
+    var have = Wallet.coins();
+    if (have < it.price){
+      peek = it; render();
+      return say("You need " + (it.price - have) + " more coins. Win games to earn them!");
+    }
+    if (sure !== it.id || Date.now() >= sureT){
+      sure = it.id; sureT = Date.now() + 3000; peek = it; render();
+      setTimeout(render, 3100);
+      return;
+    }
+    var r = Wallet.buy(it.id);
+    sure = null; peek = null;
+    if (r.ok){ say("\u{1F389} You got the " + it.name + "!"); bump(); }
+    else say(r.short ? "You need " + r.short + " more coins." : "That did not work. Try again.");
+    render();
+  }
+  function bump(){ var p = $("purse"); p.classList.remove("bump"); void p.offsetWidth; p.classList.add("bump"); }
+
+  function render(){
+    $("coinNum").textContent = Wallet.coins();
+    var host = $("shelves"); host.innerHTML = "";
+    Wallet.slots().forEach(function(s){
+      var sec = document.createElement("div"); sec.className = "slot";
+      var h2 = document.createElement("h2"); h2.textContent = s.icon + " " + s.name; sec.appendChild(h2);
+      var grid = document.createElement("div"); grid.className = "items";
+      Wallet.items(s.id).forEach(function(it){
+        var card = document.createElement("div");
+        card.className = "item" + (it.equipped ? " on" : "") + (peek && peek.id === it.id ? " peek" : "");
+        card.setAttribute("data-id", it.id);
+        var c = document.createElement("canvas"); iconFor(c, it); card.appendChild(c);
+        var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = it.name; card.appendChild(nm);
+        var pr = document.createElement("div"); pr.className = it.owned ? "own" : "pr";
+        pr.textContent = it.owned ? "✔ Yours" : "\u{1FA99} " + it.price; card.appendChild(pr);
+        card.appendChild(button(it));
+        card.onclick = function(){ peek = (peek && peek.id === it.id) ? null : it; render(); };
+        grid.appendChild(card);
+      });
+      sec.appendChild(grid); host.appendChild(sec);
+    });
+    paintStage();
+  }
+  Wallet.onChange(function(){ render(); });
+  render();
+})();
+</script>
+<script src="home-button.js"></script>
+</body>
+</html>

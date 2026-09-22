@@ -182,6 +182,8 @@
 <script src="cinematics.js?v=1788985387"></script>
 <script src="math-bank.js?v=1788984054"></script>
 <script src="story-bank.js?v=1788976124"></script>
+<script src="brain.js"></script>
+<script src="wallet.js"></script>
 
 <div id="wrap">
   <canvas id="view3d" width="480" height="300"></canvas>
@@ -1090,7 +1092,7 @@ function levelCoinTopUp(){
   S.coinTopLevel=S.level;
   const need=questionsLeftInLevel()*COIN_WORST;
   if(S.coins>=need)return 0;
-  const add=need-S.coins;S.coins=need;updateHUD();
+  const add=need-S.coins;S.coins=need;if(window.Wallet)Wallet.resetSync(S.coins);updateHUD();
   return add;
 }
 function helperNumbers(){
@@ -1704,6 +1706,7 @@ function updateHUD(){
   $("shieldBox").textContent=S.shield>0?"🛡️".repeat(S.shield):"";
   $("scoreBox").textContent="SCORE "+S.score;
   $("coinBox").textContent="🪙 "+S.coins;
+  if(window.Wallet)Wallet.syncFrom(S.coins);
   $("streakBox").textContent=S.streak>=2?"🔥 STREAK ×"+S.streak:"";
   $("levelName").textContent=THEMES[S.level].name;
   const w=curWeapon(),t=curTier();
@@ -1790,7 +1793,7 @@ const GAME={
     const next=GAME.setView(S.view==="third"?"first":"third");
     toast(next==="third"?"🧍 Third person: you can see your hero":"👁️ First person: through his eyes");
   },
-  start(track){ac();droneStart();S.track=(track==="melee")?"melee":"projectile";$("titleOv").classList.add("hidden");S.level=START_LEVEL;S.score=0;S.coins=COIN_START;S.coinTopLevel=-1;S.cartsDone={};S.bonusPicking=false;S.shield=0;S.tier={projectile:0,melee:0};showIntro();},
+  start(track){ac();droneStart();S.track=(track==="melee")?"melee":"projectile";$("titleOv").classList.add("hidden");S.level=START_LEVEL;S.score=0;S.coins=window.Wallet?Math.max(Wallet.coins(),COIN_START):COIN_START;if(window.Wallet)Wallet.resetSync(S.coins);S.coinTopLevel=-1;S.cartsDone={};S.bonusPicking=false;S.shield=0;S.tier={projectile:0,melee:0};showIntro();},
   beginLevel(){$("introOv").classList.add("hidden");S.mode="play";},
   nextLevel(){
     $("clearOv").classList.add("hidden");

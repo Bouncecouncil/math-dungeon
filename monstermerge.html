@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Monster Merge</title>
+<style>
+:root{
+  --bg:#141a22; --stone:#2b3843; --stone2:#1f2a33; --chalk:#f4f1e8; --dim:#8a97a3;
+  --gold:#ffd23f; --good:#3ddc84; --bad:#ff4d5e; --blue:#4fc3ff;
+  --pad:52px;          /* arrow button size */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk);overflow:hidden;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none;
+  overscroll-behavior:none}
+button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+.accent{color:var(--gold)}
+
+#app{display:flex;flex-direction:column;height:100%;width:100%}
+
+/* ---------- HUD ---------- */
+#hud{display:flex;align-items:center;gap:10px;padding:6px 12px;font-weight:800;font-size:15px;
+  text-shadow:0 2px 4px #000;background:linear-gradient(180deg,rgba(6,10,16,.9),rgba(6,10,16,0));flex:0 0 auto;z-index:6}
+#hud .sp{flex:1;min-width:48px}
+#titleBox{color:var(--gold);letter-spacing:1px}
+#modeBox{color:var(--blue)}
+#coinBox{color:var(--gold)}
+#coinBox.spend{animation:spend .5s}
+#coinBox.earn{animation:earn .6s}
+@keyframes spend{30%{transform:scale(1.18);color:var(--bad)}}
+@keyframes earn{30%{transform:scale(1.25);color:var(--good)}}
+#bestBox{color:var(--dim)}
+#muteBtn{cursor:pointer;font-size:18px;background:none;padding:0;min-width:44px;min-height:36px}
+
+/* ---------- main area ---------- */
+#main{flex:1 1 auto;min-height:0;display:flex;align-items:stretch;justify-content:center;gap:12px;padding:4px 12px 10px}
+#side{flex:0 0 auto;width:170px;display:flex;flex-direction:column;align-items:stretch;gap:8px;justify-content:center}
+#heroRow{display:flex;align-items:flex-end;gap:6px}
+#heroCv{flex:0 0 auto;display:block;width:78px;height:86px}
+#recBox{flex:1 1 auto;min-width:0;background:#0c1117;border:2px solid #2b3843;border-radius:12px;padding:4px;text-align:center;font-size:11px;font-weight:800;color:var(--dim)}
+#recCv{display:block;width:52px;height:52px;margin:0 auto}
+#recName{color:var(--gold);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#say{min-height:34px;font-size:13px;font-weight:700;color:var(--dim);text-align:center;line-height:1.3}
+#say.good{color:var(--good)} #say.bad{color:var(--bad)} #say.hint{color:var(--blue)} #say.gold{color:var(--gold)}
+#sideBtns{display:flex;flex-direction:column;gap:8px}
+
+#boardWrap{flex:1 1 auto;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;max-width:640px}
+#board{display:block;touch-action:none;border-radius:14px;box-shadow:0 0 0 3px #313f4b,0 0 0 6px #1a232c,0 12px 26px rgba(0,0,0,.65)}
+
+#padWrap{flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+#pad{display:grid;grid-template-columns:repeat(3,var(--pad));grid-template-rows:repeat(3,var(--pad));gap:6px}
+.arrow{width:var(--pad);height:var(--pad);border-radius:12px;background:var(--blue);color:#06121b;font-size:24px;font-weight:900;
+  box-shadow:0 4px 0 #1d6f99;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.arrow:active{transform:translateY(3px);box-shadow:0 1px 0 #1d6f99}
+#padUp{grid-column:2;grid-row:1} #padLeft{grid-column:1;grid-row:2} #padRight{grid-column:3;grid-row:2} #padDown{grid-column:2;grid-row:3}
+#padMid{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.6}
+
+/* ---------- buttons ---------- */
+.btn{background:#2b3843;font-size:15px;font-weight:800;padding:10px 12px;border-radius:12px;box-shadow:0 4px 0 #111820;min-height:44px}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+.btn.blue{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
+.btn.blue:active{box-shadow:0 1px 0 #1d6f99}
+.btn.gold{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
+.btn.gold:active{box-shadow:0 1px 0 #a3830f}
+.btn.ghost{color:var(--dim);font-size:14px}
+.btn[disabled]{opacity:.45}
+
+/* ---------- overlays ---------- */
+.screen{position:fixed;inset:0;background:rgba(10,14,20,.94);display:none;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:16px;z-index:20;overflow:auto}
+.screen.on{display:flex}
+.screen.soft{background:rgba(10,14,20,.78)}
+.screen h1{font-size:clamp(26px,6vw,44px);margin:0 0 6px;color:var(--gold)}
+.screen h2{font-size:clamp(20px,4.4vw,30px);margin:0 0 4px;color:var(--gold)}
+.screen p{margin:4px 0;font-size:clamp(14px,2.6vw,18px);color:var(--dim);line-height:1.45;max-width:640px}
+.big{font-size:60px;line-height:1;margin-bottom:6px}
+.bigbtn{background:var(--blue);color:#06121b;font-size:21px;font-weight:800;padding:14px 26px;border-radius:14px;
+  margin:12px 6px 0;box-shadow:0 5px 0 #1d6f99;min-height:52px}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #1d6f99}
+.bigbtn.gold{background:var(--gold);color:#1a1405;box-shadow:0 5px 0 #a3830f}
+.bigbtn.gold:active{box-shadow:0 2px 0 #a3830f}
+.bigbtn.ghost{background:#2b3843;color:var(--chalk);box-shadow:0 5px 0 #111820}
+
+/* start screen pickers */
+.pickRow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0}
+.pick{background:#2b3843;font-size:16px;font-weight:800;padding:8px 14px;border-radius:12px;min-height:44px;min-width:44px;
+  box-shadow:0 4px 0 #111820}
+.pick.on{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
+.pickLbl{font-size:13px;font-weight:800;color:var(--dim);margin-top:4px}
+
+/* quiz card */
+#quizCard{background:#0c1117;border:3px solid #7a6526;border-radius:18px;padding:14px 18px;max-width:560px;width:100%;
+  box-shadow:0 12px 30px rgba(0,0,0,.7)}
+#quizTop{display:flex;align-items:center;justify-content:center;gap:12px}
+#quizCv{width:96px;height:96px;display:block;flex:0 0 auto}
+#quizQ{font-size:clamp(30px,7vw,46px);font-weight:900;color:var(--chalk);margin:4px 0;letter-spacing:1px}
+#quizChoices{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0}
+.choice{background:var(--blue);color:#06121b;font-size:26px;font-weight:900;min-width:84px;min-height:56px;border-radius:14px;
+  box-shadow:0 5px 0 #1d6f99;padding:6px 14px}
+.choice:active{transform:translateY(3px);box-shadow:0 2px 0 #1d6f99}
+.choice.right{background:var(--good);box-shadow:0 5px 0 #1f8a50}
+.choice.wrong{background:#6d222b;color:#fff;box-shadow:0 5px 0 #3a1015}
+.choice[disabled]{cursor:default}
+#quizFb{min-height:24px;font-size:17px;font-weight:800}
+#quizFb.good{color:var(--good)} #quizFb.show{color:var(--gold)}
+#quizGo{display:none}
+
+/* monster book */
+#bookGrid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:820px;margin:6px 0}
+.bcard{width:100px;background:#0c1117;border:2px solid #2b3843;border-radius:12px;padding:6px 4px;text-align:center}
+.bcard canvas{width:72px;height:72px;display:block;margin:0 auto}
+.bcard .bn{font-size:12px;font-weight:800;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bcard .bv{font-size:12px;font-weight:800;color:var(--chalk)}
+.bcard.lock .bn{color:var(--dim)}
+.bcard.lock{opacity:.7}
+
+/* ---------- portrait phone: board on top, controls underneath ---------- */
+@media (orientation:portrait){
+  #main{flex-direction:column;align-items:center;gap:8px;padding:4px 8px 10px}
+  #boardWrap{width:100%;flex:1 1 auto;order:0}
+  #side{order:1}
+  #padWrap{order:2}
+  #side{width:auto;max-width:100%;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:center}
+  #sideBtns{flex-direction:row;flex-wrap:wrap;justify-content:center}
+  #recBox{width:96px;flex:0 0 auto}
+  #say{width:100%;min-height:18px}
+}
+
+/* ---------- phone held sideways ---------- */
+@media (max-height:430px){
+  :root{--pad:46px}
+  #hud{font-size:12px;padding:3px 10px;gap:8px}
+  #muteBtn{font-size:15px;min-height:44px;margin:-8px 0}
+  #main{padding:2px 8px 6px;gap:10px}
+  #side{width:150px;gap:5px}
+  #heroCv{width:62px;height:70px}
+  #recCv{width:40px;height:40px}
+  #recBox{padding:3px;font-size:10px}
+  #recName{font-size:11px}
+  #say{font-size:11px;min-height:28px}
+  #sideBtns{gap:6px}
+  .btn{font-size:13px;padding:8px 10px;min-height:44px;border-radius:10px}
+  #pad{gap:5px}
+  .arrow{font-size:20px}
+  .big{font-size:38px}
+  .screen{padding:8px}
+  .screen h1{font-size:26px;margin-bottom:2px}
+  .screen h2{font-size:20px}
+  .screen p{font-size:13px;margin:2px 0}
+  .bigbtn{font-size:17px;padding:10px 18px;min-height:44px;margin-top:6px}
+  .pick{font-size:14px;padding:6px 10px}
+  .pickRow{margin:3px 0;gap:6px}
+  .pickLbl{font-size:11px;margin-top:2px}
+  #quizCard{padding:8px 14px}
+  #quizCv{width:64px;height:64px}
+  #quizQ{font-size:30px;margin:0}
+  .choice{font-size:22px;min-height:48px;min-width:72px}
+  #quizChoices{gap:8px;margin:4px 0}
+  #quizFb{font-size:14px;min-height:20px}
+  .bcard{width:88px;padding:4px 3px}
+  .bcard canvas{width:54px;height:54px}
+  #startEmoji{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="hud">
+    <span id="titleBox">👾 MONSTER MERGE</span>
+    <span id="modeBox">×2 MODE</span>
+    <span class="sp"></span>
+    <span id="coinBox">🪙 55</span>
+    <span id="scoreBox">SCORE 0</span>
+    <span id="bestBox">BEST 0</span>
+    <button id="muteBtn" title="Sound on / off" aria-label="Sound on or off">🔊</button>
+  </div>
+
+  <div id="main">
+    <div id="side">
+      <div id="heroRow">
+        <canvas id="heroCv" aria-label="your hero"></canvas>
+        <div id="recBox">BIGGEST<canvas id="recCv" aria-label="your biggest monster"></canvas><div id="recName">Slime</div></div>
+      </div>
+      <div id="say">Swipe to slide the monsters!</div>
+      <div id="sideBtns">
+        <button class="btn gold" id="undoBtn">↩︎ Undo (free)</button>
+        <button class="btn" id="bookBtn">📖 Monster Book</button>
+        <button class="btn ghost" id="newBtn">🔄 New game</button>
+      </div>
+    </div>
+
+    <div id="boardWrap"><canvas id="board" aria-label="monster board"></canvas></div>
+
+    <div id="padWrap">
+      <div id="pad">
+        <button class="arrow" id="padUp" aria-label="slide up">▲</button>
+        <button class="arrow" id="padLeft" aria-label="slide left">◀</button>
+        <span id="padMid">👾</span>
+        <button class="arrow" id="padRight" aria-label="slide right">▶</button>
+        <button class="arrow" id="padDown" aria-label="slide down">▼</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- START -->
+<div class="screen on" id="startScreen">
+  <div class="big" id="startEmoji">👾</div>
+  <h1>MONSTER MERGE</h1>
+  <p>Slide the monsters. Two monsters with the <b class="accent">same number</b> crash together and evolve into a bigger monster!</p>
+  <div class="pickLbl">HOW DO MONSTERS GROW?</div>
+  <div class="pickRow">
+    <button class="pick on" id="modeDouble">×2 Double Mode</button>
+    <button class="pick" id="modeTimes">✖ Times Table Mode</button>
+  </div>
+  <div id="tableRow">
+    <div class="pickLbl">WHICH TIMES TABLE?</div>
+    <div class="pickRow" id="tablePicks"></div>
+  </div>
+  <div class="pickRow">
+    <button class="pick on" id="size4">4 × 4 board</button>
+    <button class="pick" id="size5">5 × 5 board</button>
+  </div>
+  <p id="ruleLine"></p>
+  <div>
+    <button class="bigbtn gold" id="startBtn">Start merging</button>
+    <button class="bigbtn ghost" id="startBookBtn">📖 Book</button>
+  </div>
+</div>
+
+<!-- MATH MOMENT -->
+<div class="screen soft" id="quizScreen">
+  <div id="quizCard">
+    <div id="quizTop">
+      <canvas id="quizCv"></canvas>
+      <div>
+        <h2 id="quizTitle">NEW MONSTER!</h2>
+        <div id="quizQ">4 + 4 = ?</div>
+      </div>
+    </div>
+    <div id="quizChoices"></div>
+    <div id="quizFb"></div>
+    <button class="bigbtn" id="quizGo">Keep merging ▶</button>
+  </div>
+</div>
+
+<!-- MONSTER BOOK -->
+<div class="screen" id="bookScreen">
+  <h2>📖 MONSTER BOOK</h2>
+  <p id="bookLine"></p>
+  <div id="bookGrid"></div>
+  <button class="bigbtn" id="bookClose">Close the book</button>
+</div>
+
+<!-- GOAL / BIG WIN -->
+<div class="screen" id="winScreen">
+  <canvas id="winCv" style="width:110px;height:110px;display:block"></canvas>
+  <h1 id="winTitle">YOU DID IT!</h1>
+  <p id="winLine"></p>
+  <div>
+    <button class="bigbtn gold" id="winBtn">Keep merging</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div class="screen" id="overScreen">
+  <div class="big">💀</div>
+  <h1>NO MOVES LEFT</h1>
+  <p id="overLine"></p>
+  <div>
+    <button class="bigbtn gold" id="overUndo">↩︎ Undo</button>
+    <button class="bigbtn" id="overBtn">Play again</button>
+    <button class="bigbtn ghost" id="overBook">📖 Book</button>
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   MONSTER MERGE: a slide-and-merge room for the math dungeon.
+
+   The board holds monster LEVELS (1, 2, 3 ...). Two monsters of the same
+   level that slide into each other merge into ONE monster one level up.
+   What number a level shows depends on the mode:
+
+     DOUBLE MODE  level L shows 2^L        2, 4, 8, 16 ... 2048
+                  (two 8s make 16: the new number is double)
+     TIMES MODE   level L shows L x T      for the 3s: 3, 6, 9, 12 ...
+                  (two 6s make 9: the new number is one more step up the
+                  times table, i.e. "add the table number")
+
+   Keeping levels underneath means both modes run the exact same 2048
+   rules; only the label and the math question change.
+
+   The math moment: each time he makes a NEW biggest monster (this game)
+   a quick question pops. Right = bonus, wrong = we show the answer.
+   ===================================================================== */
+
+/* ---------- embed contract (copied from runedoor.html) ---------- */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get("embed") === "1";
+const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
+
+const START_COINS = 55, UNDO_COST = 5, QUIZ_COINS = 3;
+const RECORD_SFX = ["12-sheesh","09-anime-woah","29-ohhhhh","13-got-em"];
+const MAX_LEVEL = 17;             // 2^17 = 131072: a full 4x4 board can never pass it
+
+/* ?hero=knight|wizard|ninja|robot|explorer|dragon  (default knight). */
+const HERO_IDS = ["knight","wizard","ninja","robot","explorer","dragon"];
+const HERO_ALIAS = {mage:"wizard", shadow:"ninja", bot:"robot", beep9:"robot", "lil'dragon":"dragon"};
+const HERO = (function(){
+  let h = String(QS.get("hero") || "").toLowerCase().trim().replace(/\s+/g,"");
+  if (HERO_ALIAS[h]) h = HERO_ALIAS[h];
+  return HERO_IDS.indexOf(h) >= 0 ? h : "knight";
+})();
+
+/* ?goal=N -> embed `solved` fires when he makes the monster whose DOUBLE
+   MODE number is N (default 64 = the Ghost, level 6). Times mode uses the
+   same monster, so the goal is the same amount of merging in either mode. */
+const GOAL_LEVEL = (function(){
+  const n = parseInt(QS.get("goal"), 10);
+  if (!isFinite(n) || n < 4) return 6;
+  const L = Math.round(Math.log(n) / Math.LN2);
+  return Math.max(2, Math.min(L, 13));
+})();
+
+/* ---------- the monsters ---------- */
+const MONSTERS = [
+  null,
+  { name:"Slime",        tile:["#2f5a36","#1d3a23"] },
+  { name:"Bat",          tile:["#443261","#2a1e3d"] },
+  { name:"Spider",       tile:["#4a2b2b","#2c1818"] },
+  { name:"Goblin",       tile:["#36552c","#20351a"] },
+  { name:"Skeleton",     tile:["#4a4a58","#2c2c36"] },
+  { name:"Ghost",        tile:["#2d4a62","#1a2c3c"] },
+  { name:"Golem",        tile:["#51493c","#312b22"] },
+  { name:"Minotaur",     tile:["#643c22","#3d2412"] },
+  { name:"Wyvern",       tile:["#1f5552","#113331"] },
+  { name:"Dragon",       tile:["#6a1f1c","#3f100e"] },
+  { name:"Dragon King",  tile:["#7a5a10","#473306"] },
+  { name:"Star Dragon",  tile:["#2e2270","#191242"] },
+  { name:"Legend",       tile:["#8a6a0a","#4f3c04"] }
+];
+const BOOK_SIZE = 13;
+function monsterOf(L){ return MONSTERS[Math.max(1, Math.min(L, MONSTERS.length - 1))]; }
+function monsterName(L){
+  if (L < MONSTERS.length) return monsterOf(L).name;
+  return "Legend +" + (L - MONSTERS.length + 1);
+}
+
+/* ---------- storage (every call guarded) ---------- */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem(k, String(v)); } catch (e) { /* private mode: play without saving */ } }
+};
+function readJSON(k, d){ try { const v = JSON.parse(store.get(k, "null")); return (v && typeof v === "object") ? v : d; } catch (e) { return d; } }
+
+/* ---------- sound ---------- */
+const Snd = (function(){
+  let on = true;
+  try { on = localStorage.getItem("mm_mute") !== "1"; } catch (e) { on = true; }
+  if (QS.get("mute") === "1") on = false;
+  const cache = {};
+  let ctx = null;
+  function file(name, vol){
+    if (!on || !name) return;
+    try {
+      const a = cache[name] || (cache[name] = new Audio("sfx/" + name + ".mp3"));
+      a.currentTime = 0;
+      a.volume = (typeof vol === "number" && vol >= 0 && vol <= 1) ? vol : 0.7;
+      const p = a.play();
+      if (p && typeof p.catch === "function") p.catch(function(){ /* autoplay blocked */ });
+    } catch (e) { /* never let audio break the game */ }
+  }
+  function unlock(){
+    if (ctx) { try { if (ctx.state === "suspended") ctx.resume(); } catch (e) {} return; }
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) ctx = new AC();
+    } catch (e) { ctx = null; }
+  }
+  /* a soft synthesised "pop": higher monsters pop a little higher */
+  function pop(level, delay){
+    if (!on) return;
+    try {
+      if (!ctx) unlock();
+      if (!ctx) return;
+      const t0 = ctx.currentTime + (delay || 0);
+      const o = ctx.createOscillator(), gn = ctx.createGain();
+      const f = 260 + Math.min(level, 14) * 55;
+      o.type = "sine";
+      o.frequency.setValueAtTime(f * 1.6, t0);
+      o.frequency.exponentialRampToValueAtTime(f, t0 + 0.09);
+      gn.gain.setValueAtTime(0.0001, t0);
+      gn.gain.exponentialRampToValueAtTime(0.16, t0 + 0.012);
+      gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+      o.connect(gn); gn.connect(ctx.destination);
+      o.start(t0); o.stop(t0 + 0.18);
+    } catch (e) { /* never let audio break the game */ }
+  }
+  function set(v){
+    on = !!v;
+    try { localStorage.setItem("mm_mute", on ? "0" : "1"); } catch (e) { /* private mode */ }
+    if (!on){
+      Object.keys(cache).forEach(k => { try { cache[k].pause(); } catch (e) {} });
+    }
+    return on;
+  }
+  return { file: file, pop: pop, unlock: unlock, set: set, toggle: function(){ return set(!on); }, isOn: function(){ return on; } };
+})();
+
+/* ---------- dom ---------- */
+const $ = id => document.getElementById(id);
+const boardCv = $("board");
+
+/* ---------- prefs (last mode / table / size) ---------- */
+const PREFS = readJSON("mm_prefs", {});
+function pickMode(){
+  const q = String(QS.get("mode") || "").toLowerCase();
+  if (q === "times" || q === "double") return q;
+  return PREFS.mode === "times" ? "times" : "double";
+}
+function pickTable(){
+  const n = parseInt(QS.get("table"), 10);
+  if (isFinite(n) && n >= 2 && n <= 12) return n;
+  const p = parseInt(PREFS.table, 10);
+  return (isFinite(p) && p >= 2 && p <= 12) ? p : 3;
+}
+function pickSize(){
+  const n = parseInt(QS.get("size"), 10);
+  if (n === 4 || n === 5) return n;
+  return PREFS.size === 5 ? 5 : 4;
+}
+
+/* ---------- state ---------- */
+const S = {
+  mode: pickMode(),     // "double" | "times"
+  table: pickTable(),   // times mode table number
+  N: pickSize(),        // board is N x N
+  grid: [],             // grid[r][c] = level, 0 = empty
+  score: 0,
+  coins: START_COINS,   // used when there is no shared Wallet (or in embed)
+  record: 0,            // biggest level made THIS game
+  undos: 1,             // free undos left this game
+  undoSnap: null,       // {grid, score, record} from just before the last move
+  running: false,
+  over: false,
+  quiz: null,           // the open math moment, or null
+  posted: false,        // `solved` already sent to the parent
+  wonBig: false,        // standalone Dragon King celebration shown this game
+  anim: null,           // current slide/merge animation
+  cheerUntil: 0,
+  moves: 0,
+  quizRight: 0,
+  quizAsked: 0
+};
+
+/* ---------- coins: shared Wallet when standalone, dungeon purse when embedded ---------- */
+function hasWallet(){
+  return !EMBED && typeof window.Wallet === "object" && window.Wallet !== null &&
+         typeof window.Wallet.coins === "function" && typeof window.Wallet.add === "function" &&
+         typeof window.Wallet.spend === "function";
+}
+function coins(){
+  if (hasWallet()){ try { const c = window.Wallet.coins(); if (isFinite(c)) return c; } catch (e) {} }
+  return S.coins;
+}
+function earn(n){
+  n = Math.max(0, n | 0); if (!n) return;
+  if (hasWallet()){ try { window.Wallet.add(n, "Monster Merge math"); } catch (e) { S.coins += n; } }
+  else S.coins += n;
+  flashCoins("earn");
+}
+function spend(n){
+  // never blocks, never goes below 0
+  const real = Math.min(coins(), Math.max(0, n | 0));
+  if (hasWallet()){ try { window.Wallet.spend(real, "Monster Merge undo"); } catch (e) { S.coins = Math.max(0, S.coins - real); } }
+  else S.coins = Math.max(0, S.coins - real);
+  if (EMBED) toGame({ type:"spend", n: real });
+  flashCoins("spend");
+  return real;
+}
+function flashCoins(cls){
+  hud();
+  const b = $("coinBox"); b.classList.remove("spend", "earn"); void b.offsetWidth; b.classList.add(cls);
+}
+
+/* ---------- numbers ---------- */
+function valueOf(L){
+  if (!L) return 0;
+  return S.mode === "times" ? L * S.table : Math.pow(2, L);
+}
+function levelOfValue(v){
+  v = Number(v);
+  if (!v) return 0;
+  if (!isFinite(v) || v < 0) throw new Error("bad monster number " + v);
+  if (S.mode === "times"){
+    if (v % S.table !== 0) throw new Error(v + " is not in the " + S.table + "s table");
+    return v / S.table;
+  }
+  const L = Math.round(Math.log(v) / Math.LN2);
+  if (Math.pow(2, L) !== v || L < 1) throw new Error(v + " is not a doubling number");
+  return L;
+}
+
+/* ---------- best scores + monster book ---------- */
+function bestKey(){ return S.mode === "times" ? ("t" + S.table + "_" + S.N) : ("d_" + S.N); }
+function bestScore(){ const b = readJSON("mm_best", {}); const v = parseInt(b[bestKey()], 10); return isFinite(v) ? v : 0; }
+function saveBest(){
+  const b = readJSON("mm_best", {});
+  const k = bestKey();
+  if (!(parseInt(b[k], 10) >= S.score)){ b[k] = S.score; store.set("mm_best", JSON.stringify(b)); }
+}
+function bookMax(){ const v = parseInt(store.get("mm_book", "0"), 10); return isFinite(v) ? v : 0; }
+function unlockBook(L){
+  if (L > bookMax()) store.set("mm_book", Math.min(L, 99));
+}
+
+/* =====================================================================
+   THE RULES (pure functions, exposed on window.MERGE for tests)
+   ===================================================================== */
+
+/* one line of levels, index 0 is the wall they slide toward.
+   Classic 2048: a tile merges at most once per move, and the pair
+   closest to the wall merges first. */
+function slideLine(line){
+  const out = new Array(line.length).fill(0);
+  const map = [];      // {from, to, merged}
+  const merges = [];   // {to, level}
+  const idx = [];
+  for (let i = 0; i < line.length; i++) if (line[i] > 0) idx.push(i);
+  let w = 0, j = 0;
+  while (j < idx.length){
+    const a = idx[j];
+    if (j + 1 < idx.length && line[idx[j+1]] === line[a] && line[a] < MAX_LEVEL){
+      const nl = line[a] + 1;
+      out[w] = nl;
+      map.push({ from:a, to:w, merged:true }, { from:idx[j+1], to:w, merged:true });
+      merges.push({ to:w, level:nl });
+      j += 2;
+    } else {
+      out[w] = line[a];
+      map.push({ from:a, to:w, merged:false });
+      j += 1;
+    }
+    w++;
+  }
+  return { out: out, map: map, merges: merges };
+}
+
+/* the cells of line i, starting at the wall the monsters slide toward */
+function lineCells(dir, i, N){
+  const cells = [];
+  for (let k = 0; k < N; k++){
+    if (dir === "left")  cells.push([i, k]);
+    if (dir === "right") cells.push([i, N-1-k]);
+    if (dir === "up")    cells.push([k, i]);
+    if (dir === "down")  cells.push([N-1-k, i]);
+  }
+  return cells;
+}
+
+/* slide a whole grid; returns the new grid plus what moved (no spawn) */
+function slideGrid(grid, dir){
+  const N = grid.length;
+  const next = grid.map(r => r.map(() => 0));
+  const moves = [], merges = [];
+  let moved = false;
+  for (let i = 0; i < N; i++){
+    const cells = lineCells(dir, i, N);
+    const line = cells.map(([r, c]) => grid[r][c]);
+    const res = slideLine(line);
+    res.out.forEach((v, k) => { const [r, c] = cells[k]; next[r][c] = v; });
+    res.map.forEach(m => {
+      const [fr, fc] = cells[m.from], [tr, tc] = cells[m.to];
+      if (fr !== tr || fc !== tc) moved = true;
+      moves.push({ fr:fr, fc:fc, tr:tr, tc:tc, level: line[m.from], merged: m.merged });
+    });
+    res.merges.forEach(m => { const [r, c] = cells[m.to]; merges.push({ r:r, c:c, level:m.level }); });
+  }
+  if (merges.length) moved = true;
+  return { grid: next, moved: moved, moves: moves, merges: merges };
+}
+
+/* any move left? an empty cell, or two equal neighbours */
+function canMove(grid){
+  const N = grid.length;
+  for (let r = 0; r < N; r++){
+    for (let c = 0; c < N; c++){
+      const v = grid[r][c];
+      if (!v) return true;
+      if (c + 1 < N && grid[r][c+1] === v && v < MAX_LEVEL) return true;
+      if (r + 1 < N && grid[r+1][c] === v && v < MAX_LEVEL) return true;
+    }
+  }
+  return false;
+}
+
+function emptyGrid(N){ const g = []; for (let r = 0; r < N; r++){ g.push(new Array(N).fill(0)); } return g; }
+function copyGrid(g){ return g.map(r => r.slice()); }
+function maxLevel(g){ let m = 0; g.forEach(r => r.forEach(v => { if (v > m) m = v; })); return m; }
+
+function spawn(){
+  const empty = [];
+  for (let r = 0; r < S.N; r++) for (let c = 0; c < S.N; c++) if (!S.grid[r][c]) empty.push([r, c]);
+  if (!empty.length) return null;
+  const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+  const L = Math.random() < 0.9 ? 1 : 2;
+  S.grid[r][c] = L;
+  unlockBook(L);
+  return { r:r, c:c, level:L };
+}
+
+/* =====================================================================
+   A MOVE
+   ===================================================================== */
+const SLIDE_MS = 115, POP_MS = 170;
+
+function move(dir, opts){
+  opts = opts || {};
+  if (["left","right","up","down"].indexOf(dir) < 0) return { moved:false, reason:"bad direction" };
+  if (!S.running) return { moved:false, reason:"not running" };
+  if (S.quiz) return { moved:false, reason:"math moment open" };
+  if (S.over) return { moved:false, reason:"game over" };
+  if (anyScreenOn()) return { moved:false, reason:"screen open" };
+
+  const res = slideGrid(S.grid, dir);
+  if (!res.moved){ nudge(dir); return { moved:false, reason:"nothing can slide that way" }; }
+
+  S.undoSnap = { grid: copyGrid(S.grid), score: S.score, record: S.record };
+  S.grid = res.grid;
+  S.moves++;
+  const slid = values();
+
+  let gained = 0, topMerge = 0;
+  res.merges.forEach(m => {
+    gained += valueOf(m.level);
+    if (m.level > topMerge) topMerge = m.level;
+    unlockBook(m.level);
+  });
+  S.score += gained;
+
+  const sp = opts.spawn === false ? null : spawn();
+
+  S.anim = { t0: performance.now(), moves: res.moves, pops: res.merges.map(m => ({ r:m.r, c:m.c })),
+             spawn: sp ? { r:sp.r, c:sp.c } : null };
+
+  // sounds: one soft pop per merge, stepped so a triple merge sounds like one
+  res.merges.slice(0, 4).forEach((m, i) => Snd.pop(m.level, SLIDE_MS/1000 + i * 0.05));
+
+  let quizOpened = false;
+  if (topMerge > S.record){
+    S.record = topMerge;
+    const minQuiz = S.mode === "times" ? 2 : 3;
+    Snd.file(RECORD_SFX[Math.floor(Math.random() * RECORD_SFX.length)], 0.7);
+    cheer(1600);
+    if (topMerge >= minQuiz && opts.quiz !== false){
+      openQuiz(topMerge);
+      quizOpened = true;
+    } else {
+      say("New monster: <b>" + monsterName(topMerge) + "</b>!", "gold");
+    }
+  } else if (topMerge >= 6){
+    Snd.file("62-toasty", 0.6);
+    cheer(1000);
+    say("BIG merge! <b>" + monsterName(topMerge) + "</b>", "gold");
+  } else if (res.merges.length >= 3){
+    say("Combo! " + res.merges.length + " merges at once", "good");
+  } else if (res.merges.length){
+    say("", "");
+  }
+  if (sp && sp.level > S.record) S.record = sp.level;
+
+  saveBest();
+  hud();
+  if (!quizOpened) afterTurn();
+  return { moved:true, merges: res.merges.map(m => ({ r:m.r, c:m.c, value: valueOf(m.level) })),
+           slid: slid, board: values(), spawned: sp, gained: gained };
+}
+
+/* after the move (and after any math moment): goal, big win, game over */
+function afterTurn(){
+  if (EMBED && !S.posted && S.record >= GOAL_LEVEL){
+    showWin(S.record, true);
+    return;
+  }
+  if (!EMBED && !S.wonBig && S.record >= 11){
+    S.wonBig = true;
+    showWin(S.record, false);
+    return;
+  }
+  checkGameOver();
+}
+
+function checkGameOver(){
+  if (!S.running) return false;
+  if (canMove(S.grid)) return false;
+  S.over = true;
+  saveBest();
+  Snd.file("52-mission-failed", 0.7);
+  $("overLine").innerHTML = "The board is full and no two neighbours match.<br>Biggest monster: <b style='color:#ffd23f'>" +
+    monsterName(S.record) + " (" + valueOf(S.record) + ")</b><br><b>SCORE " + S.score + "</b> · BEST " + bestScore();
+  $("overBtn").textContent = EMBED ? "⚔️ Back to the dungeon" : "Play again";
+  updateUndo();
+  setTimeout(() => { if (S.over) $("overScreen").classList.add("on"); }, 450);
+  return true;
+}
+
+/* ---------- undo: 1 free per game, then 🪙5 each ---------- */
+function undo(){
+  if (!S.running || S.quiz) return { ok:false, reason:"not now" };
+  if (!S.undoSnap){ say("Nothing to undo yet. Make a move first.", "hint"); return { ok:false, reason:"nothing to undo" }; }
+  if (S.undos > 0){
+    S.undos--;
+  } else {
+    if (coins() < UNDO_COST){ say("An undo costs 🪙" + UNDO_COST + ". Answer math questions to earn coins!", "bad"); return { ok:false, reason:"not enough coins" }; }
+    spend(UNDO_COST);
+  }
+  S.grid = S.undoSnap.grid;
+  S.score = S.undoSnap.score;
+  S.record = Math.max(S.undoSnap.record, maxLevel(S.grid));
+  S.undoSnap = null;
+  S.anim = null;
+  S.over = false;
+  $("overScreen").classList.remove("on");
+  say("↩︎ Went back one move.", "hint");
+  hud();
+  return { ok:true };
+}
+function updateUndo(){
+  const lbl = S.undos > 0 ? "↩︎ Undo (free)" : "↩︎ Undo (🪙" + UNDO_COST + ")";
+  $("undoBtn").textContent = lbl;
+  $("overUndo").textContent = lbl;
+  $("undoBtn").disabled = !S.undoSnap;
+  $("overUndo").style.display = S.undoSnap ? "" : "none";
+}
+
+/* =====================================================================
+   THE MATH MOMENT
+   ===================================================================== */
+function makeQuestion(L){
+  const v = valueOf(L), prev = valueOf(L - 1);
+  let q, why, step;
+  if (S.mode === "times"){
+    q = L + " × " + S.table + " = ?";
+    why = "Two " + prev + "s climbed one step up the " + S.table + "s table: " + prev + " + " + S.table + " = " + v +
+          ", and that is " + L + " × " + S.table + ".";
+    step = S.table;
+  } else if (L <= 3){
+    q = prev + " + " + prev + " = ?";
+    why = "Two " + prev + "s make " + v + ": " + prev + " + " + prev + " = " + v + ".";
+    step = 2;
+  } else {
+    q = prev + " × 2 = ?";
+    why = "Two " + prev + "s make double: " + prev + " × 2 = " + v + ".";
+    step = Math.max(2, prev / 2);
+  }
+  const cand = [v + step, v - step, v + 2*step, v - 2*step, v + 1, v - 1, v + 10, v - 10, v + 3*step];
+  const wrong = [];
+  cand.forEach(x => { if (x > 0 && x !== v && wrong.indexOf(x) < 0 && wrong.length < 3) wrong.push(x); });
+  const choices = shuffle([v].concat(wrong));
+  return { level:L, q:q, answer:v, choices:choices, why:why, done:false };
+}
+function shuffle(a){ for (let i = a.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+function openQuiz(L){
+  S.quiz = makeQuestion(L);
+  S.quizAsked++;
+  $("quizTitle").textContent = "NEW MONSTER: " + monsterName(L).toUpperCase() + "!";
+  $("quizQ").textContent = S.quiz.q;
+  $("quizFb").textContent = ""; $("quizFb").className = "";
+  $("quizGo").style.display = "none";
+  const box = $("quizChoices"); box.innerHTML = "";
+  S.quiz.choices.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.className = "choice"; b.textContent = c; b.dataset.v = c;
+    b.setAttribute("aria-label", "answer " + c + " (key " + (i+1) + ")");
+    b.onclick = () => answerQuiz(c);
+    box.appendChild(b);
+  });
+  $("quizScreen").classList.add("on");
+  requestAnimationFrame(() => { if (S.quiz) drawBadge($("quizCv"), S.quiz.level); });
+}
+
+function answerQuiz(v){
+  const Q = S.quiz;
+  if (!Q || Q.done) return null;
+  Q.done = true;
+  const right = Number(v) === Q.answer;
+  Array.prototype.forEach.call($("quizChoices").children, b => {
+    b.disabled = true;
+    const bv = Number(b.dataset.v);
+    if (bv === Q.answer) b.classList.add("right");
+    else if (bv === Number(v)) b.classList.add("wrong");
+  });
+  const fb = $("quizFb");
+  if (right){
+    S.quizRight++;
+    const bonus = 10 * Q.level;
+    S.score += bonus;
+    let line = "✔ Yes! " + Q.answer + ". +" + bonus + " points";
+    if (!EMBED){ earn(QUIZ_COINS); line += " and 🪙" + QUIZ_COINS; }
+    fb.textContent = line; fb.className = "good";
+    cheer(1500);
+    saveBest(); hud();
+    Q.timer = setTimeout(closeQuiz, 1500);
+  } else {
+    fb.innerHTML = "It is <b>" + Q.answer + "</b>. " + Q.why;
+    fb.className = "show";
+  }
+  $("quizGo").style.display = "inline-block";
+  return right;
+}
+
+function closeQuiz(){
+  const Q = S.quiz;
+  if (!Q) return;
+  if (Q.timer) clearTimeout(Q.timer);
+  S.quiz = null;
+  $("quizScreen").classList.remove("on");
+  say("Your biggest: <b>" + monsterName(S.record) + "</b>", "gold");
+  afterTurn();
+}
+
+/* ---------- goal / big win ---------- */
+function showWin(L, isGoal){
+  $("winTitle").textContent = isGoal ? "YOU MADE A " + monsterName(L).toUpperCase() + "!" : "THE " + monsterName(L).toUpperCase() + " RISES!";
+  $("winLine").innerHTML = isGoal
+    ? "That was the monster you came for. <b>SCORE " + S.score + "</b>"
+    : "You evolved all the way to the <b>" + monsterName(L) + " (" + valueOf(L) + ")</b>! Keep going for an even bigger one.";
+  $("winBtn").textContent = isGoal ? "⚔️ Back to the dungeon" : "Keep merging";
+  drawBadge($("winCv"), L);
+  $("winScreen").classList.add("on");
+  cheer(2500);
+  if (isGoal) setTimeout(postSolved, 2200);
+}
+function postSolved(){
+  if (!EMBED || S.posted) return;
+  S.posted = true;
+  toGame({ type:"solved", score: S.score, monster: valueOf(S.record), level: S.record });
+}
+
+/* ---------- messages / hud ---------- */
+function say(t, cls){ const m = $("say"); m.innerHTML = t; m.className = cls || ""; }
+function hud(){
+  $("coinBox").textContent = "🪙 " + coins();
+  $("scoreBox").textContent = "SCORE " + S.score;
+  $("bestBox").textContent = "BEST " + Math.max(bestScore(), S.score);
+  $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
+  $("modeBox").textContent = S.mode === "times" ? (S.table + "s TABLE") : "×2 MODE";
+  const L = Math.max(1, S.record || 1);
+  $("recName").textContent = monsterName(L) + " " + valueOf(L);
+  drawBadge($("recCv"), L);
+  updateUndo();
+}
+function cheer(ms){ S.cheerUntil = Math.max(S.cheerUntil, performance.now() + ms); }
+let nudgeInfo = null;
+function nudge(dir){ nudgeInfo = { dir:dir, t0: performance.now() }; }
+function anyScreenOn(){
+  return ["startScreen","bookScreen","winScreen","overScreen","quizScreen"].some(id => $(id).classList.contains("on"));
+}
+function values(){ return S.grid.map(r => r.map(valueOf)); }
+
+/* =====================================================================
+   DRAWING: monsters, tiles, board
+   ===================================================================== */
+function rr(g, x, y, w, h, r){
+  r = Math.min(r, w/2, h/2);
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+  g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r);
+  g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y);
+  g.closePath();
+}
+function circle(g, x, y, r){ g.beginPath(); g.arc(x, y, Math.max(0.1, r), 0, Math.PI*2); g.fill(); }
+function oval(g, x, y, rx, ry, rot){ g.beginPath(); g.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot || 0, 0, Math.PI*2); g.fill(); }
+function tri(g, a, b, c){ g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(c[0], c[1]); g.closePath(); g.fill(); }
+function eyePair(g, x, y, dx, r, white, pupil, pr){
+  [-1, 1].forEach(s => {
+    g.fillStyle = white; circle(g, x + s*dx, y, r);
+    g.fillStyle = pupil; circle(g, x + s*dx, y + r*0.15, pr || r*0.5);
+  });
+}
+
+/* the dragon family shares one head; the palette + extras change */
+const DRAGONS = {
+  9:  { body:"#2bb5a0", dark:"#17685c", snout:"#9ae6d0", horn:"#e8e0c0", eye:"#ffd23f" },
+  10: { body:"#d9412f", dark:"#7a1c14", snout:"#ffb36b", horn:"#f5e6c0", eye:"#ffd23f", smoke:true },
+  11: { body:"#b3122f", dark:"#5a0716", snout:"#ffcf7a", horn:"#fff1c8", eye:"#ffd23f", crown:true, smoke:true },
+  12: { body:"#3b2a8f", dark:"#1b1150", snout:"#b9a8ff", horn:"#ffd23f", eye:"#4ff0ff", crown:true, stars:true },
+  13: { body:"#e0b020", dark:"#7a5a06", snout:"#fff2b0", horn:"#ffffff", eye:"#ff4d5e", crown:true, stars:true, aura:true }
+};
+
+function drawDragon(g, x, y, u, t, P){
+  if (P.aura){
+    const k = 0.5 + 0.5*Math.sin(t/300);
+    g.save();
+    g.globalAlpha = 0.35 + 0.25*k;
+    const grd = g.createRadialGradient(x, y, u*0.3, x, y, u*1.05);
+    grd.addColorStop(0, "rgba(255,210,63,0)");
+    grd.addColorStop(0.6, "rgba(255,120,200,.7)");
+    grd.addColorStop(1, "rgba(79,195,255,0)");
+    g.fillStyle = grd; circle(g, x, y, u*1.05);
+    g.restore();
+  }
+  const flap = Math.sin(t/170) * u * 0.10;
+  g.fillStyle = P.dark;
+  [-1, 1].forEach(s => {
+    g.beginPath();
+    g.moveTo(x + s*u*0.30, y - u*0.12);
+    g.lineTo(x + s*u*1.00, y - u*0.78 - flap);
+    g.lineTo(x + s*u*0.96, y - u*0.06 - flap*0.5);
+    g.lineTo(x + s*u*0.78, y - u*0.24);
+    g.lineTo(x + s*u*0.68, y + u*0.20);
+    g.lineTo(x + s*u*0.40, y + u*0.08);
+    g.closePath(); g.fill();
+  });
+  // horns
+  g.fillStyle = P.horn;
+  [-1, 1].forEach(s => tri(g, [x + s*u*0.18, y - u*0.46], [x + s*u*0.50, y - u*0.92], [x + s*u*0.40, y - u*0.36]));
+  // head + spikes
+  g.fillStyle = P.body; oval(g, x, y - u*0.08, u*0.52, u*0.50);
+  g.fillStyle = P.dark;
+  [-0.16, 0, 0.16].forEach(dx => tri(g, [x + dx*u - u*0.07, y - u*0.52], [x + dx*u, y - u*0.72], [x + dx*u + u*0.07, y - u*0.52]));
+  // snout
+  g.fillStyle = P.snout; oval(g, x, y + u*0.28, u*0.38, u*0.28);
+  g.fillStyle = P.dark; circle(g, x - u*0.12, y + u*0.22, u*0.05); circle(g, x + u*0.12, y + u*0.22, u*0.05);
+  g.strokeStyle = P.dark; g.lineWidth = Math.max(1, u*0.05);
+  g.beginPath(); g.moveTo(x - u*0.22, y + u*0.40); g.quadraticCurveTo(x, y + u*0.50, x + u*0.22, y + u*0.40); g.stroke();
+  // eyes: slit pupils + angry brows
+  [-1, 1].forEach(s => {
+    g.fillStyle = P.eye; oval(g, x + s*u*0.22, y - u*0.16, u*0.13, u*0.10);
+    g.fillStyle = "#141a22"; oval(g, x + s*u*0.22, y - u*0.16, u*0.03, u*0.09);
+    g.strokeStyle = P.dark; g.lineWidth = Math.max(1, u*0.06);
+    g.beginPath(); g.moveTo(x + s*u*0.08, y - u*0.24); g.lineTo(x + s*u*0.36, y - u*0.32); g.stroke();
+  });
+  if (P.smoke){
+    for (let i = 0; i < 2; i++){
+      const k = ((t/900) + i*0.5) % 1;
+      g.fillStyle = "rgba(200,200,210," + (0.55*(1-k)).toFixed(3) + ")";
+      circle(g, x + (i ? 1 : -1)*u*(0.14 + k*0.2), y + u*0.16 - k*u*0.5, u*(0.05 + k*0.09));
+    }
+  }
+  if (P.crown){
+    g.fillStyle = "#ffd23f";
+    g.beginPath();
+    g.moveTo(x - u*0.28, y - u*0.50);
+    g.lineTo(x - u*0.30, y - u*0.84);
+    g.lineTo(x - u*0.14, y - u*0.66);
+    g.lineTo(x,          y - u*0.96);
+    g.lineTo(x + u*0.14, y - u*0.66);
+    g.lineTo(x + u*0.30, y - u*0.84);
+    g.lineTo(x + u*0.28, y - u*0.50);
+    g.closePath(); g.fill();
+    g.fillStyle = "#ff4d5e"; circle(g, x, y - u*0.60, u*0.06);
+    g.fillStyle = "#4fc3ff"; circle(g, x - u*0.18, y - u*0.58, u*0.04); circle(g, x + u*0.18, y - u*0.58, u*0.04);
+  }
+  if (P.stars){
+    for (let i = 0; i < 4; i++){
+      const a = t/700 + i * Math.PI/2;
+      const sx = x + Math.cos(a)*u*0.86, sy = y + Math.sin(a)*u*0.62;
+      g.fillStyle = i % 2 ? "#ffd23f" : "#ffffff";
+      star(g, sx, sy, u*0.09);
+    }
+  }
+}
+function star(g, x, y, r){
+  g.beginPath();
+  for (let i = 0; i < 10; i++){
+    const a = -Math.PI/2 + i*Math.PI/5, rad = i % 2 ? r*0.45 : r;
+    const px = x + Math.cos(a)*rad, py = y + Math.sin(a)*rad;
+    if (i) g.lineTo(px, py); else g.moveTo(px, py);
+  }
+  g.closePath(); g.fill();
+}
+
+/* x,y = centre, u = half-size of the monster's box */
+function drawMonster(g, x, y, u, L, t){
+  const bob = Math.sin(t/380 + L*1.7) * u * 0.05;
+  y += bob;
+  g.save();
+  g.lineCap = "round"; g.lineJoin = "round";
+  switch (Math.min(L, 13)){
+    case 1: { // SLIME
+      const sq = 1 + Math.sin(t/260) * 0.05;
+      g.fillStyle = "#5fd35f";
+      g.beginPath();
+      g.moveTo(x - u*0.95, y + u*0.7);
+      g.bezierCurveTo(x - u*1.0, y - u*0.2*sq, x - u*0.5, y - u*0.95*sq, x, y - u*0.9*sq);
+      g.bezierCurveTo(x + u*0.5, y - u*0.95*sq, x + u*1.0, y - u*0.2*sq, x + u*0.95, y + u*0.7);
+      g.closePath(); g.fill();
+      g.fillStyle = "#3a9e44"; oval(g, x, y + u*0.66, u*0.92, u*0.12);
+      g.fillStyle = "rgba(255,255,255,.35)"; oval(g, x - u*0.42, y - u*0.45, u*0.18, u*0.10, -0.5);
+      eyePair(g, x, y - u*0.08, u*0.30, u*0.20, "#ffffff", "#141a22", u*0.10);
+      g.strokeStyle = "#1d5a24"; g.lineWidth = Math.max(1, u*0.08);
+      g.beginPath(); g.arc(x, y + u*0.18, u*0.25, 0.15*Math.PI, 0.85*Math.PI); g.stroke();
+      break;
+    }
+    case 2: { // BAT
+      const fl = Math.sin(t/140) * u * 0.14;
+      g.fillStyle = "#4a2f6b";
+      [-1, 1].forEach(s => {
+        g.beginPath();
+        g.moveTo(x + s*u*0.30, y - u*0.25);
+        g.lineTo(x + s*u*1.02, y - u*0.55 - fl);
+        g.lineTo(x + s*u*0.92, y + u*0.05 - fl*0.5);
+        g.lineTo(x + s*u*0.72, y - u*0.08);
+        g.lineTo(x + s*u*0.56, y + u*0.26);
+        g.lineTo(x + s*u*0.34, y + u*0.10);
+        g.closePath(); g.fill();
+      });
+      g.fillStyle = "#6a45a0"; circle(g, x, y, u*0.46);
+      [-1, 1].forEach(s => tri(g, [x + s*u*0.14, y - u*0.34], [x + s*u*0.34, y - u*0.80], [x + s*u*0.40, y - u*0.22]));
+      eyePair(g, x, y - u*0.08, u*0.17, u*0.12, "#ffd23f", "#141a22", u*0.05);
+      g.fillStyle = "#ffffff";
+      [-1, 1].forEach(s => tri(g, [x + s*u*0.14, y + u*0.14], [x + s*u*0.04, y + u*0.14], [x + s*u*0.09, y + u*0.30]));
+      break;
+    }
+    case 3: { // SPIDER
+      g.strokeStyle = "#1b1b24"; g.lineWidth = Math.max(1.2, u*0.09);
+      [-1, 1].forEach(s => {
+        for (let k = 0; k < 4; k++){
+          const wig = Math.sin(t/180 + k + (s > 0 ? 1 : 0)) * u * 0.05;
+          g.beginPath();
+          g.moveTo(x, y);
+          g.lineTo(x + s*u*0.58, y + (k - 1.5)*u*0.30 - u*0.26);
+          g.lineTo(x + s*u*0.98, y + (k - 1.5)*u*0.38 + u*0.16 + wig);
+          g.stroke();
+        }
+      });
+      g.fillStyle = "#2a2a36"; oval(g, x, y + u*0.26, u*0.50, u*0.44);
+      g.fillStyle = "#ff4d5e";
+      tri(g, [x - u*0.10, y + u*0.14], [x + u*0.10, y + u*0.14], [x, y + u*0.28]);
+      tri(g, [x - u*0.10, y + u*0.42], [x + u*0.10, y + u*0.42], [x, y + u*0.28]);
+      g.fillStyle = "#3a3a52"; circle(g, x, y - u*0.26, u*0.34);
+      g.fillStyle = "#ff4d5e";
+      circle(g, x - u*0.11, y - u*0.30, u*0.075); circle(g, x + u*0.11, y - u*0.30, u*0.075);
+      circle(g, x - u*0.23, y - u*0.40, u*0.05);  circle(g, x + u*0.23, y - u*0.40, u*0.05);
+      g.fillStyle = "#ffffff";
+      tri(g, [x - u*0.10, y - u*0.08], [x - u*0.02, y - u*0.08], [x - u*0.06, y + u*0.04]);
+      tri(g, [x + u*0.10, y - u*0.08], [x + u*0.02, y - u*0.08], [x + u*0.06, y + u*0.04]);
+      break;
+    }
+    case 4: { // GOBLIN
+      g.fillStyle = "#4f9a3a";
+      [-1, 1].forEach(s => tri(g, [x + s*u*0.44, y - u*0.22], [x + s*u*1.00, y - u*0.50], [x + s*u*0.50, y + u*0.12]));
+      g.fillStyle = "#6cc04a"; oval(g, x, y, u*0.60, u*0.64);
+      g.fillStyle = "#5a3a1a"; // leather cap
+      g.beginPath(); g.arc(x, y - u*0.22, u*0.56, Math.PI*1.08, Math.PI*1.92); g.closePath(); g.fill();
+      [-1, 1].forEach(s => {
+        g.fillStyle = "#ffe066"; oval(g, x + s*u*0.22, y - u*0.06, u*0.14, u*0.12);
+        g.fillStyle = "#141a22"; oval(g, x + s*u*0.22, y - u*0.06, u*0.035, u*0.10);
+      });
+      g.fillStyle = "#4f9a3a"; oval(g, x, y + u*0.12, u*0.10, u*0.08);
+      g.fillStyle = "#2a1a10";
+      g.beginPath(); g.moveTo(x - u*0.30, y + u*0.28); g.quadraticCurveTo(x, y + u*0.58, x + u*0.30, y + u*0.28); g.closePath(); g.fill();
+      g.fillStyle = "#ffffff";
+      g.fillRect(x - u*0.16, y + u*0.28, u*0.10, u*0.09); g.fillRect(x + u*0.06, y + u*0.28, u*0.10, u*0.09);
+      break;
+    }
+    case 5: { // SKELETON
+      g.strokeStyle = "#e8e2d0"; g.lineWidth = Math.max(1.5, u*0.13);
+      g.beginPath(); g.moveTo(x - u*0.82, y - u*0.58); g.lineTo(x + u*0.82, y + u*0.74); g.stroke();
+      g.beginPath(); g.moveTo(x + u*0.82, y - u*0.58); g.lineTo(x - u*0.82, y + u*0.74); g.stroke();
+      g.fillStyle = "#e8e2d0";
+      [[-0.82,-0.58],[0.82,0.74],[0.82,-0.58],[-0.82,0.74]].forEach(p => { circle(g, x + p[0]*u, y + p[1]*u, u*0.11); });
+      g.fillStyle = "#f4efe0"; circle(g, x, y - u*0.12, u*0.56);
+      rr(g, x - u*0.32, y + u*0.22, u*0.64, u*0.32, u*0.08); g.fill();
+      g.fillStyle = "#1a1a22";
+      oval(g, x - u*0.21, y - u*0.14, u*0.15, u*0.17); oval(g, x + u*0.21, y - u*0.14, u*0.15, u*0.17);
+      const glow = 0.6 + 0.4*Math.sin(t/300);
+      g.fillStyle = "rgba(255,77,94," + glow.toFixed(2) + ")";
+      circle(g, x - u*0.21, y - u*0.12, u*0.05); circle(g, x + u*0.21, y - u*0.12, u*0.05);
+      g.fillStyle = "#1a1a22"; tri(g, [x - u*0.07, y + u*0.12], [x + u*0.07, y + u*0.12], [x, y + u*0.02]);
+      g.strokeStyle = "#1a1a22"; g.lineWidth = Math.max(1, u*0.04);
+      for (let k = -2; k <= 2; k++){ g.beginPath(); g.moveTo(x + k*u*0.11, y + u*0.26); g.lineTo(x + k*u*0.11, y + u*0.48); g.stroke(); }
+      break;
+    }
+    case 6: { // GHOST
+      g.save();
+      g.shadowColor = "rgba(160,200,255,.8)"; g.shadowBlur = u*0.35;
+      g.fillStyle = "rgba(226,236,255,.94)";
+      g.beginPath();
+      g.moveTo(x - u*0.70, y + u*0.72);
+      g.lineTo(x - u*0.70, y - u*0.10);
+      g.arc(x, y - u*0.10, u*0.70, Math.PI, 0);
+      g.lineTo(x + u*0.70, y + u*0.72);
+      const wv = Math.sin(t/200) * u * 0.08;
+      for (let i = 0; i < 4; i++){
+        const x0 = x + u*0.70 - i*u*0.35;
+        g.quadraticCurveTo(x0 - u*0.175, y + u*(i % 2 ? 0.95 : 0.52) + wv, x0 - u*0.35, y + u*0.72);
+      }
+      g.closePath(); g.fill();
+      g.restore();
+      g.fillStyle = "#141a22";
+      oval(g, x - u*0.24, y - u*0.14, u*0.12, u*0.18); oval(g, x + u*0.24, y - u*0.14, u*0.12, u*0.18);
+      oval(g, x, y + u*0.26, u*0.12, u*0.16);
+      g.fillStyle = "rgba(255,120,150,.45)"; oval(g, x - u*0.42, y + u*0.10, u*0.10, u*0.06); oval(g, x + u*0.42, y + u*0.10, u*0.10, u*0.06);
+      break;
+    }
+    case 7: { // GOLEM
+      g.fillStyle = "#6c747f"; rr(g, x - u*1.0, y + u*0.02, u*0.30, u*0.62, u*0.10); g.fill();
+      rr(g, x + u*0.70, y + u*0.02, u*0.30, u*0.62, u*0.10); g.fill();
+      g.fillStyle = "#7d8590"; rr(g, x - u*0.76, y - u*0.10, u*1.52, u*0.88, u*0.16); g.fill();
+      g.fillStyle = "#9aa2ad"; rr(g, x - u*0.48, y - u*0.84, u*0.96, u*0.78, u*0.14); g.fill();
+      g.fillStyle = "#5a8f3c"; oval(g, x - u*0.56, y - u*0.08, u*0.20, u*0.08); oval(g, x + u*0.40, y - u*0.84, u*0.16, u*0.06);
+      g.save();
+      g.shadowColor = "#ff9f1a"; g.shadowBlur = u*0.3;
+      g.fillStyle = "#ffb13d";
+      g.fillRect(x - u*0.32, y - u*0.55, u*0.22, u*0.13); g.fillRect(x + u*0.10, y - u*0.55, u*0.22, u*0.13);
+      g.restore();
+      g.strokeStyle = "#454b54"; g.lineWidth = Math.max(1, u*0.05);
+      g.beginPath(); g.moveTo(x - u*0.22, y - u*0.24); g.lineTo(x + u*0.22, y - u*0.24); g.stroke();
+      g.beginPath(); g.moveTo(x - u*0.30, y + u*0.10); g.lineTo(x - u*0.12, y + u*0.34); g.lineTo(x - u*0.24, y + u*0.56); g.stroke();
+      g.beginPath(); g.moveTo(x + u*0.36, y + u*0.18); g.lineTo(x + u*0.20, y + u*0.44); g.stroke();
+      g.beginPath(); g.moveTo(x + u*0.24, y - u*0.80); g.lineTo(x + u*0.14, y - u*0.64); g.stroke();
+      break;
+    }
+    case 8: { // MINOTAUR
+      g.fillStyle = "#efe6cf";
+      [-1, 1].forEach(s => {
+        g.beginPath();
+        g.moveTo(x + s*u*0.32, y - u*0.44);
+        g.quadraticCurveTo(x + s*u*1.05, y - u*0.48, x + s*u*0.92, y - u*0.98);
+        g.quadraticCurveTo(x + s*u*0.80, y - u*0.60, x + s*u*0.30, y - u*0.24);
+        g.closePath(); g.fill();
+      });
+      g.fillStyle = "#6b3f1f"; oval(g, x - u*0.58, y - u*0.14, u*0.18, u*0.09, 0.4); oval(g, x + u*0.58, y - u*0.14, u*0.18, u*0.09, -0.4);
+      g.fillStyle = "#8a5530"; oval(g, x, y - u*0.06, u*0.52, u*0.64);
+      g.fillStyle = "#c49a6c"; oval(g, x, y + u*0.34, u*0.40, u*0.28);
+      g.fillStyle = "#3d2412"; oval(g, x - u*0.14, y + u*0.32, u*0.06, u*0.08); oval(g, x + u*0.14, y + u*0.32, u*0.06, u*0.08);
+      g.strokeStyle = "#ffd23f"; g.lineWidth = Math.max(1.2, u*0.06);
+      g.beginPath(); g.arc(x, y + u*0.52, u*0.12, 0.1*Math.PI, 0.9*Math.PI); g.stroke();
+      [-1, 1].forEach(s => {
+        g.fillStyle = "#ff4d5e"; circle(g, x + s*u*0.22, y - u*0.14, u*0.09);
+        g.fillStyle = "#141a22"; circle(g, x + s*u*0.22, y - u*0.13, u*0.04);
+        g.strokeStyle = "#3d2412"; g.lineWidth = Math.max(1, u*0.07);
+        g.beginPath(); g.moveTo(x + s*u*0.08, y - u*0.24); g.lineTo(x + s*u*0.36, y - u*0.30); g.stroke();
+      });
+      break;
+    }
+    default: // 9 WYVERN, 10 DRAGON, 11 DRAGON KING, 12 STAR DRAGON, 13+ LEGEND
+      drawDragon(g, x, y, u, t, DRAGONS[Math.min(L, 13)]);
+  }
+  g.restore();
+}
+
+/* one tile: rounded dungeon tile, the monster, and its number on a banner */
+function drawTile(g, x, y, s, L, t, number){
+  const M = monsterOf(L);
+  const grd = g.createLinearGradient(x, y, x, y + s);
+  grd.addColorStop(0, M.tile[0]); grd.addColorStop(1, M.tile[1]);
+  g.fillStyle = grd;
+  rr(g, x, y, s, s, s*0.14); g.fill();
+  g.strokeStyle = L >= 10 ? "#ffd23f" : "rgba(255,255,255,.14)";
+  g.lineWidth = L >= 10 ? Math.max(2, s*0.035) : Math.max(1, s*0.02);
+  rr(g, x + g.lineWidth/2, y + g.lineWidth/2, s - g.lineWidth, s - g.lineWidth, s*0.13); g.stroke();
+
+  const u = s * (0.20 + 0.0145 * Math.min(L, 13));
+  drawMonster(g, x + s/2, y + s*0.43, u, L, t);
+
+  if (number !== false){
+    const txt = String(valueOf(L));
+    let fs = s * 0.25;
+    g.font = "900 " + fs + "px 'Trebuchet MS','Segoe UI',system-ui,sans-serif";
+    let w = g.measureText(txt).width;
+    if (w > s*0.78){ fs = fs * s*0.78 / w; g.font = "900 " + fs + "px 'Trebuchet MS','Segoe UI',system-ui,sans-serif"; w = g.measureText(txt).width; }
+    const ph = fs * 1.12, pw = Math.max(w + fs*0.5, s*0.42);
+    const py = y + s - ph - s*0.045;
+    g.fillStyle = "rgba(6,10,16,.78)";
+    rr(g, x + s/2 - pw/2, py, pw, ph, ph/2); g.fill();
+    g.fillStyle = L >= 10 ? "#ffd23f" : "#ffffff";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(txt, x + s/2, py + ph/2 + fs*0.04);
+  }
+}
+
+/* small stand-alone canvases (record box, quiz, book, win) */
+function drawBadge(cv, L, locked){
+  try {
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(24, Math.round(r.width || 64)), h = Math.max(24, Math.round(r.height || 64));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(w*dpr) || cv.height !== Math.round(h*dpr)){ cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); }
+    const g = cv.getContext("2d"); if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const s = Math.min(w, h);
+    if (locked){
+      /* silhouette: draw the monster, paint it black with source-atop,
+         then slide the tile in underneath (works without ctx.filter) */
+      g.save();
+      drawMonster(g, w/2, h*0.46, s*(0.20 + 0.0145*Math.min(L,13)), L, 0);
+      g.globalCompositeOperation = "source-atop";
+      g.fillStyle = "#06090d"; g.fillRect(0, 0, w, h);
+      g.globalCompositeOperation = "destination-over";
+      g.fillStyle = "#1f2a33"; rr(g, (w-s)/2, (h-s)/2, s, s, s*0.14); g.fill();
+      g.restore();
+      g.fillStyle = "#8a97a3"; g.font = "900 " + (s*0.3) + "px 'Trebuchet MS',sans-serif";
+      g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("?", w/2, h*0.5);
+      return;
+    }
+    drawTile(g, (w-s)/2, (h-s)/2, s, L, performance.now(), true);
+  } catch (e) { /* a badge that will not draw never breaks the game */ }
+}
+
+/* ---------- board geometry ---------- */
+let BW = 300, DPR = 1;
+function geom(){
+  const pad = BW * 0.03, gap = BW * 0.025;
+  const cs = (BW - 2*pad - (S.N - 1)*gap) / S.N;
+  return { pad:pad, gap:gap, cs:cs };
+}
+function cellXY(r, c, G){ return [G.pad + c*(G.cs + G.gap), G.pad + r*(G.cs + G.gap)]; }
+
+function fitBoard(){
+  try {
+    const wrap = $("boardWrap");
+    const r = wrap.getBoundingClientRect();
+    const size = Math.floor(Math.max(160, Math.min(r.width - 12, r.height - 12, 640)));
+    BW = size;
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    boardCv.style.width = size + "px"; boardCv.style.height = size + "px";
+    boardCv.width = Math.round(size * DPR); boardCv.height = Math.round(size * DPR);
+  } catch (e) { /* keep the last size */ }
+}
+window.addEventListener("resize", () => { fitBoard(); hud(); });
+window.addEventListener("orientationchange", () => setTimeout(() => { fitBoard(); hud(); }, 150));
+
+function ease(k){ return 1 - Math.pow(1 - k, 3); }
+
+function drawBoard(now){
+  const g = boardCv.getContext("2d"); if (!g) return;
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.clearRect(0, 0, BW, BW);
+  let ox = 0, oy = 0;
+  if (nudgeInfo){
+    const k = (now - nudgeInfo.t0) / 180;
+    if (k >= 1) nudgeInfo = null;
+    else {
+      const amp = Math.sin(k * Math.PI) * BW * 0.012;
+      if (nudgeInfo.dir === "left") ox = -amp; if (nudgeInfo.dir === "right") ox = amp;
+      if (nudgeInfo.dir === "up") oy = -amp;   if (nudgeInfo.dir === "down") oy = amp;
+    }
+  }
+  g.fillStyle = "#0c1117"; rr(g, 0, 0, BW, BW, 14); g.fill();
+  const G = geom();
+  g.save(); g.translate(ox, oy);
+  for (let r = 0; r < S.N; r++) for (let c = 0; c < S.N; c++){
+    const [x, y] = cellXY(r, c, G);
+    g.fillStyle = (r + c) % 2 ? "#1c252e" : "#1f2a33";
+    rr(g, x, y, G.cs, G.cs, G.cs*0.14); g.fill();
+    g.strokeStyle = "rgba(0,0,0,.45)"; g.lineWidth = 2;
+    rr(g, x + 1, y + 1, G.cs - 2, G.cs - 2, G.cs*0.13); g.stroke();
+  }
+  if (!S.grid.length){ g.restore(); return; }
+
+  const A = S.anim;
+  const since = A ? now - A.t0 : 1e9;
+  if (A && since < SLIDE_MS){
+    const k = ease(since / SLIDE_MS);
+    // unmerged movers draw on top of the pair that is merging
+    const list = A.moves.slice().sort((a, b) => (a.merged ? 0 : 1) - (b.merged ? 0 : 1));
+    list.forEach(m => {
+      const [x0, y0] = cellXY(m.fr, m.fc, G), [x1, y1] = cellXY(m.tr, m.tc, G);
+      drawTile(g, x0 + (x1 - x0)*k, y0 + (y1 - y0)*k, G.cs, m.level, now, true);
+    });
+  } else {
+    const pk = A ? (since - SLIDE_MS) / POP_MS : 1;
+    for (let r = 0; r < S.N; r++) for (let c = 0; c < S.N; c++){
+      const L = S.grid[r][c]; if (!L) continue;
+      let sc = 1;
+      if (A && pk < 1){
+        if (A.pops.some(p => p.r === r && p.c === c)) sc = 1 + 0.2 * Math.sin(pk * Math.PI);
+        else if (A.spawn && A.spawn.r === r && A.spawn.c === c) sc = ease(Math.max(0, pk));
+      }
+      const [x, y] = cellXY(r, c, G);
+      if (sc !== 1){
+        g.save();
+        g.translate(x + G.cs/2, y + G.cs/2); g.scale(sc, sc); g.translate(-(x + G.cs/2), -(y + G.cs/2));
+        drawTile(g, x, y, G.cs, L, now, true);
+        g.restore();
+      } else drawTile(g, x, y, G.cs, L, now, true);
+    }
+    if (A && pk >= 1) S.anim = null;
+  }
+  g.restore();
+}
+
+/* =====================================================================
+   THE CHOSEN HERO, cheering beside the board (same drawing as runedoor.html,
+   kept self-contained so this file never depends on another game file)
+   ===================================================================== */
+const HERO_ART = {
+  knight:   {body:"#b9c6d4", trim:"#8795a5", skin:"#f0c9a0", accent:"#ffd23f", name:"The Knight"},
+  wizard:   {body:"#7b5cd6", trim:"#4a35a0", skin:"#f0c9a0", accent:"#ffd23f", name:"The Mage"},
+  ninja:    {body:"#263445", trim:"#151f2b", skin:"#f0c9a0", accent:"#ff4d5e", name:"The Shadow"},
+  robot:    {body:"#cfd8e3", trim:"#8b9bad", skin:"#cfd8e3", accent:"#4ff0ff", name:"BEEP-9"},
+  explorer: {body:"#c8a86a", trim:"#8a6f3c", skin:"#f0c9a0", accent:"#6d8f4a", name:"The Explorer"},
+  dragon:   {body:"#4fbf6a", trim:"#2f8f4a", skin:"#4fbf6a", accent:"#f5e6a8", name:"Lil' Dragon"}
+};
+
+function drawHeroSprite(g, X, Y, u, id, o){
+  o = o || {};
+  const A = HERO_ART[id] || HERO_ART.knight;
+  const b = o.bob || 0;
+  const ex = Math.max(-1, Math.min(1, o.fx || 0)) * u * 0.06;
+  const ey = Math.max(-1, Math.min(1, o.fy || 0)) * u * 0.04;
+  const cheer = !!o.cheer;
+  const HY = Y - u*0.20 + b, HR = u*0.22;
+  const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
+
+  g.fillStyle = "rgba(0,0,0,.45)";
+  g.beginPath(); g.ellipse(X, Y + u*0.34, u*0.30, u*0.12, 0, 0, 7); g.fill();
+
+  if (id === "dragon"){
+    g.fillStyle = A.trim;
+    g.beginPath();
+    g.moveTo(X + u*0.16, Y + u*0.18 + b);
+    g.quadraticCurveTo(X + u*0.66, Y + u*0.30 + b, X + u*0.52, Y - u*0.06 + b);
+    g.quadraticCurveTo(X + u*0.44, Y + u*0.16 + b, X + u*0.16, Y + u*0.30 + b);
+    g.closePath(); g.fill();
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.14, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.54, Y - u*0.40 + b);
+      g.lineTo(X + s*u*0.46, Y + u*0.08 + b);
+      g.closePath(); g.fill();
+    });
+  }
+  if (id === "explorer"){
+    g.fillStyle = "#6b4a24"; g.fillRect(X - u*0.36, Y - u*0.12 + b, u*0.21, u*0.36);
+    g.fillStyle = "#4e3518"; g.fillRect(X - u*0.36, Y + u*0.02 + b, u*0.21, u*0.06);
+  }
+  if (id === "wizard"){
+    g.strokeStyle = "#8a5a2b"; g.lineWidth = Math.max(1.5, u*0.06);
+    g.beginPath(); g.moveTo(X + u*0.32, Y + u*0.34 + b); g.lineTo(X + u*0.36, Y - u*0.44 + b); g.stroke();
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X + u*0.36, Y - u*0.50 + b, u*0.09, 0, 7); g.fill();
+  }
+
+  if (id === "robot"){
+    g.fillStyle = A.body; g.fillRect(X - u*0.26, Y - u*0.10 + b, u*0.52, u*0.40);
+    g.fillStyle = A.trim; g.fillRect(X - u*0.26, Y + u*0.16 + b, u*0.52, u*0.07);
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X, Y + u*0.03 + b, u*0.07, 0, 7); g.fill();
+    g.fillStyle = A.trim; g.fillRect(X - u*0.30, Y + u*0.30 + b, u*0.60, u*0.08);
+  } else {
+    const flare = id === "wizard" ? 0.38 : 0.30;
+    g.fillStyle = A.body;
+    g.beginPath();
+    g.moveTo(X - u*flare, Y + u*0.32 + b);
+    g.lineTo(X - u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*flare, Y + u*0.32 + b);
+    g.closePath(); g.fill();
+    g.fillStyle = A.trim;
+    g.fillRect(X - u*0.22, Y + u*0.05 + b, u*0.44, u*0.06);
+    if (id === "knight"){
+      g.fillStyle = A.trim;
+      [-1, 1].forEach(s => { g.beginPath(); g.ellipse(X + s*u*0.24, Y - u*0.06 + b, u*0.12, u*0.09, 0, 0, 7); g.fill(); });
+    }
+    if (id === "ninja"){
+      g.fillStyle = A.accent;
+      g.beginPath();
+      g.moveTo(X + u*0.16, Y - u*0.06 + b);
+      g.lineTo(X + u*0.46, Y + u*0.04 + b);
+      g.lineTo(X + u*0.18, Y + u*0.06 + b);
+      g.closePath(); g.fill();
+    }
+    if (id === "dragon"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.ellipse(X, Y + u*0.13 + b, u*0.15, u*0.17, 0, 0, 7); g.fill();
+    }
+    if (id === "explorer"){
+      g.fillStyle = A.trim;
+      g.fillRect(X - u*0.02, Y - u*0.08 + b, u*0.04, u*0.14);
+    }
+  }
+
+  if (cheer){
+    g.strokeStyle = id === "ninja" ? A.accent : A.trim;
+    g.lineWidth = Math.max(2, u*0.11);
+    g.lineCap = "round";
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.19, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.40, Y - u*0.42 + b);
+      g.stroke();
+    });
+    g.lineCap = "butt";
+    g.fillStyle = id === "robot" ? A.accent : A.skin;
+    [-1, 1].forEach(s => { g.beginPath(); g.arc(X + s*u*0.40, Y - u*0.44 + b, u*0.075, 0, 7); g.fill(); });
+  }
+
+  if (id === "robot"){
+    g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
+    g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    g.fillStyle = "#e3e9f0"; g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.32);
+    g.fillStyle = A.trim;    g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.05);
+    g.fillStyle = "#0a1418"; g.fillRect(X - u*0.17, Y - u*0.30 + b, u*0.34, u*0.13);
+    g.fillStyle = A.accent;
+    g.fillRect(X - u*0.14 + ex, Y - u*0.27 + ey + b, u*0.28, u*0.07);
+    g.save(); g.globalAlpha = 0.45;
+    g.fillRect(X - u*0.18 + ex, Y - u*0.29 + ey + b, u*0.36, u*0.11);
+    g.restore();
+  } else if (id === "dragon"){
+    g.fillStyle = A.body; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.trim;
+    g.beginPath(); g.ellipse(X + ex*1.4, HY + u*0.09 + ey, u*0.16, u*0.10, 0, 0, 7); g.fill();
+    g.fillStyle = A.accent;
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.12, HY - u*0.18);
+      g.lineTo(X + s*u*0.22, HY - u*0.40);
+      g.lineTo(X + s*u*0.02, HY - u*0.22);
+      g.closePath(); g.fill();
+    });
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    g.fillStyle = "#0d1a12";
+    g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+    g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+  } else if (id === "ninja"){
+    g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
+    g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);
+    g.fillStyle = A.trim; g.fillRect(X - u*0.23, HY + u*0.06, u*0.46, u*0.15);
+    g.fillStyle = A.accent;
+    g.fillRect(X - u*0.25, HY - u*0.17, u*0.50, u*0.08);
+    g.beginPath();
+    g.moveTo(X - u*0.23, HY - u*0.16);
+    g.lineTo(X - u*0.46, HY - u*0.04);
+    g.lineTo(X - u*0.23, HY - u*0.07);
+    g.closePath(); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+  } else {
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
+    if (id === "knight"){
+      g.fillStyle = "#cfdae6";
+      g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
+      g.fillStyle = "#1a2129";
+      g.fillRect(X - u*0.13, HY - u*0.05, u*0.26, u*0.045);
+      g.fillStyle = A.accent;
+      [-1, 1].forEach(s => {
+        g.beginPath();
+        g.moveTo(X + s*u*0.20, HY - u*0.12);
+        g.lineTo(X + s*u*0.40, HY - u*0.30);
+        g.lineTo(X + s*u*0.22, HY - u*0.01);
+        g.closePath(); g.fill();
+      });
+    } else if (id === "wizard"){
+      g.fillStyle = "#eef1f5";
+      g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
+      g.fillStyle = A.trim;
+      g.beginPath();
+      g.moveTo(X - u*0.26, HY - u*0.14);
+      g.lineTo(X + u*0.08, HY - u*0.62);
+      g.lineTo(X + u*0.26, HY - u*0.14);
+      g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
+    } else if (id === "explorer"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
+      g.fillStyle = "#54713a";
+      g.beginPath(); g.ellipse(X + u*0.16, HY - u*0.02, u*0.20, u*0.055, 0, 0, 7); g.fill();
+    }
+  }
+}
+
+function paintHero(now){
+  try {
+    const c = $("heroCv"); if (!c) return;
+    const r = c.getBoundingClientRect();
+    const w = Math.max(24, Math.round(r.width)), h = Math.max(24, Math.round(r.height));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w*dpr) || c.height !== Math.round(h*dpr)){ c.width = Math.round(w*dpr); c.height = Math.round(h*dpr); }
+    const g = c.getContext("2d"); if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const happy = now < S.cheerUntil;
+    const u = Math.min(w, h) * 0.70;
+    const bob = happy ? -Math.abs(Math.sin(now/130)) * u * 0.20 : Math.sin(now/620) * u * 0.02;
+    drawHeroSprite(g, w/2, h*0.62, u, HERO, { bob: bob, fx: 1, fy: 0, cheer: happy });
+  } catch (e) { /* a hero that will not draw never breaks the game */ }
+}
+
+/* ---------- the frame loop ---------- */
+let lastBadge = 0;
+function frame(now){
+  try { drawBoard(now); } catch (e) { /* keep looping */ }
+  paintHero(now);
+  if (now - lastBadge > 120){        // the little record monster idles too
+    lastBadge = now;
+    if (S.grid.length) drawBadge($("recCv"), Math.max(1, S.record || 1));
+    if (S.quiz) drawBadge($("quizCv"), S.quiz.level);
+    if ($("winScreen").classList.contains("on")) drawBadge($("winCv"), Math.max(1, S.record));
+  }
+  requestAnimationFrame(frame);
+}
+
+/* =====================================================================
+   INPUT: arrow keys / WASD, swipe on the board, on-screen arrows
+   ===================================================================== */
+const KEYS = { ArrowLeft:"left", ArrowRight:"right", ArrowUp:"up", ArrowDown:"down",
+               a:"left", d:"right", w:"up", s:"down", A:"left", D:"right", W:"up", S:"down" };
+window.addEventListener("keydown", e => {
+  Snd.unlock();
+  if (S.quiz){
+    if (!S.quiz.done && /^[1-4]$/.test(e.key)){
+      const i = parseInt(e.key, 10) - 1;
+      if (S.quiz.choices[i] !== undefined){ e.preventDefault(); answerQuiz(S.quiz.choices[i]); }
+    } else if (S.quiz.done && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); closeQuiz(); }
+    return;
+  }
+  const dir = KEYS[e.key];
+  if (dir){ e.preventDefault(); move(dir); return; }
+  if ((e.key === "z" || e.key === "u") && !e.metaKey && !e.ctrlKey){ undo(); }
+});
+
+let swipe = null;
+boardCv.addEventListener("pointerdown", e => {
+  Snd.unlock();
+  e.preventDefault();
+  swipe = { x: e.clientX, y: e.clientY, id: e.pointerId, done: false };
+  try { boardCv.setPointerCapture(e.pointerId); } catch (er) { /* fine */ }
+}, { passive:false });
+boardCv.addEventListener("pointermove", e => {
+  if (!swipe || swipe.done || e.pointerId !== swipe.id) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  const need = Math.max(22, BW * 0.06);
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < need) return;
+  swipe.done = true;
+  move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+});
+function endSwipe(){ swipe = null; }
+boardCv.addEventListener("pointerup", endSwipe);
+boardCv.addEventListener("pointercancel", endSwipe);
+document.addEventListener("touchmove", e => { if (e.target === boardCv) e.preventDefault(); }, { passive:false });
+
+[["padUp","up"],["padDown","down"],["padLeft","left"],["padRight","right"]].forEach(([id, dir]) => {
+  $(id).addEventListener("click", () => { Snd.unlock(); move(dir); });
+});
+document.addEventListener("pointerdown", () => Snd.unlock(), { passive:true });
+
+/* ---------- buttons ---------- */
+$("muteBtn").onclick = () => { Snd.toggle(); hud(); };
+$("undoBtn").onclick = () => undo();
+$("overUndo").onclick = () => undo();
+$("bookBtn").onclick = () => openBook();
+$("startBookBtn").onclick = () => openBook();
+$("overBook").onclick = () => openBook();
+$("bookClose").onclick = () => $("bookScreen").classList.remove("on");
+$("newBtn").onclick = () => {
+  if (EMBED){ toGame({ type:"close" }); return; }
+  S.running = false;
+  $("overScreen").classList.remove("on");
+  showStart();
+};
+$("quizGo").onclick = () => closeQuiz();
+$("winBtn").onclick = () => {
+  $("winScreen").classList.remove("on");
+  if (EMBED){ postSolved(); return; }
+  checkGameOver();
+};
+$("overBtn").onclick = () => {
+  $("overScreen").classList.remove("on");
+  if (EMBED){ toGame({ type:"close" }); return; }
+  newGame();
+};
+
+/* ---------- monster book ---------- */
+function openBook(){
+  const top = bookMax();
+  const grid = $("bookGrid"); grid.innerHTML = "";
+  let shown = 0;
+  for (let L = 1; L <= BOOK_SIZE; L++){
+    const locked = L > top;
+    const card = document.createElement("div");
+    card.className = "bcard" + (locked ? " lock" : "");
+    const cv = document.createElement("canvas");
+    card.appendChild(cv);
+    const n = document.createElement("div"); n.className = "bn"; n.textContent = locked ? "???" : monsterName(L);
+    const v = document.createElement("div"); v.className = "bv"; v.textContent = locked ? "Level " + L : (valueOf(L) + " · Lv " + L);
+    card.appendChild(n); card.appendChild(v);
+    grid.appendChild(card);
+    if (!locked) shown++;
+  }
+  $("bookLine").innerHTML = "You have found <b class='accent'>" + shown + " of " + BOOK_SIZE + "</b> monsters. Merge bigger to fill the book!";
+  $("bookScreen").classList.add("on");
+  // draw after layout so the canvases know their size
+  requestAnimationFrame(() => {
+    Array.prototype.forEach.call(grid.querySelectorAll("canvas"), (cv, i) => drawBadge(cv, i + 1, i + 1 > top));
+  });
+}
+
+/* ---------- start screen ---------- */
+function paintStart(){
+  $("modeDouble").classList.toggle("on", S.mode === "double");
+  $("modeTimes").classList.toggle("on", S.mode === "times");
+  $("tableRow").style.display = S.mode === "times" ? "" : "none";
+  $("size4").classList.toggle("on", S.N === 4);
+  $("size5").classList.toggle("on", S.N === 5);
+  Array.prototype.forEach.call($("tablePicks").children, b => b.classList.toggle("on", parseInt(b.dataset.t, 10) === S.table));
+  const T = S.table;
+  $("ruleLine").innerHTML = S.mode === "times"
+    ? "Monsters climb the <b class='accent'>" + T + "s table</b>: " + T + " → " + 2*T + " → " + 3*T + " → " + 4*T +
+      " … Two " + 2*T + "s make " + 3*T + " (add " + T + " to climb one step)."
+    : "Two monsters make <b class='accent'>double</b>: 2 → 4 → 8 → 16 … all the way to 2048.";
+  hud();
+}
+function showStart(){ paintStart(); $("startScreen").classList.add("on"); }
+(function buildTablePicks(){
+  const box = $("tablePicks");
+  for (let t = 2; t <= 9; t++){
+    const b = document.createElement("button");
+    b.className = "pick"; b.textContent = t + "s"; b.dataset.t = t;
+    b.onclick = () => { S.table = t; paintStart(); };
+    box.appendChild(b);
+  }
+})();
+$("modeDouble").onclick = () => { S.mode = "double"; paintStart(); };
+$("modeTimes").onclick  = () => { S.mode = "times";  paintStart(); };
+$("size4").onclick = () => { S.N = 4; paintStart(); };
+$("size5").onclick = () => { S.N = 5; paintStart(); };
+$("startBtn").onclick = () => {
+  Snd.unlock();
+  store.set("mm_prefs", JSON.stringify({ mode: S.mode, table: S.table, size: S.N }));
+  $("startScreen").classList.remove("on");
+  newGame();
+};
+
+/* ---------- a new game ---------- */
+function newGame(opts){
+  opts = opts || {};
+  if (opts.mode === "double" || opts.mode === "times") S.mode = opts.mode;
+  if (isFinite(opts.table) && opts.table >= 2 && opts.table <= 12) S.table = opts.table | 0;
+  if (opts.size === 4 || opts.size === 5) S.N = opts.size;
+  S.grid = emptyGrid(S.N);
+  S.score = 0; S.record = 0; S.undos = 1; S.undoSnap = null;
+  S.over = false; S.quiz = null; S.posted = false; S.wonBig = false; S.anim = null; S.moves = 0;
+  S.quizRight = 0; S.quizAsked = 0;
+  if (!EMBED && !hasWallet()) S.coins = START_COINS;
+  ["overScreen","winScreen","quizScreen","bookScreen","startScreen"].forEach(id => $(id).classList.remove("on"));
+  S.running = true;
+  const a = spawn(), b = spawn();
+  S.record = maxLevel(S.grid);
+  S.anim = { t0: performance.now() - SLIDE_MS, moves: [], pops: [], spawn: a ? { r:a.r, c:a.c } : null };
+  if (b) S.anim.pops.push({ r:b.r, c:b.c });
+  fitBoard();
+  say(S.mode === "times" ? "Two matching monsters climb one step up the " + S.table + "s table!"
+                         : "Swipe to slide. Match two monsters to evolve them!", "hint");
+  hud();
+}
+
+/* put an exact board down (test hook). grid = rows of NUMBERS as shown on
+   the tiles (0 = empty); its size sets the board size. */
+function setBoard(grid, opts){
+  opts = opts || {};
+  if (!Array.isArray(grid) || !grid.length) throw new Error("setBoard needs rows");
+  const N = grid.length;
+  if (N < 2 || N > 8) throw new Error("board must be 2x2 to 8x8");
+  const lv = grid.map(row => {
+    if (!Array.isArray(row) || row.length !== N) throw new Error("setBoard needs a square grid");
+    return row.map(levelOfValue);
+  });
+  S.N = N;
+  S.grid = lv;
+  S.running = true; S.over = false; S.quiz = null; S.anim = null;
+  S.record = maxLevel(lv);
+  if (opts.score !== undefined) S.score = opts.score | 0;
+  ["overScreen","winScreen","quizScreen","bookScreen","startScreen"].forEach(id => $(id).classList.remove("on"));
+  fitBoard(); hud();
+  return values();
+}
+
+/* ---------- boot ---------- */
+fitBoard();
+paintStart();
+requestAnimationFrame(frame);
+
+if (EMBED){
+  const c = parseInt(QS.get("coins"), 10);
+  if (isFinite(c) && c >= 0) S.coins = c;
+  $("newBtn").textContent = "✖ Back to the dungeon";
+  newGame();
+} else if (QS.get("start") === "1"){
+  newGame();
+} else {
+  showStart();
+}
+
+/* ---------- test hook ---------- */
+window.MERGE = {
+  state: S,
+  get mode(){ return S.mode; },
+  get table(){ return S.table; },
+  get board(){ return values(); },
+  get levels(){ return copyGrid(S.grid); },
+  get quiz(){ return S.quiz ? { q:S.quiz.q, answer:S.quiz.answer, choices:S.quiz.choices.slice(), done:S.quiz.done } : null; },
+  get over(){ return S.over; },
+  EMBED: EMBED, HERO: HERO, GOAL_LEVEL: GOAL_LEVEL,
+  newGame: newGame,               // newGame({mode:"times", table:3, size:4})
+  setBoard: setBoard,             // setBoard([[2,2,2,2],[0,0,0,0],...])
+  move: move,                     // move("left", {spawn:false, quiz:false})
+  slideLine: function(values_){ return slideLine(values_.map(levelOfValue)).out.map(valueOf); },
+  canMove: function(grid){ return canMove(grid ? grid.map(r => r.map(levelOfValue)) : S.grid); },
+  isGameOver: function(){ return !canMove(S.grid); },
+  checkGameOver: checkGameOver,
+  undo: undo,
+  answer: answerQuiz,
+  closeQuiz: closeQuiz,
+  mute: function(v){ Snd.set(!v); hud(); return !Snd.isOn(); },
+  get muted(){ return !Snd.isOn(); },
+  coins: coins,
+  bookMax: bookMax,
+  openBook: openBook,
+  monsterName: monsterName,
+  valueOf: valueOf,
+  drawMonster: drawMonster,
+  drawHeroSprite: drawHeroSprite
+};
+})();
+</script>
+<script src="home-button.js"></script>
+</body>
+</html>

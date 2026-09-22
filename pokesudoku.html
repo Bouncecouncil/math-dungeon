@@ -133,6 +133,98 @@ img{-webkit-user-drag:none;user-drag:none}
 .roster .nm{font-size:10px;font-weight:800;color:var(--dim);white-space:nowrap}
 #winStats{font-size:20px;font-weight:800;color:var(--chalk);margin:8px 0 2px}
 #winStats b{color:var(--gold)}
+.hide{display:none !important}
+
+/* ---------------- start screen extras ---------------- */
+.grps{display:flex;flex-direction:column;align-items:center}
+.btnrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+.bigbtn.red{background:#ff4d5e;color:#fff;box-shadow:0 5px 0 #9c1f2c}
+.bigbtn.red:active{box-shadow:0 2px 0 #9c1f2c}
+.opts button.lock{opacity:.5}
+.opts.lines{max-width:100%}
+.opts .lnbtn{display:flex;align-items:center;gap:6px;padding:0 12px 0 6px}
+.opts .lnbtn .art{width:34px;height:34px;display:flex;align-items:center;justify-content:center}
+.opts .lnbtn .art img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.opts .lnbtn .art .fb{width:100%;height:100%;font-size:15px}
+#modeNote{color:var(--gold);font-weight:800;min-height:0}
+#modeNote:empty{display:none}
+
+/* ---------------- pokedex ---------------- */
+#dexOv{z-index:30}
+/* clear the shared home button that sits top-centre (home-button.js) */
+@media (min-height:431px){ #dexOv{padding-top:46px} }
+#dexOv .panel{max-width:940px;height:100%;display:flex;flex-direction:column;overflow:hidden;padding:14px 12px 12px}
+.dexhead{flex:0 0 auto;display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;justify-content:center}
+.dexhead h1{margin:0}
+.dexcount{font-weight:800;font-size:18px;white-space:nowrap}
+.dexcount b{color:var(--gold)}
+.dexbar{flex:1 1 140px;max-width:260px;height:14px;background:#0c1117;border-radius:99px;overflow:hidden;border:2px solid #2b3843}
+.dexbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4d5e,#ffd23f);transition:width .6s}
+#dexClose{height:40px;font-size:16px;padding:0 16px;margin:0}
+#dexDetail{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  margin:8px 0 2px;min-height:0;font-weight:800}
+#dexDetail:empty{display:none}
+#dexDetail .art{width:56px;height:56px;display:flex}
+#dexDetail .art img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+#dexDetail .art .fb{width:100%;height:100%;font-size:24px}
+#dexDetail .dtxt{text-align:left;font-size:16px;line-height:1.3}
+#dexDetail .dtxt small{display:block;font-size:12px;color:var(--dim)}
+#dexDetail .bigbtn{margin:0;font-size:16px;padding:10px 16px}
+#dexGrid{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+  align-content:flex-start;padding:8px 2px 4px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.dx{width:86px;background:#243039;border:2px solid #33424f;border-radius:12px;padding:5px 3px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;box-shadow:0 3px 0 #111820}
+.dx:active{transform:translateY(2px)}
+.dx .no{font-size:10px;color:var(--dim);font-weight:800;letter-spacing:.5px}
+.dx .art{width:60px;height:60px;display:flex;align-items:center;justify-content:center}
+.dx .art img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.dx .art .fb{width:84%;height:84%;font-size:26px}
+.dx .nm{font-size:12px;font-weight:800;color:#dfe7ee;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx.t1{border-color:#2f6d93}
+.dx.t2{border-color:#b39020;background:#2c2a1d}
+.dx.un{background:#161e25}
+.dx.un .art img{filter:brightness(0);opacity:.8}
+.dx.un .art .fb{background:#05080b !important;color:transparent;box-shadow:none}
+.dx.un .nm{color:#56636e;letter-spacing:2px}
+.dx.pick{outline:3px solid var(--gold);outline-offset:1px}
+.dx .evo{position:absolute;bottom:19px;right:3px;font-size:9px;font-weight:800;background:var(--good);color:#06121b;
+  border-radius:6px;padding:1px 4px}
+.dx .tier{position:absolute;top:3px;left:4px;font-size:10px;line-height:1}
+.dx.fresh{animation:fresh 1.2s 2}
+@keyframes fresh{40%{box-shadow:0 0 0 4px var(--gold),0 0 22px rgba(255,210,63,.8)}}
+
+/* ---------------- NEW POKEMON reveal ---------------- */
+#revOv{z-index:25}
+#revOv .panel{max-width:470px;overflow:hidden;position:relative}
+.revtitle{font-size:clamp(28px,7vw,46px);color:var(--gold);font-weight:900;letter-spacing:1px;margin:0;
+  text-shadow:0 3px 0 #a3830f,0 0 18px rgba(255,210,63,.5);animation:revpulse 1s infinite}
+@keyframes revpulse{50%{transform:scale(1.06)}}
+.revq{font-size:17px;font-weight:800;color:#cfd8e0;margin:2px 0 0;min-height:22px}
+.flipwrap{perspective:900px;width:min(230px,44vh);height:min(230px,44vh);margin:8px auto 4px;cursor:pointer;position:relative}
+.flipwrap::before{content:"";position:absolute;inset:-14%;border-radius:50%;
+  background:conic-gradient(from 0deg,rgba(255,210,63,.0),rgba(255,210,63,.35),rgba(255,210,63,0),rgba(79,195,255,.3),rgba(255,210,63,0));
+  animation:spin 4s linear infinite;opacity:0}
+.flipwrap.lit::before{transition:opacity .6s}
+.flipwrap.lit::before{opacity:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+.flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;
+  transition:transform 1s cubic-bezier(.3,1.35,.5,1)}
+.flip.go{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:radial-gradient(circle,#34506a 0%,#1a2530 68%);border:4px solid #3c4c5a}
+.face.back{transform:rotateY(180deg);background:radial-gradient(circle,#fffbe6 0%,#ffe27a 38%,#2a3642 74%);border-color:var(--gold)}
+.face .art{width:82%;height:82%;display:flex;align-items:center;justify-content:center}
+.face .art img{width:100%;height:100%;object-fit:contain}
+.face .art .fb{width:78%;height:78%;font-size:64px}
+.face.front .art img{filter:brightness(0)}
+.face.front .art .fb{background:#05080b !important;color:transparent;box-shadow:none}
+.flip.shake .face.front{animation:shake .45s infinite}
+@keyframes shake{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+#revName{font-size:clamp(24px,6vw,34px);font-weight:900;color:var(--chalk);margin:2px 0 0;min-height:36px}
+#revMeta{font-size:15px;font-weight:800;color:var(--dim);min-height:20px}
+#revMeta .rare{color:var(--gold)} #revMeta .unc{color:var(--blue)}
+.revbtns .bigbtn{margin-top:10px}
 
 /* ---------------- phone held sideways ---------------- */
 @media (max-height:430px){
@@ -157,9 +249,46 @@ img{-webkit-user-drag:none;user-drag:none}
   .rowlbl{margin:7px 0 4px}
   .opts button{height:40px;font-size:15px;min-width:56px}
   .bigbtn{font-size:18px;padding:11px 20px;margin-top:9px}
-  .roster{display:none}
+  /* sideways: the three option groups sit on one line so nothing scrolls */
+  #startOv .panel{max-width:800px}
+  .grps{flex-direction:row;flex-wrap:nowrap;justify-content:center;gap:0 18px}
+  .grps .opts{flex-wrap:nowrap;gap:6px}
+  .grps .opts button{padding:0 10px;min-width:44px}
+  .intro{display:none}
+  .opts.lines{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:3px}
+  .opts .lnbtn{height:40px;flex:0 0 auto}
+  .opts .lnbtn .art{width:28px;height:28px}
+  .roster{margin-top:5px;gap:4px}
+  .roster .r{width:50px}
+  .roster .art{width:26px;height:26px}
+  .roster .nm{font-size:9px}
+  .btnrow .bigbtn{margin-top:7px;padding:9px 18px;font-size:17px}
+  #dexOv .panel{padding:8px 10px 8px}
+  .dexhead h1{font-size:20px}
+  /* keep the header clear of the shared home button at top centre */
+  .dexhead{justify-content:flex-start;flex-wrap:nowrap;padding-left:8px}
+  .dexbar{flex:0 0 90px}
+  #dexClose{margin-left:auto}
+  .dexcount{font-size:15px}
+  #dexClose{height:34px;font-size:14px}
+  #dexDetail{margin:4px 0 0}
+  #dexDetail .art{width:40px;height:40px}
+  #dexDetail .dtxt{font-size:14px}
+  #dexDetail .bigbtn{font-size:14px;padding:8px 12px}
+  .dx{width:74px;padding:3px 2px 4px}
+  .dx .art{width:46px;height:46px}
+  .dx .nm{font-size:10px}
+  #revOv .panel{max-width:620px;padding:8px 14px}
+  .revtitle{font-size:24px}
+  .revq{font-size:14px;min-height:18px}
+  .flipwrap{width:min(150px,40vh);height:min(150px,40vh);margin:4px auto 2px}
+  .face .art .fb{font-size:42px}
+  #revName{font-size:22px;min-height:26px}
+  #revMeta{font-size:13px}
+  .revbtns .bigbtn{margin-top:6px;padding:8px 16px;font-size:15px}
 }
 </style>
+<script src="wallet.js"></script>
 </head>
 <body>
 
@@ -173,6 +302,7 @@ img{-webkit-user-drag:none;user-drag:none}
     <button class="tool blue" id="hintBtn">&#128161; <span class="txt">Hint</span> &#129689;3</button>
     <button class="tool" id="undoBtn">&#8617; <span class="txt">Undo</span></button>
     <button class="tool" id="againBtn">&#10226; <span class="txt">Start over</span></button>
+    <button class="tool icon" id="dexBtn" title="Pokedex">&#128214;</button>
     <button class="tool icon" id="muteBtn">&#128266;</button>
     <button class="tool icon" id="closeBtn">&#10006;</button>
   </div>
@@ -190,21 +320,43 @@ img{-webkit-user-drag:none;user-drag:none}
 <div class="overlay" id="startOv">
   <div class="panel">
     <h1>POKE SUDOKU</h1>
-    <p>Fill every row, every column and every box with all of the Pokemon. No Pokemon twice in the same line or box.</p>
-    <div class="rowlbl">PUZZLE SIZE</div>
-    <div class="opts" id="sizeOpts">
-      <button data-size="4" class="on">4 x 4</button>
-      <button data-size="6">6 x 6</button>
-      <button data-size="9">9 x 9</button>
+    <p class="intro">Fill every row, every column and every box with all of the Pokemon. No Pokemon twice in the same line or box. Every puzzle you solve catches a new Pokemon!</p>
+    <div class="grps">
+      <div class="grp">
+        <div class="rowlbl">PUZZLE SIZE</div>
+        <div class="opts" id="sizeOpts">
+          <button data-size="4" class="on">4 x 4</button>
+          <button data-size="6">6 x 6</button>
+          <button data-size="9">9 x 9</button>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="rowlbl">HOW HARD</div>
+        <div class="opts" id="diffOpts">
+          <button data-diff="easy" class="on">Easy</button>
+          <button data-diff="medium">Medium</button>
+          <button data-diff="hard">Tricky</button>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="rowlbl">POKEMON PIECES</div>
+        <div class="opts" id="modeOpts">
+          <button data-mode="classic" class="on">Classic</button>
+          <button data-mode="team">&#11088; My team</button>
+          <button data-mode="evo">&#10024; Evolution</button>
+        </div>
+      </div>
     </div>
-    <div class="rowlbl">HOW HARD</div>
-    <div class="opts" id="diffOpts">
-      <button data-diff="easy" class="on">Easy</button>
-      <button data-diff="medium">Medium</button>
-      <button data-diff="hard">Tricky</button>
+    <div id="lineWrap" class="hide">
+      <div class="rowlbl">PICK AN EVOLUTION LINE</div>
+      <div class="opts lines" id="lineOpts"></div>
     </div>
+    <p class="small" id="modeNote"></p>
     <div class="roster" id="roster"></div>
-    <button class="bigbtn gold" id="playBtn">&#9654; PLAY</button>
+    <div class="btnrow">
+      <button class="bigbtn gold" id="playBtn">&#9654; PLAY</button>
+      <button class="bigbtn red" id="dexOpenBtn">&#128214; POKEDEX <span id="dexCountS">0/60</span></button>
+    </div>
     <p class="small">Tap a square, then tap a Pokemon. Tap the same Pokemon again to take it back.</p>
   </div>
 </div>
@@ -215,8 +367,43 @@ img{-webkit-user-drag:none;user-drag:none}
     <h1>SOLVED IT!</h1>
     <div id="winStats"></div>
     <p class="small" id="winSub"></p>
+    <button class="bigbtn red hide" id="ballBtn">&#127873; OPEN YOUR POKE BALL</button>
     <button class="bigbtn gold" id="nextBtn">&#9654; NEW PUZZLE</button>
     <button class="bigbtn grey" id="menuBtn">Change size</button>
+  </div>
+</div>
+
+<!-- NEW POKEMON REVEAL -->
+<div class="overlay hide" id="revOv">
+  <div class="panel">
+    <div class="revtitle">NEW POKEMON!</div>
+    <div class="revq" id="revQ">Who's that Pokemon?</div>
+    <div class="flipwrap" id="flipWrap">
+      <div class="flip" id="flip">
+        <div class="face front"><span class="art" id="revFront"></span></div>
+        <div class="face back"><span class="art" id="revBack"></span></div>
+      </div>
+    </div>
+    <div id="revName"></div>
+    <div id="revMeta"></div>
+    <div class="btnrow revbtns">
+      <button class="bigbtn gold" id="revNextBtn">&#9654; NEW PUZZLE</button>
+      <button class="bigbtn red" id="revDexBtn">&#128214; POKEDEX</button>
+    </div>
+  </div>
+</div>
+
+<!-- POKEDEX -->
+<div class="overlay hide" id="dexOv">
+  <div class="panel">
+    <div class="dexhead">
+      <h1>POKEDEX</h1>
+      <div class="dexcount" id="dexCount">Caught <b>0</b> / 60</div>
+      <div class="dexbar"><i id="dexBarFill"></i></div>
+      <button class="bigbtn grey" id="dexClose">&#10006; Close</button>
+    </div>
+    <div id="dexDetail"></div>
+    <div id="dexGrid"></div>
   </div>
 </div>
 
@@ -253,19 +440,73 @@ var DIG_BUDGET_MS = 220;     /* hard stop on the dig loop so it can never hang *
 var SPRITE_BASE_DEFAULT = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/";
 var SPRITE_BASE = SPRITE_BASE_DEFAULT;
 
-/* nine popular Pokemon, in the order values 1..9 are handed out */
-var POKEMON = [
-  {id:25,  name:"Pikachu",    color:"#f7d02c"},
-  {id:1,   name:"Bulbasaur",  color:"#5fd68a"},
-  {id:4,   name:"Charmander", color:"#ff8a4c"},
-  {id:7,   name:"Squirtle",   color:"#6ec6ff"},
-  {id:133, name:"Eevee",      color:"#c99a63"},
-  {id:52,  name:"Meowth",     color:"#efdca6"},
-  {id:39,  name:"Jigglypuff", color:"#ffa8cc"},
-  {id:143, name:"Snorlax",    color:"#7f92c4"},
-  {id:94,  name:"Gengar",     color:"#a884e0"}
+/* ---------------- the Pokedex: 60 collectable Pokemon ----------------
+   tier 0 = common   (a 4x4 catches these)
+   tier 1 = uncommon (a 6x6 catches these, or any common left)
+   tier 2 = rare     (only a 9x9 reaches these: Dragonite, Mewtwo, Mew,
+                      the three legendary birds, the final evolutions)      */
+var TIER_NAME = ["Common", "Uncommon", "Rare"];
+var TIER_SIZE = [4, 6, 9];
+var C = {grass:"#5fd68a", fire:"#ff8a4c", water:"#6ec6ff", bug:"#a8c83a", normal:"#c9b89a",
+         elec:"#f7d02c", poison:"#b07ad8", psy:"#ff7fb0", fight:"#d0604a", rock:"#b8a26a",
+         ghost:"#a884e0", dragon:"#7a6cf0", ice:"#9ee6e6", fairy:"#ffa8cc"};
+var DEX = [
+  [1,"Bulbasaur",0,C.grass],   [2,"Ivysaur",1,C.grass],    [3,"Venusaur",2,C.grass],
+  [4,"Charmander",0,C.fire],   [5,"Charmeleon",1,C.fire],  [6,"Charizard",2,C.fire],
+  [7,"Squirtle",0,C.water],    [8,"Wartortle",1,C.water],  [9,"Blastoise",2,C.water],
+  [10,"Caterpie",0,C.bug],     [11,"Metapod",0,C.bug],     [12,"Butterfree",1,C.bug],
+  [13,"Weedle",0,C.bug],       [14,"Kakuna",0,C.bug],      [15,"Beedrill",1,C.bug],
+  [16,"Pidgey",0,C.normal],    [17,"Pidgeotto",0,C.normal],[18,"Pidgeot",1,C.normal],
+  [25,"Pikachu",0,"#f7d02c"],  [26,"Raichu",1,C.elec],
+  [39,"Jigglypuff",0,C.fairy], [43,"Oddish",0,C.grass],    [44,"Gloom",0,C.grass],
+  [45,"Vileplume",1,C.grass],  [52,"Meowth",0,"#efdca6"],  [54,"Psyduck",0,C.water],
+  [60,"Poliwag",0,C.water],    [61,"Poliwhirl",1,C.water], [62,"Poliwrath",2,C.water],
+  [63,"Abra",0,C.psy],         [64,"Kadabra",1,C.psy],     [65,"Alakazam",2,C.psy],
+  [66,"Machop",0,C.fight],     [67,"Machoke",1,C.fight],   [68,"Machamp",2,C.fight],
+  [69,"Bellsprout",0,C.grass], [70,"Weepinbell",0,C.grass],[71,"Victreebel",1,C.grass],
+  [74,"Geodude",0,C.rock],     [75,"Graveler",1,C.rock],   [76,"Golem",2,C.rock],
+  [92,"Gastly",0,C.ghost],     [93,"Haunter",1,C.ghost],   [94,"Gengar",2,"#a884e0"],
+  [129,"Magikarp",0,C.water],  [130,"Gyarados",1,C.water], [131,"Lapras",2,C.ice],
+  [133,"Eevee",0,"#c99a63"],   [134,"Vaporeon",1,C.water], [135,"Jolteon",1,C.elec],
+  [136,"Flareon",1,C.fire],    [143,"Snorlax",1,"#7f92c4"],
+  [144,"Articuno",2,C.ice],    [145,"Zapdos",2,C.elec],    [146,"Moltres",2,C.fire],
+  [147,"Dratini",1,C.dragon],  [148,"Dragonair",2,C.dragon],[149,"Dragonite",2,"#f2a65a"],
+  [150,"Mewtwo",2,C.psy],      [151,"Mew",2,"#ffb3d9"]
+].map(function(a){ return {id:a[0], name:a[1], tier:a[2], color:a[3]}; });
+var DEX_BY = {};
+DEX.forEach(function(p){ DEX_BY[p.id] = p; });
+
+/* the classic nine, in the order values 1..9 are handed out */
+var DEFAULT9 = [25, 1, 4, 7, 133, 52, 39, 143, 94].map(function(id){ return DEX_BY[id]; });
+
+/* Evolution lines. `ids[0]` is the first stage: a line is offered only once
+   that one is caught. `partners` top the piece set up to 4, 6 or 9.        */
+var LINES = [
+  {key:"bulbasaur",  ids:[1,2,3],         partners:["charmander","squirtle"]},
+  {key:"charmander", ids:[4,5,6],         partners:["squirtle","bulbasaur"]},
+  {key:"squirtle",   ids:[7,8,9],         partners:["bulbasaur","charmander"]},
+  {key:"caterpie",   ids:[10,11,12],      partners:["weedle","pidgey"]},
+  {key:"weedle",     ids:[13,14,15],      partners:["caterpie","pidgey"]},
+  {key:"pidgey",     ids:[16,17,18],      partners:["caterpie","weedle"]},
+  {key:"pikachu",    ids:[25,26],         partners:["eevee","charmander"]},
+  {key:"oddish",     ids:[43,44,45],      partners:["bellsprout","bulbasaur"]},
+  {key:"poliwag",    ids:[60,61,62],      partners:["squirtle","machop"]},
+  {key:"abra",       ids:[63,64,65],      partners:["gastly","machop"]},
+  {key:"machop",     ids:[66,67,68],      partners:["geodude","poliwag"]},
+  {key:"bellsprout", ids:[69,70,71],      partners:["oddish","bulbasaur"]},
+  {key:"geodude",    ids:[74,75,76],      partners:["machop","charmander"]},
+  {key:"gastly",     ids:[92,93,94],      partners:["abra","dratini"]},
+  {key:"magikarp",   ids:[129,130],       partners:["squirtle","poliwag"]},
+  {key:"eevee",      ids:[133,134,135,136], partners:["pikachu","squirtle"]},
+  {key:"dratini",    ids:[147,148,149],   partners:["charmander","gastly"]}
 ];
-var spriteFail = {};   /* pokemon value -> true once its image has failed */
+var LINE_BY = {}, LINE_START = {};
+LINES.forEach(function(L){ LINE_BY[L.key] = L; LINE_START[L.ids[0]] = L; });
+
+/* the piece set for the puzzle being played: SET[v-1] is the Pokemon for value v */
+var SET = DEFAULT9.slice(0, 4);
+var spriteFail = {};   /* pokemon id -> true once its small sprite has failed */
+var bigFail = {};      /* pokemon id -> true once its big artwork has failed */
 
 /* ---------------- query string / embed ---------------- */
 var QS = new URLSearchParams(location.search);
@@ -287,11 +528,58 @@ var coins = 55;
 if (EMBED){
   var qc = parseInt(QS.get("coins"), 10);
   if (isFinite(qc) && qc >= 0) coins = qc;
-}
+} else if (window.Wallet){ coins = Wallet.coins(); Wallet.resetSync(coins); }   /* shared arcade wallet */
 
 /* ---------------- guarded storage ---------------- */
 function lsGet(k, d){ try{ var v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+
+/* ---------------- Pokedex save (localStorage "pokeDex.v1") ----------------
+   Shape: {v:1, caught:{"<id>":<ms timestamp>}, order:[id, id, ...]}
+   Every read is validated: unknown ids are dropped, a corrupt blob falls
+   back to an empty dex instead of breaking the game.                      */
+var DEX_KEY = "pokeDex.v1";
+function dexEmpty(){ return {v:1, caught:{}, order:[]}; }
+function dexLoad(){
+  var raw = null;
+  try { raw = localStorage.getItem(DEX_KEY); } catch(e){ return dexEmpty(); }
+  if (!raw) return dexEmpty();
+  try {
+    var o = JSON.parse(raw);
+    var out = dexEmpty();
+    if (!o || typeof o !== "object") return out;
+    var src = (o.caught && typeof o.caught === "object") ? o.caught : {};
+    Object.keys(src).forEach(function(k){
+      var id = parseInt(k, 10);
+      if (DEX_BY[id]) out.caught[id] = Number(src[k]) || 1;
+    });
+    var ord = Array.isArray(o.order) ? o.order : [];
+    ord.forEach(function(id){
+      id = parseInt(id, 10);
+      if (out.caught[id] && out.order.indexOf(id) === -1) out.order.push(id);
+    });
+    /* anything caught but missing from the order goes on the end */
+    Object.keys(out.caught).forEach(function(k){
+      var id = parseInt(k, 10);
+      if (out.order.indexOf(id) === -1) out.order.push(id);
+    });
+    return out;
+  } catch(e){ return dexEmpty(); }
+}
+var DEXS = dexLoad();
+function dexSave(){
+  try { localStorage.setItem(DEX_KEY, JSON.stringify(DEXS)); return true; }
+  catch(e){ return false; }   /* private mode: the catch still counts this session */
+}
+function isCaught(id){ return !!DEXS.caught[id]; }
+function caughtCount(){ return DEXS.order.length; }
+function dexAdd(id){
+  if (!DEX_BY[id] || isCaught(id)) return false;
+  DEXS.caught[id] = Date.now();
+  DEXS.order.push(id);
+  dexSave();
+  return true;
+}
 
 /* ---------------- guarded sound ---------------- */
 var Snd = (function(){
@@ -478,16 +766,16 @@ function makePuzzle(N, diff, seed){
 /* =========================================================================
    SPRITES (runtime CDN load + guaranteed offline fallback)
    ========================================================================= */
-function fallbackNode(v){
-  var p = POKEMON[v-1];
+function fallbackNode(p){
   var s = document.createElement("span");
   s.className = "fb";
-  s.style.background = p.color;
-  s.textContent = p.name.charAt(0).toUpperCase();
+  s.style.background = (p && p.color) || "#8a97a3";
+  s.textContent = (p && p.name) ? p.name.charAt(0).toUpperCase() : "?";
   return s;
 }
-function artNode(v){
-  var p = POKEMON[v-1];
+/* p = a DEX entry. big = try the large official artwork first (reveal only),
+   dropping to the small sprite, then to the lettered circle. */
+function artNode(p, big){
   var box = document.createElement("span");
   box.className = "pkart";
   box.style.display = "flex";
@@ -495,27 +783,101 @@ function artNode(v){
   box.style.justifyContent = "center";
   box.style.width = "100%";
   box.style.height = "100%";
-  if (spriteFail[v]){ box.appendChild(fallbackNode(v)); return box; }
+  if (!p){ box.appendChild(fallbackNode(null)); return box; }
+  var id = p.id;
+  var useBig = !!big && !bigFail[id];
+  if (!useBig && spriteFail[id]){ box.appendChild(fallbackNode(p)); return box; }
   var img = document.createElement("img");
   img.alt = p.name;
   img.draggable = false;
+  if (useBig) img.style.imageRendering = "auto";
   img.onerror = function(){
-    spriteFail[v] = true;
     try{
+      if (useBig){
+        bigFail[id] = true;
+        useBig = false;
+        img.style.imageRendering = "";
+        if (!spriteFail[id]){ img.src = SPRITE_BASE + id + ".png"; return; }
+      } else {
+        spriteFail[id] = true;
+      }
       box.innerHTML = "";
-      box.appendChild(fallbackNode(v));
+      box.appendChild(fallbackNode(p));
     }catch(e){}
   };
-  try { img.src = SPRITE_BASE + p.id + ".png"; }
-  catch(e){ spriteFail[v] = true; box.appendChild(fallbackNode(v)); return box; }
+  try { img.src = useBig ? (SPRITE_BASE + "other/official-artwork/" + id + ".png") : (SPRITE_BASE + id + ".png"); }
+  catch(e){ spriteFail[id] = true; box.appendChild(fallbackNode(p)); return box; }
   box.appendChild(img);
   return box;
 }
 function cellArt(v){
   var w = document.createElement("span");
   w.className = "pk";
-  w.appendChild(artNode(v));
+  w.appendChild(artNode(SET[v-1]));
   return w;
+}
+
+/* =========================================================================
+   PIECE SETS (classic nine / my team / evolution line)
+   ========================================================================= */
+function shuffled(arr){
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i+1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+/* add Pokemon ids to `out` (no repeats) until it holds N */
+function topUp(out, ids, N){
+  for (var i = 0; i < ids.length && out.length < N; i++){
+    var p = DEX_BY[ids[i]];
+    if (p && out.indexOf(p) === -1) out.push(p);
+  }
+  return out;
+}
+function unlockedLines(){
+  return LINES.filter(function(L){ return isCaught(L.ids[0]); });
+}
+/* Always returns exactly N distinct Pokemon. */
+function buildSet(mode, N, lineKey){
+  var out = [];
+  var dflt = DEFAULT9.map(function(p){ return p.id; });
+  if (mode === "team"){
+    /* his own catches, shuffled; topped up from the classic nine if he has fewer than N */
+    topUp(out, shuffled(DEXS.order), N);
+  } else if (mode === "evo" && LINE_BY[lineKey] && isCaught(LINE_BY[lineKey].ids[0])){
+    var L = LINE_BY[lineKey];
+    topUp(out, L.ids, N);
+    for (var k = 0; k < L.partners.length && out.length < N; k++){
+      var P = LINE_BY[L.partners[k]];
+      if (P) topUp(out, P.ids, N);
+    }
+  }
+  topUp(out, dflt, N);
+  /* belt and braces: the 60-strong dex always has enough to finish */
+  topUp(out, DEX.map(function(p){ return p.id; }), N);
+  return out.slice(0, N);
+}
+
+/* Which Pokemon does this win catch?
+   Own tier first (4x4 common, 6x6 uncommon, 9x9 rare), then lower tiers.
+   Never a HIGHER tier: rares stay a 9x9 prize. An evolution puzzle prefers
+   the next uncaught stage of its own line when the size allows it.       */
+function pickUnlock(N, mode, lineKey){
+  var allowed = N >= 9 ? 2 : (N >= 6 ? 1 : 0);
+  var left = DEX.filter(function(p){ return !isCaught(p.id); });
+  if (!left.length) return {p:null, reason:"all"};
+  if (mode === "evo" && LINE_BY[lineKey]){
+    var nextStage = LINE_BY[lineKey].ids.map(function(id){ return DEX_BY[id]; })
+      .filter(function(p){ return p && !isCaught(p.id) && p.tier <= allowed; });
+    if (nextStage.length) return {p:nextStage[0], reason:"line"};
+  }
+  for (var t = allowed; t >= 0; t--){
+    var pool = left.filter(function(p){ return p.tier === t; });
+    if (pool.length) return {p:pool[Math.floor(Math.random()*pool.length)], reason:"tier"};
+  }
+  return {p:null, reason:"bigger"};
 }
 
 /* =========================================================================
@@ -532,12 +894,15 @@ var S = {
   history: [],
   clash: {},
   started: 0, elapsed: 0, running: false, done: false,
-  seed: 0, genMs: 0
+  seed: 0, genMs: 0,
+  mode: "classic", line: null,   /* piece set: classic | team | evo (+ line key) */
+  paid: false,                   /* reward + catch happen ONCE per puzzle, even after undo */
+  unlock: null                   /* {p, reason} from this puzzle's win */
 };
 var cellEls = [], tileEls = [];
 
 /* ---------------- coins ---------------- */
-function paintCoins(){ $("coinN").textContent = coins; }
+function paintCoins(){ $("coinN").textContent = coins; if (!EMBED && window.Wallet) Wallet.syncFrom(coins); }
 function spend(n){
   /* spending is NEVER blocked: it floors at zero and the action still runs */
   coins = Math.max(0, coins - n);
@@ -609,10 +974,10 @@ function buildPicker(){
       t.className = "pk-tile";
       var art = document.createElement("span");
       art.className = "art";
-      art.appendChild(artNode(v));
+      art.appendChild(artNode(SET[v-1]));
       var nm = document.createElement("span");
       nm.className = "nm";
-      nm.textContent = POKEMON[v-1].name;
+      nm.textContent = SET[v-1].name;
       t.appendChild(art); t.appendChild(nm);
       t.addEventListener("click", function(){ onPickTap(v); });
       pickerEl.appendChild(t);
@@ -827,13 +1192,86 @@ function checkWin(){
   S.sel = -1;
   render();
   var reward = REWARD[S.N] || 10;
-  earn(reward);
+  var firstWin = !S.paid;
+  if (firstWin){
+    /* coins and the Pokedex catch pay out ONCE per puzzle: undo + re-solve
+       (or Start over + re-solve) must not farm extra Pokemon */
+    S.paid = true;
+    earn(reward);
+    S.unlock = pickUnlock(S.N, S.mode, S.line);
+    if (S.unlock.p) dexAdd(S.unlock.p.id);
+  }
   Snd.solved();
-  $("winStats").innerHTML = "Time <b>" + fmt(S.elapsed) + "</b> &nbsp; Reward <b>\uD83E\uDE99" + reward + "</b>";
-  $("winSub").textContent = S.N + " x " + S.N + " " + DIFF_NAME[S.diff] + ". Coins now " + coins + ".";
+  $("winStats").innerHTML = "Time <b>" + fmt(S.elapsed) + "</b> &nbsp; Reward <b>\uD83E\uDE99" + (firstWin ? reward : 0) + "</b>";
+  var sub = S.N + " x " + S.N + " " + DIFF_NAME[S.diff] + ". Coins now " + coins + ".";
+  var u = S.unlock;
+  var showBall = !!(firstWin && u && u.p);
+  if (firstWin && u && !u.p){
+    if (u.reason === "all") sub += " You have caught all " + DEX.length + " Pokemon!";
+    else sub += " Try a " + (S.N < 6 ? "6 x 6" : "9 x 9") + " puzzle to catch rarer Pokemon!";
+  }
+  if (!firstWin) sub += " (This puzzle's Pokemon is already in your Pokedex.)";
+  $("winSub").textContent = sub;
+  $("ballBtn").classList.toggle("hide", !showBall);
   $("winOv").classList.remove("hide");
+  clearTimeout(revealT);
+  if (showBall){
+    /* start downloading the big artwork now so the silhouette is ready */
+    try { var pre = new Image(); pre.src = SPRITE_BASE + "other/official-artwork/" + u.p.id + ".png"; } catch(e){}
+    /* the win panel gets a moment, then the Poke Ball opens by itself */
+    revealT = setTimeout(function(){ openReveal(u.p); }, 1700);
+  }
   if (EMBED) toGame({type:"solved", size:S.N, seconds:S.elapsed});
   return true;
+}
+
+/* =========================================================================
+   NEW POKEMON REVEAL
+   ========================================================================= */
+var revealT = null, flipT = null, revealP = null;
+function openReveal(p){
+  clearTimeout(revealT); clearTimeout(flipT);
+  if (!p) return false;
+  revealP = p;
+  $("ballBtn").classList.add("hide");
+  var front = $("revFront"), back = $("revBack");
+  front.innerHTML = ""; back.innerHTML = "";
+  front.appendChild(artNode(p, true));
+  back.appendChild(artNode(p, true));
+  var flip = $("flip");
+  /* snap back to the silhouette side with NO animation, otherwise the card
+     spins back from the last reveal and spoils who it is */
+  flip.style.transition = "none";
+  flip.classList.remove("go");
+  $("flipWrap").classList.remove("lit");
+  void flip.offsetWidth;
+  flip.style.transition = "";
+  flip.classList.add("shake");
+  $("revQ").textContent = "Who's that Pokemon?";
+  $("revName").textContent = "";
+  $("revMeta").innerHTML = "";
+  $("revOv").classList.remove("hide");
+  flipT = setTimeout(flipReveal, 1400);
+  return true;
+}
+function flipReveal(){
+  clearTimeout(flipT);
+  var p = revealP;
+  var flip = $("flip");
+  if (!p || flip.classList.contains("go")) return;
+  flip.classList.remove("shake");
+  flip.classList.add("go");
+  $("flipWrap").classList.add("lit");
+  $("revQ").textContent = "You caught...";
+  $("revName").textContent = p.name + "!";
+  var cls = p.tier === 2 ? "rare" : (p.tier === 1 ? "unc" : "");
+  $("revMeta").innerHTML = "#" + ("00" + p.id).slice(-3) + " &nbsp;<span class=\"" + cls + "\">" +
+    TIER_NAME[p.tier].toUpperCase() + "</span> &nbsp; Caught " + caughtCount() + " / " + DEX.length;
+  try { Snd.file("62-toasty", 0.8); } catch(e){}
+}
+function closeReveal(){
+  clearTimeout(revealT); clearTimeout(flipT);
+  $("revOv").classList.add("hide");
 }
 
 function hint(){
@@ -856,7 +1294,7 @@ function hint(){
   render();
   var el = cellEls[idx];
   el.classList.remove("hintpop"); void el.offsetWidth; el.classList.add("hintpop");
-  toast(POKEMON[S.G[idx]-1].name + " goes here!", "gold");
+  toast(SET[S.G[idx]-1].name + " goes here!", "gold");
   if (unitDone(idx)) Snd.unit();
   checkWin();
   return true;
@@ -876,6 +1314,7 @@ function restart(){
   S.sel = -1; S.selPk = -1;
   S.done = false; S.running = false; S.elapsed = 0; S.started = 0;
   $("winOv").classList.add("hide");
+  closeReveal();
   render();
   layout();
   toast("Fresh start!", "", 900);
@@ -883,11 +1322,21 @@ function restart(){
 }
 
 /* ---------------- new puzzle ---------------- */
-function newPuzzle(size, diff, seed){
+/* pieces (optional): {mode:"classic"|"team"|"evo", line:"<key>", set:[DEX entries]} */
+function newPuzzle(size, diff, seed, pieces){
   var N = (size === 4 || size === 6 || size === 9) ? size : 4;
   var d = (diff === "easy" || diff === "medium" || diff === "hard") ? diff : "easy";
   var sd = (seed === undefined || seed === null) ? ((Math.random()*4294967295) >>> 0) : (seed >>> 0);
+  var pc = pieces || {};
+  var mode = (pc.mode === "team" || pc.mode === "evo") ? pc.mode : "classic";
+  var line = (mode === "evo" && LINE_BY[pc.line] && isCaught(LINE_BY[pc.line].ids[0])) ? pc.line : null;
+  if (mode === "evo" && !line) mode = "classic";      /* locked line: never start a broken set */
+  var set = (Array.isArray(pc.set) && pc.set.length === N) ? pc.set : buildSet(mode, N, line);
   var made = makePuzzle(N, d, sd);
+  clearTimeout(revealT); clearTimeout(flipT);
+  $("revOv").classList.add("hide");
+  SET = set.slice();
+  S.mode = mode; S.line = line; S.paid = false; S.unlock = null;
   S.N = N; S.diff = d; S.seed = made.seed; S.genMs = made.ms;
   S.puzzle = made.puzzle.slice();
   S.solution = made.solution.slice();
@@ -897,7 +1346,7 @@ function newPuzzle(size, diff, seed){
   S.sel = -1; S.selPk = -1;
   S.clash = {};
   S.done = false; S.running = false; S.elapsed = 0; S.started = 0;
-  $("sizeN").textContent = N + "x" + N;
+  $("sizeN").textContent = N + "x" + N + (mode === "evo" ? " EVO" : (mode === "team" ? " TEAM" : ""));
   $("winOv").classList.add("hide");
   buildPicker();
   buildBoard();
@@ -1020,16 +1469,17 @@ $("muteBtn").addEventListener("click", function(){
 $("muteBtn").textContent = Snd.isOn() ? "\uD83D\uDD0A" : "\uD83D\uDD07";
 $("closeBtn").addEventListener("click", function(){
   if (EMBED) toGame({type:"close"});
-  else $("startOv").classList.remove("hide");
+  else showStart();
 });
 
-var pickSize = 4, pickDiff = "easy";
+var pickSize = 4, pickDiff = "easy", pickMode = "classic", pickLine = null;
+var pendingSet = null;   /* the exact pieces the roster is showing; PLAY uses these */
 $("sizeOpts").addEventListener("click", function(e){
   var b = e.target.closest("button"); if (!b) return;
   Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
   b.classList.add("on");
   pickSize = parseInt(b.dataset.size, 10);
-  paintRoster();
+  paintStart();
 });
 $("diffOpts").addEventListener("click", function(e){
   var b = e.target.closest("button"); if (!b) return;
@@ -1037,38 +1487,189 @@ $("diffOpts").addEventListener("click", function(e){
   b.classList.add("on");
   pickDiff = b.dataset.diff;
 });
+$("modeOpts").addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  pickMode = b.dataset.mode;
+  paintStart();
+});
+$("lineOpts").addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  pickLine = b.dataset.line;
+  paintStart();
+});
+
+/* repaint the whole start screen from pickSize / pickMode / pickLine + the save */
+function paintStart(){
+  var lines = unlockedLines();
+  if (pickMode === "evo" && lines.length && !(pickLine && LINE_BY[pickLine] && isCaught(LINE_BY[pickLine].ids[0]))){
+    pickLine = lines[0].key;
+  }
+  Array.prototype.forEach.call($("modeOpts").querySelectorAll("button"), function(x){
+    x.classList.toggle("on", x.dataset.mode === pickMode);
+    if (x.dataset.mode === "evo") x.classList.toggle("lock", !lines.length);
+    if (x.dataset.mode === "team") x.classList.toggle("lock", caughtCount() === 0);
+  });
+  var note = "";
+  var lw = $("lineWrap"), lo = $("lineOpts");
+  lo.innerHTML = "";
+  if (pickMode === "evo" && lines.length){
+    lw.classList.remove("hide");
+    lines.forEach(function(L){
+      var first = DEX_BY[L.ids[0]];
+      var b = document.createElement("button");
+      b.className = "lnbtn" + (L.key === pickLine ? " on" : "");
+      b.dataset.line = L.key;
+      var a = document.createElement("span"); a.className = "art";
+      a.appendChild(artNode(first));
+      var t = document.createElement("span"); t.textContent = first.name;
+      b.appendChild(a); b.appendChild(t);
+      lo.appendChild(b);
+    });
+  } else {
+    lw.classList.add("hide");
+    if (pickMode === "evo") note = "Catch a first Pokemon like Charmander, Squirtle or Pikachu to unlock its evolution puzzle!";
+  }
+  if (pickMode === "team"){
+    var have = caughtCount();
+    if (have === 0) note = "Solve a puzzle to catch your first Pokemon for your team!";
+    else if (have < pickSize) note = "Your " + have + " Pokemon, plus " + (pickSize - have) + " from the classic team. Catch more to fill it!";
+  }
+  $("modeNote").textContent = note;
+  var mode = (pickMode === "evo" && !lines.length) ? "classic" : pickMode;
+  pendingSet = buildSet(mode, pickSize, pickLine);
+  paintRoster();
+  $("dexCountS").textContent = caughtCount() + "/" + DEX.length;
+}
 function paintRoster(){
   var w = $("roster");
   w.innerHTML = "";
-  for (var v = 1; v <= pickSize; v++){
+  var set = pendingSet || buildSet("classic", pickSize, null);
+  for (var v = 0; v < set.length; v++){
     var d = document.createElement("div"); d.className = "r";
     var art = document.createElement("div"); art.className = "art";
-    art.appendChild(artNode(v));
+    art.appendChild(artNode(set[v]));
     var nm = document.createElement("div"); nm.className = "nm";
-    nm.textContent = POKEMON[v-1].name;
+    nm.textContent = set[v].name;
     d.appendChild(art); d.appendChild(nm);
     w.appendChild(d);
   }
 }
-paintRoster();
+function showStart(){
+  paintStart();
+  $("startOv").classList.remove("hide");
+}
+
+/* ---------------- Pokedex screen ---------------- */
+var dexFresh = null;   /* id to sparkle when the dex opens right after a catch */
+function openDex(focusId){
+  paintDex(focusId);
+  $("dexOv").classList.remove("hide");
+  return true;
+}
+function closeDex(){ $("dexOv").classList.add("hide"); }
+function paintDex(focusId){
+  var n = caughtCount();
+  $("dexCount").innerHTML = "Caught <b>" + n + "</b> / " + DEX.length;
+  $("dexBarFill").style.width = Math.round(100 * n / DEX.length) + "%";
+  var g = $("dexGrid");
+  g.innerHTML = "";
+  DEX.forEach(function(p){
+    var got = isCaught(p.id);
+    var b = document.createElement("button");
+    b.className = "dx t" + p.tier + (got ? "" : " un") + (p.id === dexFresh ? " fresh" : "");
+    b.dataset.id = String(p.id);
+    var no = document.createElement("span"); no.className = "no";
+    no.textContent = "#" + ("00" + p.id).slice(-3);
+    var a = document.createElement("span"); a.className = "art";
+    a.appendChild(artNode(p));
+    var nm = document.createElement("span"); nm.className = "nm";
+    nm.textContent = got ? p.name : "???";
+    b.appendChild(no); b.appendChild(a); b.appendChild(nm);
+    if (p.tier === 2){ var tr = document.createElement("span"); tr.className = "tier"; tr.textContent = "⭐"; b.appendChild(tr); }
+    if (got && LINE_START[p.id]){ var ev = document.createElement("span"); ev.className = "evo"; ev.textContent = "EVO"; b.appendChild(ev); }
+    b.addEventListener("click", function(){ dexDetail(p.id); });
+    g.appendChild(b);
+  });
+  dexDetail(focusId || null);
+  dexFresh = null;
+}
+function dexDetail(id){
+  var box = $("dexDetail");
+  box.innerHTML = "";
+  Array.prototype.forEach.call($("dexGrid").querySelectorAll(".dx"), function(x){
+    x.classList.toggle("pick", id !== null && x.dataset.id === String(id));
+  });
+  var p = DEX_BY[id];
+  if (!p) return;
+  var got = isCaught(p.id);
+  var a = document.createElement("span"); a.className = "art";
+  a.appendChild(artNode(p));
+  if (!got){ a.style.filter = "brightness(0)"; }
+  var t = document.createElement("div"); t.className = "dtxt";
+  if (got){
+    t.innerHTML = "#" + ("00" + p.id).slice(-3) + " " + p.name + "<small>" + TIER_NAME[p.tier] + "</small>";
+  } else {
+    t.innerHTML = "???<small>Solve a " + TIER_SIZE[p.tier] + " x " + TIER_SIZE[p.tier] +
+      " puzzle to find this " + TIER_NAME[p.tier].toLowerCase() + " Pokemon</small>";
+  }
+  box.appendChild(a); box.appendChild(t);
+  var L = LINE_START[p.id];
+  if (got && L){
+    var b = document.createElement("button");
+    b.className = "bigbtn gold";
+    b.innerHTML = "&#10024; " + p.name + " evolution puzzle";
+    b.addEventListener("click", function(){ startEvoFromDex(L.key); });
+    box.appendChild(b);
+  }
+}
+/* picking a line in the Pokedex takes him to the start screen with it chosen */
+function startEvoFromDex(key){
+  if (!LINE_BY[key] || !isCaught(LINE_BY[key].ids[0])) return false;
+  pickMode = "evo"; pickLine = key;
+  closeDex(); closeReveal();
+  $("winOv").classList.add("hide");
+  showStart();
+  return true;
+}
 
 $("playBtn").addEventListener("click", function(){
   $("startOv").classList.add("hide");
-  newPuzzle(pickSize, pickDiff);
+  var mode = pickMode;
+  if (mode === "evo" && !unlockedLines().length) mode = "classic";
+  newPuzzle(pickSize, pickDiff, undefined, {mode:mode, line:pickLine, set:pendingSet});
 });
-$("nextBtn").addEventListener("click", function(){
+function nextPuzzle(){
   $("winOv").classList.add("hide");
-  newPuzzle(S.N, S.diff);
-});
+  closeReveal();
+  /* same size and piece style; "My team" re-deals so new catches can join */
+  newPuzzle(S.N, S.diff, undefined, {mode:S.mode, line:S.line});
+}
+$("nextBtn").addEventListener("click", nextPuzzle);
 $("menuBtn").addEventListener("click", function(){
   $("winOv").classList.add("hide");
+  closeReveal();
   if (EMBED) toGame({type:"close"});
-  else $("startOv").classList.remove("hide");
+  else showStart();
 });
+$("ballBtn").addEventListener("click", function(){ if (S.unlock && S.unlock.p) openReveal(S.unlock.p); });
+$("flipWrap").addEventListener("click", flipReveal);
+$("revNextBtn").addEventListener("click", nextPuzzle);
+$("revDexBtn").addEventListener("click", function(){
+  var id = revealP ? revealP.id : null;
+  flipReveal();
+  dexFresh = id;
+  openDex(id);
+});
+$("dexBtn").addEventListener("click", function(){ openDex(); });
+$("dexOpenBtn").addEventListener("click", function(){ openDex(); });
+$("dexClose").addEventListener("click", function(){ closeDex(); if (!$("startOv").classList.contains("hide")) paintStart(); });
 
 /* keyboard shortcuts help on a laptop */
 window.addEventListener("keydown", function(e){
   if (S.done) return;
+  /* no board moves while a menu, the Pokedex or the reveal is on top */
+  if (!$("startOv").classList.contains("hide") || !$("dexOv").classList.contains("hide") ||
+      !$("revOv").classList.contains("hide")) return;
   if (/^[1-9]$/.test(e.key)){
     var v = Number(e.key);
     if (v <= S.N) onPickTap(v);
@@ -1092,6 +1693,7 @@ if (EMBED){
   /* the start screen is showing, but build a 4x4 behind it so layout is settled */
   newPuzzle(4, "easy");
 }
+paintStart();
 setTimeout(layout, 60);
 
 /* =========================================================================
@@ -1122,17 +1724,45 @@ window.POKE = {
   /* flips the sprite CDN so the offline fallback can be tested for real */
   setSpriteBase: function(base){
     SPRITE_BASE = (base === undefined || base === null) ? SPRITE_BASE_DEFAULT : base;
-    spriteFail = {};
+    spriteFail = {}; bigFail = {};
     buildPicker();
     for (var i = 0; i < cellEls.length; i++) cellEls[i].dataset.v = "";
-    paintRoster();
+    paintStart();
     render();
     layout();
     return SPRITE_BASE;
   },
   coins: function(){ return coins; },
   setCoins: function(n){ coins = Math.max(0, n|0); paintCoins(); return coins; },
-  layout: layout
+  layout: layout,
+  /* ---- Pokedex / piece-set hooks ---- */
+  newPuzzleMode: function(size, diff, seed, mode, line){ return newPuzzle(size, diff, seed, {mode:mode, line:line}); },
+  /* fills every empty square with its answer through the normal place path */
+  solve: function(){
+    var N = S.N;
+    for (var i = 0; i < N*N; i++){ if (!S.given[i] && S.G[i] !== S.solution[i]) doPlace(i, S.solution[i]); }
+    return isSolved();
+  },
+  set: function(){ return SET.map(function(p){ return p.id; }); },
+  setNames: function(){ return SET.map(function(p){ return p.name; }); },
+  mode: function(){ return {mode:S.mode, line:S.line, paid:S.paid, unlock:S.unlock && S.unlock.p ? S.unlock.p.id : (S.unlock ? S.unlock.reason : null)}; },
+  dex: function(){ return JSON.parse(JSON.stringify(DEXS)); },
+  dexRaw: function(){ try { return localStorage.getItem(DEX_KEY); } catch(e){ return "ERR " + e; } },
+  dexAll: function(){ return DEX.map(function(p){ return {id:p.id, name:p.name, tier:p.tier}; }); },
+  lines: function(){ return LINES.map(function(L){ return {key:L.key, ids:L.ids.slice(), open:isCaught(L.ids[0])}; }); },
+  buildSet: function(mode, N, line){ return buildSet(mode, N, line).map(function(p){ return p.id; }); },
+  /* replace the saved dex with exactly these ids (tests only) */
+  setDex: function(ids){
+    DEXS = dexEmpty();
+    (ids || []).forEach(function(id){ dexAdd(id); });
+    dexSave();
+    paintStart();
+    return caughtCount();
+  },
+  openDex: function(id){ return openDex(id); },
+  openReveal: function(id){ return openReveal(DEX_BY[id]); },
+  flip: function(){ flipReveal(); return true; },
+  soundOn: function(){ return Snd.isOn(); }
 };
 
 })();

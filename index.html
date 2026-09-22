@@ -62,12 +62,48 @@
     background:rgba(22,32,74,.85);border:2px solid #33418a;border-radius:12px;padding:10px 14px;font-size:15px;}
   .helpers a:hover{border-color:#4fc3ff;}
   .foot{text-align:center;color:#6f7fae;font-size:12px;margin-top:22px;}
+
+  /* brain level + shared coins + shop, the top status row */
+  .status{display:flex;gap:10px;align-items:stretch;justify-content:center;flex-wrap:wrap;margin:6px 0 4px;}
+  .brain{flex:1 1 320px;max-width:520px;display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff;
+    background:linear-gradient(135deg,rgba(18,48,79,.95),rgba(14,20,46,.95));border:2px solid #2c6aa0;border-radius:16px;padding:10px 14px;}
+  .brain .lv{flex:0 0 auto;width:58px;height:58px;border-radius:50%;background:#8fe9ff;color:#062033;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;font-weight:900;line-height:1;box-shadow:0 3px 0 #1f5a80;}
+  .brain .lv small{font-size:10px;letter-spacing:1px;}
+  .brain .lv b{font-size:26px;}
+  .brain .bt{flex:1;min-width:0;}
+  .brain .bn{font-size:12px;font-weight:800;letter-spacing:2px;color:#8fe9ff;}
+  .brain .bnm{font-size:17px;font-weight:900;line-height:1.2;}
+  .brain .bar{height:12px;border-radius:999px;background:#0b1233;border:1px solid #2c6aa0;margin-top:6px;overflow:hidden;}
+  .brain .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4fc3ff,#3ddc84);border-radius:999px;transition:width .4s;}
+  .brain .bnx{font-size:12px;color:#b3c2e6;margin-top:4px;}
+  .coinsBox{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:#ffd23f;color:#2a1f00;font-weight:900;font-size:24px;
+    border-radius:16px;padding:8px 16px;box-shadow:0 4px 0 #8a6200;white-space:nowrap;}
+  a.shopBtn{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:8px;min-height:58px;text-decoration:none;
+    background:#ff4fa3;color:#fff;font-weight:900;font-size:22px;letter-spacing:1px;border-radius:16px;padding:8px 22px;
+    box-shadow:0 4px 0 #8a1f55;border:2px solid #ffc2e0;}
+  a.shopBtn:hover,a.shopBtn:focus{transform:translateY(-2px);outline:none;}
+  @media (max-width:560px){.brain{flex-basis:100%;}.coinsBox,a.shopBtn{flex:1 1 40%;justify-content:center;}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>MATH DUNGEON ARCADE</h1>
   <div class="tag">Pick your hero, then pick a game</div>
+
+  <div class="status">
+    <div class="brain" id="brainBadge" title="Your Brain Level goes up in every game">
+      <div class="lv"><small>LEVEL</small><b id="brainNum">3</b></div>
+      <div class="bt">
+        <div class="bn">&#x1F9E0; BRAIN LEVEL</div>
+        <div class="bnm" id="brainName">Times tables to 10</div>
+        <div class="bar"><i id="brainBar"></i></div>
+        <div class="bnx" id="brainNext"></div>
+      </div>
+    </div>
+    <div class="coinsBox" title="Your coins, shared by every game">&#x1FA99; <span id="coinNum">0</span></div>
+    <a class="shopBtn" data-href="shop.html" href="shop.html">&#x1F6CD;&#xFE0F; SHOP</a>
+  </div>
 
   <div class="label">1 · YOUR HERO</div>
   <div class="heroes" id="heroes"></div>
@@ -129,6 +165,8 @@
   <div class="foot">Your hero and your choice are remembered on this device.</div>
 </div>
 
+<script src="brain.js"></script>
+<script src="wallet.js"></script>
 <script>
 (function(){
   "use strict";
@@ -167,6 +205,26 @@
     });
   }
   linkUp();
+
+  /* brain level badge + shared coin total (brain.js / wallet.js) */
+  function paintBrain(){
+    if (!window.Brain) { document.getElementById("brainBadge").style.display = "none"; return; }
+    var p = Brain.progress();
+    document.getElementById("brainNum").textContent = p.level;
+    document.getElementById("brainName").textContent = p.name;
+    document.getElementById("brainBar").style.width = Math.round(p.pct * 100) + "%";
+    document.getElementById("brainNext").textContent = p.max
+      ? "Top level! You are a math champion."
+      : p.right + " of " + p.need + " right to reach Level " + (p.level + 1) + ": " + p.next;
+  }
+  function paintCoins(){
+    document.getElementById("coinNum").textContent = window.Wallet ? Wallet.coins() : 0;
+  }
+  paintBrain(); paintCoins();
+  if (window.Brain) Brain.onChange(paintBrain);
+  if (window.Wallet) Wallet.onChange(paintCoins);
+  /* coming BACK to this page from a game (iPad back button / bfcache): repaint from storage */
+  window.addEventListener("pageshow", function(){ paintBrain(); paintCoins(); });
 
 })();
 </script>

@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Riddle Room</title>
+<style>
+:root{
+  --bg:#141a22; --stone:#2b3843; --stone2:#1f2a33; --chalk:#f4f1e8; --dim:#8a97a3;
+  --gold:#ffd23f; --good:#3ddc84; --bad:#ff4d5e; --blue:#4fc3ff; --panelbg:#0c1117; --edge:#2b3843;
+  --sh:240px;            /* scene height, recomputed in JS */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk);overflow:hidden;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+.accent{color:var(--gold)}
+
+#app{display:flex;flex-direction:column;height:100%;width:100%}
+
+/* ---------- HUD ---------- */
+#hud{display:flex;align-items:center;gap:10px;padding:4px 10px;font-weight:800;font-size:17px;
+  text-shadow:0 2px 4px #000;background:#10161d;border-bottom:2px solid var(--edge);flex:0 0 auto;z-index:6;min-height:52px}
+#hud .sp{flex:1}
+#roundBox{color:var(--blue);white-space:nowrap}
+#starRow{display:flex;gap:2px;font-size:17px;white-space:nowrap}
+#starRow span{opacity:.28}
+#starRow span.cur{opacity:.9;filter:drop-shadow(0 0 4px rgba(79,195,255,.9))}
+#starRow span.won{opacity:1}
+#starRow span.done{opacity:.75}
+#coinBox{color:var(--gold);background:var(--panelbg);padding:5px 12px;border-radius:999px;border:2px solid #3a3113;white-space:nowrap}
+#coinBox.spend{animation:spend .5s}
+#coinBox.earn{animation:earn .6s}
+@keyframes spend{30%{transform:scale(1.18);color:var(--bad)}}
+@keyframes earn{30%{transform:scale(1.2);color:var(--good)}}
+.hbtn{background:#2b3843;min-width:44px;height:44px;border-radius:12px;font-size:18px;box-shadow:0 3px 0 #111820;
+  display:flex;align-items:center;justify-content:center;padding:0 10px;font-weight:800}
+.hbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #111820}
+
+/* ---------- question bar ---------- */
+#qbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;width:min(98vw,980px);margin:6px auto 0;
+  background:var(--panelbg);border:2px solid var(--edge);border-radius:14px;padding:6px 8px}
+#heroCv{flex:0 0 auto;display:block;width:60px;height:64px}
+#qtext{flex:1 1 auto;min-width:0;font-size:clamp(17px,2.4vw,23px);font-weight:700;line-height:1.3}
+#qtext b{color:var(--gold)}
+#qbtns{flex:0 0 auto;display:flex;gap:8px;align-items:center}
+.btn{background:#2b3843;font-size:17px;font-weight:800;padding:0 14px;border-radius:12px;box-shadow:0 4px 0 #111820;
+  min-height:48px;min-width:48px;white-space:nowrap}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+.btn.blue{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
+.btn.blue:active{box-shadow:0 1px 0 #1d6f99}
+.btn.gold{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
+.btn.gold:active{box-shadow:0 1px 0 #a3830f}
+#sub{flex:0 0 auto;text-align:center;font-size:17px;font-weight:700;color:var(--dim);min-height:24px;line-height:1.3;
+  margin:3px auto 0;width:min(98vw,980px);padding:0 6px}
+#sub.bad{color:var(--bad)} #sub.good{color:var(--good)} #sub.hint{color:var(--blue)}
+
+/* ---------- stage + scene ---------- */
+#stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 8px;position:relative}
+#scene{position:relative;overflow:hidden;border-radius:16px;touch-action:none;
+  background:
+    repeating-linear-gradient(0deg,rgba(0,0,0,.30) 0 2px,rgba(0,0,0,0) 2px 46px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,rgba(0,0,0,0) 2px 92px),
+    radial-gradient(ellipse at 50% 30%,#3b4955 0%,#2a3641 45%,#1a232c 80%,#121920 100%);
+  box-shadow:0 0 0 3px #4a5a68,0 0 0 6px #232e38,0 10px 22px rgba(0,0,0,.6)}
+#scene::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.35))}
+.prop{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:44px;min-height:44px;line-height:1;z-index:2;cursor:default;transition:transform .45s ease,opacity .45s ease}
+.prop.pick,.prop.cover,.prop.drag{cursor:pointer}
+.prop.drag{touch-action:none;cursor:grab;z-index:4}
+.prop.dragging{transition:none;z-index:10;filter:drop-shadow(0 8px 10px rgba(0,0,0,.7));cursor:grabbing}
+.prop .em{display:block;line-height:1;filter:drop-shadow(0 3px 3px rgba(0,0,0,.55))}
+.prop .tx{display:block;line-height:1.05;font-weight:800;font-family:"Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif;
+  text-shadow:0 3px 4px rgba(0,0,0,.6);text-align:center;white-space:nowrap}
+.prop .box{border-radius:12px;padding:8px 12px;box-shadow:0 4px 0 rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18)}
+.prop .lab{display:block;margin-top:3px;font-size:max(16px,calc(var(--sh)*.085));font-weight:800;color:var(--chalk);
+  background:rgba(6,10,16,.78);padding:2px 8px;border-radius:8px;white-space:nowrap;line-height:1.2;text-shadow:none}
+.prop.under{z-index:1;pointer-events:none}
+.prop.under.shown{pointer-events:auto;z-index:3}
+.prop.cover{z-index:3}
+.prop.cover.moved{transform:translate(-50%,-50%) translate(62%,34%) rotate(16deg);opacity:.55;pointer-events:none}
+.prop.target{z-index:2}
+.prop.target.hot .em,.prop.target.hot .box{filter:drop-shadow(0 0 14px rgba(79,195,255,.95))}
+.prop.wig{animation:wig .4s}
+@keyframes wig{25%{transform:translate(-50%,-50%) rotate(-8deg)}75%{transform:translate(-50%,-50%) rotate(8deg)}}
+.prop.no{animation:no .45s}
+@keyframes no{20%,60%{transform:translate(-50%,-50%) translateX(-9px)}40%,80%{transform:translate(-50%,-50%) translateX(9px)}}
+.prop.yes .em,.prop.yes .tx,.prop.yes .box{filter:drop-shadow(0 0 16px rgba(61,220,132,1)) drop-shadow(0 0 4px rgba(61,220,132,1))}
+.prop.yes{z-index:6}
+.ring{position:absolute;inset:-8px;border:4px solid var(--good);border-radius:50%;pointer-events:none;animation:ring .8s ease-out}
+@keyframes ring{0%{transform:scale(.5);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.win4{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;width:calc(var(--sh)*.52);height:calc(var(--sh)*.52);
+  border:5px solid #c9a15a;background:#8fd3ff;box-shadow:0 4px 0 rgba(0,0,0,.45)}
+.win4 i{border:3px solid #c9a15a}
+
+/* ---------- answer buttons ---------- */
+#choices{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:4px 8px 10px;width:min(98vw,980px);margin:0 auto}
+#choices:empty{display:none}
+#choices button{background:#2b3843;color:var(--chalk);font-size:19px;font-weight:800;min-height:52px;min-width:88px;
+  padding:6px 18px;border-radius:12px;box-shadow:0 4px 0 #111820;line-height:1.2}
+#choices button:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
+#choices button.wrong{background:#4a2f36;color:#ffb8bf}
+#choices button.right{background:var(--good);color:#06210f}
+
+/* ---------- trick card ---------- */
+#veil{position:fixed;inset:0;background:rgba(6,9,14,.55);display:none;z-index:15}
+#veil.on{display:block}
+#card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:92vh;overflow:auto;
+  background:var(--panelbg);border:3px solid var(--gold);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.65);
+  display:none;flex-direction:column;z-index:16;padding:12px 16px 14px;text-align:center}
+#card.on{display:flex}
+#card.miss{border-color:var(--bad)}
+#cardTitle{font-size:24px;font-weight:800;color:var(--gold);margin:0 0 4px}
+#card.miss #cardTitle{color:var(--bad)}
+#cardAns{font-size:19px;font-weight:800;color:var(--good);margin:0 0 6px}
+#cardTrick{font-size:18px;line-height:1.45;margin:0 0 6px;text-align:left}
+#cardTrick b{color:var(--blue)}
+#cardStar{font-size:17px;font-weight:800;color:var(--gold);min-height:22px;margin:0 0 6px}
+#cardBtn{margin:4px auto 0;font-size:20px;min-height:52px;padding:0 26px}
+
+/* ---------- screens ---------- */
+.screen{position:fixed;inset:0;background:rgba(10,14,20,.95);display:none;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:16px;z-index:20}
+.screen.on{display:flex}
+.screen h1{font-size:clamp(28px,6vw,46px);margin:0 0 6px;color:var(--gold)}
+.screen p{margin:4px 0;font-size:clamp(16px,2.6vw,19px);color:#b9c4ce;line-height:1.45;max-width:660px}
+.big{font-size:60px;line-height:1;margin-bottom:6px}
+.bigbtn{background:var(--blue);color:#06121b;font-size:21px;font-weight:800;padding:14px 26px;border-radius:14px;
+  margin:12px 6px 0;box-shadow:0 5px 0 #1d6f99;min-height:52px}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #1d6f99}
+.bigbtn.gold{background:var(--gold);color:#1a1405;box-shadow:0 5px 0 #a3830f}
+.bigbtn.gold:active{box-shadow:0 2px 0 #a3830f}
+
+/* ---------- phone held sideways ---------- */
+@media (max-height:430px){
+  #hud{font-size:16px;padding:2px 8px;gap:8px;min-height:48px}
+  #starRow{font-size:16px}
+  #coinBox{padding:3px 10px}
+  #qbar{margin-top:4px;padding:3px 6px;gap:6px;border-radius:11px}
+  #heroCv{width:46px;height:50px}
+  #qtext{font-size:17px;line-height:1.22}
+  .btn{font-size:16px;min-height:44px;min-width:44px;padding:0 10px}
+  #sub{font-size:16px;min-height:21px;margin-top:1px}
+  #stage{padding:3px 6px}
+  #choices{padding:2px 6px 5px;gap:6px}
+  #choices button{font-size:17px;min-height:44px;padding:4px 14px;min-width:76px}
+  #cardTitle{font-size:20px}
+  #cardAns{font-size:17px;margin-bottom:3px}
+  #cardTrick{font-size:16px;line-height:1.35;margin-bottom:3px}
+  #cardStar{font-size:16px;margin-bottom:2px}
+  #cardBtn{min-height:44px;font-size:18px}
+  #card{padding:8px 14px 10px}
+  .big{font-size:38px}
+  .bigbtn{font-size:18px;padding:10px 18px;min-height:46px;margin-top:8px}
+  .screen p{font-size:16px;margin:2px 0}
+  .screen h1{font-size:28px;margin-bottom:2px}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="hud">
+    <span id="roundBox">RIDDLE 1/8</span>
+    <span id="starRow"></span>
+    <span class="sp"></span>
+    <span id="coinBox">🪙 55</span>
+    <button class="hbtn" id="muteBtn" title="Sound on / off" aria-label="Sound on or off">🔊</button>
+    <button class="hbtn" id="quitBtn" title="Leave the room" aria-label="Leave the room">✖</button>
+  </div>
+
+  <div id="qbar">
+    <canvas id="heroCv" aria-label="your hero"></canvas>
+    <div id="qtext">Loading the riddle room…</div>
+    <div id="qbtns">
+      <button class="btn" id="sayBtn" title="Read it to me" aria-label="Read the riddle out loud">🗣️</button>
+      <button class="btn blue" id="hintBtn" aria-label="Hint, costs 3 coins">💡 🪙3</button>
+    </div>
+  </div>
+  <div id="sub"></div>
+
+  <div id="stage"><div id="scene"></div></div>
+
+  <div id="choices"></div>
+</div>
+
+<div id="veil"></div>
+<div id="card" role="dialog" aria-live="polite">
+  <div id="cardTitle"></div>
+  <div id="cardAns"></div>
+  <div id="cardTrick"></div>
+  <div id="cardStar"></div>
+  <button class="btn gold" id="cardBtn">Next riddle ▶</button>
+</div>
+
+<!-- START -->
+<div class="screen on" id="startScreen">
+  <div class="big">🧩</div>
+  <h1>RIDDLE ROOM</h1>
+  <p>Every room in this dungeon has a sneaky riddle. The trick is hiding in the <b class="accent">words</b>,
+     so read every word slowly before you answer.</p>
+  <p id="startLine"></p>
+  <p id="heroLine" class="accent" style="font-weight:800"></p>
+  <button class="bigbtn gold" id="startBtn">Enter the riddle room</button>
+</div>
+
+<!-- END OF RUN -->
+<div class="screen" id="endScreen">
+  <div class="big" id="endBig">🏆</div>
+  <h1 id="endTitle">ROOM CLEARED</h1>
+  <p id="endLine"></p>
+  <button class="bigbtn" id="endBtn">Play again</button>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   RIDDLE ROOM: trick questions for a sharp second grader.
+   Every riddle is original. Each one is a little scene plus a question
+   whose trick only shows up if you read carefully. He answers by tapping
+   something in the scene, tapping an answer button, or dragging a thing
+   onto another thing.
+   ===================================================================== */
+
+/* ---------- embed contract (same as runedoor.html) ---------- */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get("embed") === "1";
+const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
+
+const COST_HINT = 3, START_COINS = 55, EARN_SOLVE = 2;
+/* ?riddles=N -> riddles in one run. Embedded default 3 (the dungeon hands
+   him a short set and gets `solved` back); standalone default 8. */
+const RUN_LEN = (function(){
+  const n = parseInt(QS.get("riddles"), 10);
+  if (!isFinite(n) || n < 1) return EMBED ? 3 : 8;
+  return Math.max(1, Math.min(n, 20));
+})();
+const RIGHT_SFX = ["13-got-em","33-hey-thats-pretty-good","40-noice","48-ez","62-toasty"];
+const WRONG_SFX = ["01-oof","10-bruh","61-say-what","66-cricket-noise","67-ba-dun-dun"];
+
+/* ?hero=knight|wizard|ninja|robot|explorer|dragon (default knight) */
+const HERO_IDS = ["knight","wizard","ninja","robot","explorer","dragon"];
+const HERO_ALIAS = {mage:"wizard", shadow:"ninja", bot:"robot", beep9:"robot", "lil'dragon":"dragon"};
+const HERO = (function(){
+  let h = String(QS.get("hero") || "").toLowerCase().trim().replace(/\s+/g,"");
+  if (HERO_ALIAS[h]) h = HERO_ALIAS[h];
+  return HERO_IDS.indexOf(h) >= 0 ? h : "knight";
+})();
+
+/* shared coin purse (wallet.js). Only used standalone: inside the dungeon
+   the parent owns the coins and hears about spending by postMessage. */
+const W = (!EMBED && typeof window.Wallet === "object" && window.Wallet &&
+           typeof window.Wallet.coins === "function") ? window.Wallet : null;
+
+/* ---------- sound ---------- */
+const Snd = (function(){
+  let on = true;
+  try { on = localStorage.getItem("riddle_mute") !== "1"; } catch (e) { on = true; }
+  const cache = {};
+  function file(name, vol){
+    if (!on || !name) return;
+    try {
+      const a = cache[name] || (cache[name] = new Audio("sfx/" + name + ".mp3"));
+      a.currentTime = 0;
+      a.volume = (typeof vol === "number" && vol >= 0 && vol <= 1) ? vol : 0.7;
+      const p = a.play();
+      if (p && typeof p.catch === "function") p.catch(function(){ /* autoplay blocked */ });
+    } catch (e) { /* never let audio break the game */ }
+  }
+  function any(list){ file(list[Math.floor(Math.random() * list.length)], 0.7); }
+  function set(v){
+    on = !!v;
+    try { localStorage.setItem("riddle_mute", on ? "0" : "1"); } catch (e) { /* private mode */ }
+    if (!on){ try { Object.keys(cache).forEach(k => { try { cache[k].pause(); } catch (e) {} }); } catch (e) {} }
+    return on;
+  }
+  return { file: file, any: any, set: set, toggle: function(){ return set(!on); }, isOn: function(){ return on; } };
+})();
+
+/* ---------- read aloud (hidden when the browser cannot speak) ---------- */
+const Voice = (function(){
+  let ok = false;
+  try { ok = typeof window.speechSynthesis === "object" && window.speechSynthesis !== null &&
+             typeof window.SpeechSynthesisUtterance === "function"; } catch (e) { ok = false; }
+  function stop(){ if (!ok) return; try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  function say(text){
+    if (!ok || !text) return false;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(String(text));
+      u.rate = 0.9; u.pitch = 1.05; u.lang = "en-US";
+      window.speechSynthesis.speak(u);
+      return true;
+    } catch (e) { return false; }
+  }
+  return { ok: ok, say: say, stop: stop };
+})();
+
+/* =====================================================================
+   THE RIDDLES
+   Scene coordinates: x and y are the CENTRE of a prop, in percent of the
+   scene width / height. s is the emoji (or text) size as a fraction of
+   the scene height, so a scene scales with the screen.
+
+   prop fields:
+     e     emoji, or text when t:1        lab   label under the prop
+     pick  tappable answer (tap riddles)  drag  can be dragged (drag riddles)
+     target  something you drop onto     cover id of a prop hidden behind it
+     under hidden behind a cover until the cover is tapped
+     col   text colour   bg  box colour   op  opacity   rot  degrees
+     html  raw inner html (drawn shapes)
+
+   riddle fields:
+     type  "tap" | "choice" | "drag"      cat  what kind of thinking it trains
+     q     the question (html, <b> marks the words that matter)
+     a     answer: a prop id (tap), a choice id (choice), "item@target" (drag)
+     to    drag riddles with ONE target: answer("item") means item@to
+     win   what to call the right answer on the card
+     hint  a nudge, never the answer       trick  shown after he answers
+   ===================================================================== */
+const P = (id, e, x, y, s, o) => Object.assign({ id:id, e:e, x:x, y:y, s:s }, o || {});
+
+const RIDDLES = [
+  { id:"apples", type:"choice", cat:"read",
+    q:"A goblin has 3 apples. He eats <b>all but 1</b>. How many apples are left?",
+    props:[ P("gob","👺",22,55,.52), P("a1","🍎",56,62,.26), P("a2","🍎",70,62,.26), P("a3","🍎",84,62,.26) ],
+    choices:[["0","0"],["1","1"],["2","2"],["3","3"]], a:"1", win:"1 apple",
+    hint:"Read \"all but 1\" slowly. Which apple does the word \"but\" save?",
+    trick:"\"All but 1\" means he ate every apple <b>except one</b>. So 1 apple is still left." },
+
+  { id:"sacks", type:"tap", cat:"read",
+    q:"Tap the <b>HEAVIEST</b> sack.",
+    props:[ P("s1","💰",20,44,.62,{pick:1, lab:"3 pounds"}), P("s2","💰",52,50,.42,{pick:1, lab:"9 pounds"}),
+            P("s3","💰",82,56,.24,{pick:1, lab:"20 pounds"}) ],
+    a:"s3", win:"The little 20 pound sack",
+    hint:"Don't look at how BIG the sacks are. Read the words under them.",
+    trick:"A big picture can fool your eyes. The <b>labels</b> tell the truth: 20 pounds is more than 9 or 3, so the smallest sack is the heaviest." },
+
+  { id:"bignum", type:"tap", cat:"read",
+    q:"Tap the <b>BIGGEST</b> number.",
+    props:[ P("n9","9",20,50,.72,{t:1, pick:1, col:"#ffd23f"}), P("n48","48",52,50,.40,{t:1, pick:1, col:"#4fc3ff"}),
+            P("n120","120",82,52,.20,{t:1, pick:1, col:"#f4f1e8"}) ],
+    a:"n120", win:"120",
+    hint:"A number drawn big is not a big number. Which one has the most digits?",
+    trick:"How <b>large</b> a number is drawn does not matter. 120 has three digits, so it is more than 48 or 9." },
+
+  { id:"goblinrow", type:"tap", cat:"read",
+    q:"Tap the <b>THIRD</b> goblin <b>FROM THE RIGHT</b>.",
+    props:[ P("g1","👺",10,55,.3,{pick:1}), P("g2","👺",26,55,.3,{pick:1}), P("g3","👺",42,55,.3,{pick:1}),
+            P("g4","👺",58,55,.3,{pick:1}), P("g5","👺",74,55,.3,{pick:1}), P("g6","👺",90,55,.3,{pick:1}) ],
+    a:"g4", win:"Goblin number 3, counting from the right",
+    hint:"Put your finger on the goblin at the RIGHT end. Start counting there.",
+    trick:"\"From the right\" means start at the <b>right</b> side and count 1, 2, 3. Most people start on the left out of habit!" },
+
+  { id:"bats", type:"choice", cat:"hidden",
+    q:"How many bats live in this cave? <b>Look carefully!</b>",
+    props:[ P("b1","🦇",16,26,.22), P("b2","🦇",40,38,.22), P("b3","🦇",62,22,.22),
+            P("rock","🪨",80,70,.48,{cover:"b4"}), P("b4","🦇",83,49,.22,{under:1}) ],
+    choices:[["3","3"],["4","4"],["5","5"]], a:"4", win:"4 bats",
+    hint:"Something is hiding behind the big rock. Tap the rock!",
+    trick:"Always check <b>behind things</b>. One bat was hiding behind the rock, so there are 4 bats, not 3." },
+
+  { id:"key", type:"tap", cat:"hidden",
+    q:"The hero needs the <b>KEY</b> to open the door. Find the key and tap it!",
+    props:[ P("door","🚪",82,50,.62,{pick:1}), P("chest","🧰",46,74,.30,{pick:1}),
+            P("paint","🖼️",28,34,.36,{cover:"key"}), P("key","🗝️",31,19,.22,{under:1, pick:1}) ],
+    a:"key", win:"The key behind the painting",
+    hint:"Keys love to hide. Try moving the picture on the wall.",
+    trick:"The key was <b>behind the painting</b>. When something is missing, look behind and under the things in the room." },
+
+  { id:"wizlegs", type:"choice", cat:"math",
+    q:"A cat has 4 legs. A bird has 2 legs. A wizard walks in with 1 cat and 2 birds. How many legs <b>walked in</b>?",
+    props:[ P("wiz","🧙",18,52,.52), P("cat","🐈",47,60,.34), P("bd1","🐦",70,58,.24), P("bd2","🐦",86,58,.24) ],
+    choices:[["8","8"],["10","10"],["12","12"]], a:"10", win:"10 legs",
+    hint:"Count the cat's legs and the birds' legs... then look at who ELSE walked in.",
+    trick:"Cat 4 + birds 2 + 2 = 8. But the <b>wizard</b> walked in too, on 2 legs! 8 + 2 = 10." },
+
+  { id:"buckets", type:"choice", cat:"silly",
+    q:"A bucket of gold weighs 10 pounds. A bucket of feathers weighs 10 pounds. Which bucket is <b>heavier</b>?",
+    props:[ P("gold","🪙",30,30,.22), P("bk1","🪣",30,64,.36,{lab:"10 pounds"}),
+            P("fth","🪶",70,30,.22), P("bk2","🪣",70,64,.36,{lab:"10 pounds"}) ],
+    choices:[["gold","The gold"],["feathers","The feathers"],["same","Same weight"]], a:"same", win:"They weigh the same",
+    hint:"Read the numbers, not what is inside the buckets.",
+    trick:"Both buckets say <b>10 pounds</b>, so they weigh the same. Gold feels heavy in your mind, but the number is what counts." },
+
+  { id:"notfly", type:"tap", cat:"read",
+    q:"Do <b>NOT</b> tap the dragon. Tap the animal that can <b>NOT</b> fly.",
+    props:[ P("drg","🐉",15,50,.46,{pick:1}), P("bat","🦇",40,44,.30,{pick:1}),
+            P("owl","🦉",63,50,.32,{pick:1}), P("snail","🐌",86,60,.28,{pick:1}) ],
+    a:"snail", win:"The snail",
+    hint:"Which one of these has no wings at all?",
+    trick:"The word <b>NOT</b> flips a question around. The dragon, bat and owl can all fly. The snail cannot." },
+
+  { id:"horse", type:"choice", cat:"silly",
+    q:"Two knights ride on <b>one</b> horse. How many legs are touching the <b>ground</b>?",
+    props:[ P("r1","🤺",41,30,.26), P("r2","🤺",58,30,.26), P("hrs","🐎",50,66,.54) ],
+    choices:[["4","4"],["6","6"],["8","8"]], a:"4", win:"4 legs",
+    hint:"When you ride a horse, where are your feet?",
+    trick:"The knights are <b>riding</b>, so their feet are up off the ground. Only the horse's 4 legs touch the ground." },
+
+  { id:"pattern", type:"choice", cat:"logic",
+    q:"These doors follow a pattern. Which colour door comes <b>next</b>?",
+    props:[ P("row","🟦 🟨 🟨 🟦 🟨 🟨 🟦 ❓",50,50,.16,{t:1}) ],
+    choices:[["blue","🟦 Blue"],["yellow","🟨 Yellow"],["red","🟥 Red"]], a:"yellow", win:"Yellow",
+    hint:"Say it out loud: blue, yellow, yellow, blue, yellow, yellow, blue...",
+    trick:"The pattern is <b>blue, yellow, yellow</b>, then it starts again. After the last blue comes a yellow." },
+
+  { id:"tallest", type:"tap", cat:"logic",
+    q:"Zog is taller than Bim. Bim is taller than Pip. Tap the <b>SHORTEST</b> goblin.",
+    props:[ P("zog","👺",20,48,.34,{pick:1, lab:"Zog"}), P("pip","👺",50,48,.34,{pick:1, lab:"Pip"}),
+            P("bim","👺",80,48,.34,{pick:1, lab:"Bim"}) ],
+    a:"pip", win:"Pip",
+    hint:"Zog beats Bim. Bim beats Pip. Who never wins?",
+    trick:"Zog is taller than Bim, and Bim is taller than Pip. So <b>Pip</b> is shorter than both of them." },
+
+  { id:"swordword", type:"tap", cat:"read",
+    q:"Tap the <b>WORD</b> sword.",
+    props:[ P("pic","🗡️",14,50,.50,{pick:1}), P("w1","WORDS",40,50,.17,{t:1, pick:1, bg:"#5a4520"}),
+            P("w2","SWORD",64,50,.17,{t:1, pick:1, bg:"#5a4520"}), P("w3","SOWRD",87,50,.17,{t:1, pick:1, bg:"#5a4520"}) ],
+    a:"w2", win:"S-W-O-R-D",
+    hint:"It asked for the WORD, not a picture. Check each letter: S, W, O, R, D.",
+    trick:"The picture is a sword, but it is not the <b>word</b>. WORDS and SOWRD use the same letters in the wrong order. Only one card spells S-W-O-R-D." },
+
+  { id:"green", type:"drag", cat:"read",
+    q:"The dragon ONLY eats food that is <b>GREEN</b>. Drag his dinner to him.",
+    props:[ P("dragon","🐲",80,52,.56,{target:1}), P("apple","🍎",14,28,.24,{drag:1}),
+            P("broc","🥦",36,72,.24,{drag:1}), P("banana","🍌",40,26,.24,{drag:1}), P("donut","🍩",13,72,.24,{drag:1}) ],
+    a:"broc@dragon", to:"dragon", win:"The broccoli",
+    hint:"Look at the colours. Which food is green?",
+    trick:"Read the rule first: <b>ONLY green</b>. The apple, banana and donut look yummy, but only the broccoli is green." },
+
+  { id:"starkey", type:"drag", cat:"read",
+    q:"The lock says <b>STAR</b>. Drag the key with the <b>same word</b> onto the lock.",
+    props:[ P("lock","🔒",80,46,.50,{target:1, lab:"STAR"}),
+            P("k1","🗝️",16,26,.22,{drag:1, lab:"STAIR"}), P("k2","🗝️",44,26,.22,{drag:1, lab:"SCAR"}),
+            P("k3","🗝️",16,70,.22,{drag:1, lab:"STAR"}), P("k4","🗝️",44,70,.22,{drag:1, lab:"STARE"}) ],
+    a:"k3@lock", to:"lock", win:"The STAR key",
+    hint:"Check every letter, one at a time: S, T, A, R. Nothing more, nothing less.",
+    trick:"STAIR, SCAR and STARE all <b>look</b> like STAR. Only one key has exactly S-T-A-R, with no extra letters." },
+
+  { id:"fire", type:"drag", cat:"silly",
+    q:"Oh no, the table caught fire! Drag the thing that will put the fire <b>OUT</b>.",
+    props:[ P("fire","🔥",78,50,.54,{target:1}), P("log","🪵",16,28,.24,{drag:1, lab:"wood"}),
+            P("bucket","🪣",40,70,.24,{drag:1, lab:"water"}), P("scroll","📜",16,72,.24,{drag:1, lab:"paper"}) ],
+    a:"bucket@fire", to:"fire", win:"The bucket of water",
+    hint:"Which of these would make a fire BIGGER? Which one makes it go away?",
+    trick:"Wood and paper <b>feed</b> a fire and make it bigger. Water puts a fire out." },
+
+  { id:"squares", type:"choice", cat:"count",
+    q:"How many <b>squares</b> can you find in this window?",
+    props:[ P("win","",50,50,.5,{html:'<div class="win4"><i></i><i></i><i></i><i></i></div>'}) ],
+    choices:[["4","4"],["5","5"],["6","6"]], a:"5", win:"5 squares",
+    hint:"Count the little squares. Now look at the WHOLE window. What shape is it?",
+    trick:"There are 4 small squares, <b>plus</b> the big square around all of them. 4 + 1 = 5." },
+
+  { id:"rooster", type:"choice", cat:"silly",
+    q:"A rooster sits on the pointy tower roof and lays an egg. Which side does the egg roll down?",
+    props:[ P("twr","🏰",50,64,.58), P("roo","🐓",50,18,.24) ],
+    choices:[["left","Left side"],["right","Right side"],["none","There is no egg"]], a:"none", win:"There is no egg!",
+    hint:"Who lays eggs: a rooster or a hen?",
+    trick:"A rooster is a <b>boy</b> chicken, and roosters don't lay eggs! There is no egg to roll." },
+
+  { id:"cats", type:"choice", cat:"math",
+    q:"A room has 4 corners. A cat sits in each corner. Every cat can see 3 other cats. How many cats are in the room?",
+    props:[ P("c1","🐈",12,24,.26), P("c2","🐈",88,24,.26), P("c3","🐈",12,76,.26), P("c4","🐈",88,76,.26) ],
+    choices:[["4","4"],["12","12"],["16","16"]], a:"4", win:"4 cats",
+    hint:"Don't multiply! Count the corners.",
+    trick:"Every cat sees the <b>same</b> other cats. There is one cat per corner, so just 4. Big numbers in a riddle don't always mean multiply." },
+
+  { id:"between", type:"tap", cat:"read",
+    q:"Tap the torch that is <b>between</b> the two shields.",
+    props:[ P("t1","🔥",10,46,.26,{pick:1}), P("sh1","🛡️",26,50,.30,{pick:1}), P("t2","🔥",42,46,.26,{pick:1}),
+            P("sh2","🛡️",58,50,.30,{pick:1}), P("t3","🔥",74,46,.26,{pick:1}), P("t4","🔥",90,46,.26,{pick:1}) ],
+    a:"t2", win:"The torch in the middle of the shields",
+    hint:"Find the two shields first. Then look at what is in the middle of them.",
+    trick:"<b>Between</b> means in the middle of two things. Find both shields first, then the torch sitting right between them." },
+
+  { id:"ghost", type:"tap", cat:"hidden",
+    q:"A shy ghost is hiding in this room. Tap the <b>ghost</b>!",
+    props:[ P("skull","💀",18,70,.26,{pick:1}), P("bat","🦇",44,24,.24,{pick:1}), P("cndl","🕯️",56,70,.28,{pick:1}),
+            P("spid","🕷️",76,72,.24,{pick:1}), P("ghost","👻",88,22,.26,{pick:1, op:.2}) ],
+    a:"ghost", win:"The see-through ghost in the corner",
+    hint:"Ghosts are see-through. Look for something very, very faint.",
+    trick:"The ghost is almost invisible, up in the <b>top corner</b>. Scan the whole room, not just the things that jump out at you." },
+
+  { id:"legs", type:"choice", cat:"count",
+    q:"Spiders have 8 legs. Goblins have 2 legs. Count <b>ALL</b> the legs in this room.",
+    props:[ P("spd","🕷️",20,60,.34), P("gb1","👺",48,58,.40),
+            P("barrel","🛢️",80,64,.50,{cover:"gb2"}), P("gb2","👺",83,38,.30,{under:1}) ],
+    choices:[["10","10"],["12","12"],["16","16"]], a:"12", win:"12 legs",
+    hint:"Is somebody hiding? Tap the barrel.",
+    trick:"A second goblin was hiding <b>behind the barrel</b>. Spider 8 + goblin 2 + goblin 2 = 12." },
+
+  { id:"months", type:"choice", cat:"silly",
+    q:"How many months of the year <b>have</b> 28 days?",
+    props:[ P("cal","📅",50,50,.6) ],
+    choices:[["1","Just 1"],["2","2"],["12","All 12"]], a:"12", win:"All 12",
+    hint:"Does January have 28 days in it? It has even more than that!",
+    trick:"Every month has <b>at least</b> 28 days. Some have 30 or 31, but they all HAVE 28 days. So all 12." },
+
+  { id:"piano", type:"choice", cat:"silly",
+    q:"What has lots of <b>keys</b> but can't open a single door?",
+    props:[ P("ky","🗝️",36,50,.36), P("qm","❓",64,50,.46) ],
+    choices:[["piano","A piano"],["guard","A jail guard"],["chest","A treasure chest"]], a:"piano", win:"A piano",
+    hint:"Think of a different kind of key: the kind you press to make music.",
+    trick:"Riddles love words with <b>two meanings</b>. A piano has keys you press to play music, not keys that open locks." },
+
+  { id:"towel", type:"choice", cat:"silly",
+    q:"What gets <b>wetter</b> the more it dries?",
+    props:[ P("drop","💧",36,50,.36), P("qm","❓",64,50,.46) ],
+    choices:[["towel","A towel"],["sun","The sun"],["fire","A campfire"]], a:"towel", win:"A towel",
+    hint:"What do you use after a bath?",
+    trick:"A towel dries <b>you</b>, and while it does that, the towel itself gets wetter and wetter." },
+
+  { id:"gems", type:"choice", cat:"read",
+    q:"A chest has 6 gems. You take 2 gems. How many gems do <b>YOU</b> have?",
+    props:[ P("ch","🧰",24,60,.44), P("g1","💎",52,34,.18), P("g2","💎",64,34,.18), P("g3","💎",76,34,.18),
+            P("g4","💎",52,66,.18), P("g5","💎",64,66,.18), P("g6","💎",76,66,.18) ],
+    choices:[["2","2"],["4","4"],["6","6"]], a:"2", win:"2 gems",
+    hint:"The question asks about YOU, not about the chest.",
+    trick:"The chest has 4 left, but the question asks what <b>you</b> have: the 2 gems you took." },
+
+  { id:"race", type:"choice", cat:"logic",
+    q:"In a goblin race, you run past the goblin in <b>2nd place</b>. What place are you in now?",
+    props:[ P("flag","🏁",88,44,.40), P("r1","👺",64,54,.28,{lab:"1st"}), P("r2","👺",40,54,.28,{lab:"2nd"}), P("r3","👺",16,54,.28,{lab:"3rd"}) ],
+    choices:[["1st","1st"],["2nd","2nd"],["3rd","3rd"]], a:"2nd", win:"2nd place",
+    hint:"If you pass the 2nd place goblin, you take HIS spot. Is anyone still in front of you?",
+    trick:"You took the 2nd place goblin's <b>spot</b>, so now you are 2nd. The 1st place goblin is still ahead of you." },
+
+  { id:"doors", type:"tap", cat:"logic",
+    q:"The treasure is behind the door that is <b>NOT</b> red and <b>NOT</b> on the left. Tap that door.",
+    props:[ P("blue","🚪",20,48,.42,{pick:1, bg:"#2f6fd6", lab:"blue"}), P("red","🚪",50,48,.42,{pick:1, bg:"#c0392b", lab:"red"}),
+            P("green","🚪",80,48,.42,{pick:1, bg:"#279e57", lab:"green"}) ],
+    a:"green", win:"The green door",
+    hint:"Cross out the red door. Then cross out the door on the left. What is left?",
+    trick:"Two clues, two cross-outs. <b>Not red</b>: skip the middle door. <b>Not on the left</b>: skip the blue one. Only the green door is left." },
+
+  { id:"banners", type:"tap", cat:"count",
+    q:"Tap the banner with the <b>MOST</b> stars.",
+    props:[ P("bA","⭐⭐<br>⭐⭐",20,50,.16,{t:1, pick:1, bg:"#6b2230"}), P("bB","⭐⭐⭐<br>⭐⭐",50,50,.10,{t:1, pick:1, bg:"#6b2230"}),
+            P("bC","⭐<br>⭐⭐",80,50,.14,{t:1, pick:1, bg:"#6b2230"}) ],
+    a:"bB", win:"The banner with 5 small stars",
+    hint:"Count every banner's stars one by one. Don't guess by how big they look.",
+    trick:"Big stars take up more room, but that doesn't mean there are more of them. <b>Counting</b> shows 5 small stars beat 4 big ones." },
+
+  { id:"names", type:"tap", cat:"read",
+    q:"Tap the creature with the <b>LONGEST NAME</b>.",
+    props:[ P("rat","🐀",18,46,.56,{pick:1, lab:"RAT"}), P("bat","🦇",45,46,.32,{pick:1, lab:"BAT"}),
+            P("owl","🦉",66,46,.30,{pick:1, lab:"OWL"}), P("scorp","🦂",87,46,.20,{pick:1, lab:"SCORPION"}) ],
+    a:"scorp", win:"SCORPION",
+    hint:"The question is about the NAME, not the creature. Count the letters under each one.",
+    trick:"The rat is the <b>biggest</b> creature, but its name has only 3 letters. SCORPION has 8 letters, the longest name." },
+
+  { id:"troll", type:"drag", cat:"math",
+    q:"The troll wants <b>exactly 5</b> coins to let you cross. Drag the right bag to the troll.",
+    props:[ P("troll","🧌",80,50,.58,{target:1}), P("m1","💰",16,28,.24,{drag:1, lab:"2 + 2"}),
+            P("m2","💰",42,28,.24,{drag:1, lab:"3 + 2"}), P("m3","💰",28,72,.24,{drag:1, lab:"4 + 2"}) ],
+    a:"m2@troll", to:"troll", win:"The 3 + 2 bag",
+    hint:"Add up the numbers on each bag. Which one makes 5?",
+    trick:"2 + 2 = 4, <b>3 + 2 = 5</b>, and 4 + 2 = 6. Only one bag has exactly 5." },
+
+  { id:"empty", type:"drag", cat:"read",
+    q:"The ghost wants to hide in the box that says <b>EMPTY</b>. Drag the ghost there.",
+    props:[ P("ghost","👻",14,50,.34,{drag:1}), P("x1","📦",42,50,.34,{target:1, lab:"EMTPY"}),
+            P("x2","📦",64,50,.34,{target:1, lab:"EMPTY"}), P("x3","📦",86,50,.34,{target:1, lab:"EMPT"}) ],
+    a:"ghost@x2", win:"The box that spells E-M-P-T-Y",
+    hint:"Spell it slowly: E, M, P, T, Y. Check every box.",
+    trick:"EMTPY has two letters <b>swapped</b>, and EMPT is missing the Y. Only one box spells E-M-P-T-Y." },
+
+  { id:"bridge", type:"drag", cat:"math",
+    q:"The bridge can hold <b>10</b>. The knight counts as 7. Which friend can cross <b>with</b> him? Drag that friend to the bridge.",
+    props:[ P("bridge","🌉",74,54,.56,{target:1, lab:"holds 10"}), P("kn","🤺",74,20,.22,{lab:"7"}),
+            P("f1","🐉",14,28,.26,{drag:1, lab:"9"}), P("f2","👺",38,28,.26,{drag:1, lab:"4"}), P("f3","🐈",26,72,.26,{drag:1, lab:"2"}) ],
+    a:"f3@bridge", to:"bridge", win:"The cat",
+    hint:"Add each friend's number to 7. Which total is 10 or less?",
+    trick:"7 + 9 = 16 and 7 + 4 = 11, both too heavy. <b>7 + 2 = 9</b>, and 9 is not more than 10, so the cat can cross." },
+
+  { id:"candles", type:"choice", cat:"math",
+    q:"One candle burns out in 1 hour. You light 3 candles at the <b>same time</b>. How long until they all burn out?",
+    props:[ P("k1","🕯️",32,52,.38), P("k2","🕯️",50,52,.38), P("k3","🕯️",68,52,.38) ],
+    choices:[["1","1 hour"],["3","3 hours"],["6","6 hours"]], a:"1", win:"1 hour",
+    hint:"They all start together. Do they take turns?",
+    trick:"The candles burn <b>side by side</b>, not one after another. So they all finish together, in 1 hour." },
+
+  { id:"age", type:"choice", cat:"silly",
+    q:"What goes <b>up</b> every year but never comes back down?",
+    props:[ P("cake","🎂",36,52,.40), P("qm","❓",64,50,.46) ],
+    choices:[["bat","A bat"],["age","Your age"],["balloon","A balloon"]], a:"age", win:"Your age",
+    hint:"It happens on your birthday!",
+    trick:"Every birthday your <b>age</b> goes up by 1, and it never goes back down." },
+
+  { id:"paint", type:"tap", cat:"read",
+    q:"Tap the word that is written in <b>BLUE</b> paint.",
+    props:[ P("wR","RED",18,50,.22,{t:1, pick:1, col:"#4f8dff"}), P("wB","BLUE",40,50,.22,{t:1, pick:1, col:"#e8452c"}),
+            P("wG","GREEN",64,50,.22,{t:1, pick:1, col:"#f2dc2a"}), P("wY","YELLOW",87,50,.22,{t:1, pick:1, col:"#33c46a"}) ],
+    a:"wR", win:"The word RED, painted blue",
+    hint:"Don't read the words. Only look at the COLOUR of the letters.",
+    trick:"The word BLUE is painted red to trick you. The question asks about the <b>paint colour</b>, and it is the word RED that is painted blue." },
+
+  { id:"tenmore", type:"tap", cat:"math",
+    q:"Tap the number that is <b>10 more</b> than 25.",
+    props:[ P("n26","26",16,50,.26,{t:1, pick:1, col:"#ffd23f"}), P("n35","35",39,50,.26,{t:1, pick:1, col:"#ffd23f"}),
+            P("n52","52",62,50,.26,{t:1, pick:1, col:"#ffd23f"}), P("n15","15",85,50,.26,{t:1, pick:1, col:"#ffd23f"}) ],
+    a:"n35", win:"35",
+    hint:"Adding 10 makes the tens digit go up by 1. The ones digit stays the same.",
+    trick:"25 + 10 = 35. Adding 10 only changes the <b>tens</b>: 2 tens becomes 3 tens. 26 is only 1 more, and 15 is 10 LESS." },
+
+  { id:"mushroom", type:"choice", cat:"silly",
+    q:"Which <b>room</b> has no doors, no windows and no walls?",
+    props:[ P("m","🍄",36,52,.42), P("qm","❓",64,50,.46) ],
+    choices:[["mush","A mushroom"],["dungeon","A dungeon"],["bed","A bedroom"]], a:"mush", win:"A mushroom",
+    hint:"Say the answers out loud. Which one only SOUNDS like it has a room in it?",
+    trick:"A mush-<b>room</b> is not a real room at all! The riddle is a joke about a word that has \"room\" hiding inside it." },
+
+  { id:"corners", type:"choice", cat:"math",
+    q:"How many corners do 2 triangles and 1 square have <b>in all</b>?",
+    props:[ P("tr","▲ ▲ ■",50,50,.34,{t:1, col:"#4fc3ff"}) ],
+    choices:[["7","7"],["9","9"],["10","10"]], a:"10", win:"10 corners",
+    hint:"A triangle has 3 corners. A square has 4.",
+    trick:"3 + 3 for the two triangles, <b>plus 4</b> for the square. 3 + 3 + 4 = 10." },
+
+  { id:"upside", type:"tap", cat:"hidden",
+    q:"One thing in this room is <b>upside down</b>. Tap it!",
+    props:[ P("cn","🕯️",12,52,.30,{pick:1}), P("chr","🪑",32,54,.32,{pick:1}), P("crown","👑",52,50,.28,{pick:1, rot:180}),
+            P("vase","🏺",72,52,.30,{pick:1}), P("pot","🧪",90,52,.28,{pick:1}) ],
+    a:"crown", win:"The crown",
+    hint:"Look at the top of each thing. Is anything standing on its head?",
+    trick:"A crown's points should face <b>up</b>, but these point down. Check the top and bottom of every thing, one at a time." },
+
+  { id:"oddone", type:"tap", cat:"logic",
+    q:"Tap the one that does <b>NOT</b> belong with the others.",
+    props:[ P("sw","🗡️",14,50,.32,{pick:1}), P("ax","🪓",38,50,.32,{pick:1}), P("cup","🧁",62,50,.32,{pick:1}),
+            P("bow","🏹",86,50,.32,{pick:1}) ],
+    a:"cup", win:"The cupcake",
+    hint:"Three of these are for battles. One is for a party.",
+    trick:"The sword, axe and bow are all <b>weapons</b>. The cupcake is food, so it does not belong." },
+
+  { id:"hole", type:"choice", cat:"silly",
+    q:"A goblin digs a hole 2 feet deep. How much dirt is <b>in the hole</b>?",
+    props:[ P("gb","👺",30,48,.40), P("sh","⛏️",52,40,.26), P("hl","🕳️",74,64,.40) ],
+    choices:[["none","No dirt"],["2","2 feet of dirt"],["lots","A huge pile"]], a:"none", win:"No dirt at all",
+    hint:"After you dig a hole, where did the dirt go?",
+    trick:"A hole is <b>empty</b> space. The dirt came OUT when the goblin dug, so there is no dirt in the hole." }
+];
+
+/* ---------- self-check: never serve a riddle whose answer cannot be picked ---------- */
+function optionsOf(R){
+  if (R.type === "choice") return (R.choices || []).map(c => c[0]);
+  if (R.type === "tap") return R.props.filter(p => p.pick).map(p => p.id);
+  if (R.type === "drag"){
+    const items = R.props.filter(p => p.drag).map(p => p.id);
+    const targets = R.props.filter(p => p.target).map(p => p.id);
+    const out = [];
+    items.forEach(i => targets.forEach(t => out.push(i + "@" + t)));
+    return out;
+  }
+  return [];
+}
+const BROKEN = [];
+RIDDLES.forEach((R, i) => {
+  const ids = {};
+  let bad = "";
+  R.props.forEach(p => { if (ids[p.id]) bad = "duplicate prop id " + p.id; ids[p.id] = 1; });
+  R.props.forEach(p => { if (p.cover && !ids[p.cover]) bad = "cover points at missing " + p.cover; });
+  const opts = optionsOf(R);
+  if (opts.indexOf(R.a) < 0) bad = bad || "answer " + R.a + " is not an option";
+  if (opts.length < 2) bad = bad || "fewer than 2 options";
+  if (!R.hint || !R.trick || !R.q) bad = bad || "missing text";
+  if (bad){ BROKEN.push(R.id + ": " + bad); R.broken = true; }
+});
+if (BROKEN.length){ try { console.warn("Riddle Room skipped broken riddles:", BROKEN); } catch (e) {} }
+const LIVE = RIDDLES.map((R, i) => i).filter(i => !RIDDLES[i].broken);
+
+/* ---------- dom ---------- */
+const $ = id => document.getElementById(id);
+const sceneEl = $("scene"), choicesEl = $("choices"), cardEl = $("card"), veilEl = $("veil");
+
+/* ---------- state ---------- */
+const S = {
+  running: false,
+  order: [],        // RIDDLES indexes for this run, no repeats
+  pos: 0,           // which riddle of the run is on screen
+  cur: -1,          // RIDDLES index on screen
+  marks: [],        // per run slot: 0 not yet, 1 solved, 2 solved with a star
+  hintUsed: false,  // on the riddle on screen
+  missed: false,    // answered wrong at least once on the riddle on screen
+  solved: false,    // riddle on screen is solved
+  revealed: {},     // cover ids already moved aside
+  coins: START_COINS,
+  hints: 0, wrong: 0,
+  posted: false,
+  mood: "idle", moodAt: 0
+};
+
+/* ---------- coins ---------- */
+function syncCoins(){
+  if (W){ try { S.coins = Math.max(0, Math.floor(W.coins())); } catch (e) { /* keep local */ } }
+}
+function bump(cls){
+  const b = $("coinBox"); b.classList.remove("spend","earn"); void b.offsetWidth; b.classList.add(cls);
+}
+function spend(n){
+  const real = Math.min(S.coins, n);           // never blocked: spends down to 0
+  if (W){ try { W.spend(n, "Riddle Room hint"); } catch (e) { /* ignore */ } }
+  S.coins = Math.max(0, S.coins - n);
+  syncCoins();
+  if (EMBED) toGame({ type:"spend", n: real });
+  bump("spend"); hud();
+  return real;
+}
+function earn(n){
+  if (EMBED) return;                           // the dungeon hands out its own rewards
+  if (W){ try { W.add(n, "Riddle Room"); } catch (e) { /* ignore */ } }
+  S.coins += n;
+  syncCoins();
+  bump("earn"); hud();
+}
+
+/* ---------- run building ---------- */
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function lastRun(){
+  try { const v = JSON.parse(localStorage.getItem("riddle_last") || "[]"); return Array.isArray(v) ? v : []; }
+  catch (e) { return []; }
+}
+function buildOrder(){
+  const n = Math.min(RUN_LEN, LIVE.length);
+  const prev = lastRun();
+  let pool = LIVE.filter(i => prev.indexOf(RIDDLES[i].id) < 0);
+  if (pool.length < n) pool = LIVE.slice();
+  pool = shuffle(pool.slice());
+  const pickd = [];
+  /* one of each answer style first, so every run has a tap, a button and a drag */
+  ["tap","choice","drag"].forEach(t => {
+    if (pickd.length >= n) return;
+    const k = pool.find(i => RIDDLES[i].type === t && pickd.indexOf(i) < 0);
+    if (k !== undefined) pickd.push(k);
+  });
+  pool.forEach(i => { if (pickd.length < n && pickd.indexOf(i) < 0) pickd.push(i); });
+  try { localStorage.setItem("riddle_last", JSON.stringify(pickd.map(i => RIDDLES[i].id))); } catch (e) { /* private mode */ }
+  return shuffle(pickd);
+}
+
+/* ---------- scene size ---------- */
+function fitScene(){
+  const st = $("stage");
+  const w = Math.max(200, st.clientWidth - 16), h = Math.max(110, st.clientHeight - 12);
+  let sw = Math.min(w, h * 3.2, 1000);
+  let sh = Math.min(h, sw / 1.55);
+  sw = Math.max(200, Math.min(sw, w));
+  sceneEl.style.width = Math.round(sw) + "px";
+  sceneEl.style.height = Math.round(sh) + "px";
+  /* props are sized off --sh. On a tall scene (desktop, portrait) the
+     height alone would blow emojis up past the width, so the unit is
+     capped by the width too: every scene keeps the same composition. */
+  const unit = Math.min(sh, sw / 2.3);
+  document.documentElement.style.setProperty("--sh", Math.round(unit) + "px");
+}
+window.addEventListener("resize", fitScene);
+window.addEventListener("orientationchange", () => setTimeout(fitScene, 120));
+
+/* ---------- render a riddle ---------- */
+function plain(html){ const d = document.createElement("div"); d.innerHTML = html; return (d.textContent || "").replace(/\s+/g," ").trim(); }
+
+function propEl(p){
+  const d = document.createElement("div");
+  d.className = "prop" + (p.pick ? " pick" : "") + (p.drag ? " drag" : "") + (p.target ? " target" : "") +
+                (p.cover ? " cover" : "") + (p.under ? " under" : "");
+  d.dataset.id = p.id;
+  d.style.left = p.x + "%"; d.style.top = p.y + "%";
+  if (p.rot) d.style.rotate = p.rot + "deg";
+  if (typeof p.op === "number") d.style.opacity = String(p.op);
+  let inner;
+  if (p.html){
+    inner = document.createElement("div"); inner.innerHTML = p.html;
+  } else if (p.t){
+    inner = document.createElement("span"); inner.className = "tx" + (p.bg ? " box" : "");
+    inner.innerHTML = p.e;
+    inner.style.fontSize = "calc(var(--sh) * " + p.s + ")";
+    if (p.col) inner.style.color = p.col;
+    if (p.bg) inner.style.background = p.bg;
+  } else {
+    inner = document.createElement("span"); inner.className = "em" + (p.bg ? " box" : "");
+    inner.textContent = p.e;
+    inner.style.fontSize = "calc(var(--sh) * " + p.s + ")";
+    if (p.bg) inner.style.background = p.bg;
+  }
+  d.appendChild(inner);
+  if (p.lab){ const l = document.createElement("span"); l.className = "lab"; l.textContent = p.lab; d.appendChild(l); }
+  const name = p.lab || (p.t ? plain(p.e) : "") || p.id;
+  d.setAttribute("role", (p.pick || p.drag || p.cover) ? "button" : "img");
+  d.setAttribute("aria-label", name);
+  return d;
+}
+
+function load(i){
+  i = parseInt(i, 10);
+  if (!isFinite(i) || i < 0 || i >= RIDDLES.length || RIDDLES[i].broken) return false;
+  if (!S.running){ start(); }
+  S.cur = i;
+  S.order[S.pos] = i;
+  S.hintUsed = false; S.missed = false; S.solved = false; S.revealed = {};
+  hideCard();
+  Voice.stop();
+  const R = RIDDLES[i];
+  $("qtext").innerHTML = R.q;
+  say(R.type === "drag" ? "Drag with your finger." : (R.type === "tap" ? "Tap your answer in the picture." : "Tap an answer button."), "");
+  sceneEl.innerHTML = "";
+  R.props.forEach(p => sceneEl.appendChild(propEl(p)));
+  choicesEl.innerHTML = "";
+  if (R.type === "choice"){
+    R.choices.forEach(c => {
+      const b = document.createElement("button");
+      b.textContent = c[1]; b.dataset.id = c[0];
+      b.onclick = () => answer(c[0]);
+      choicesEl.appendChild(b);
+    });
+  }
+  $("hintBtn").disabled = false;
+  hud();
+  fitScene();
+  setMood("idle");
+  return true;
+}
+
+/* ---------- HUD ---------- */
+function hud(){
+  const n = S.order.length || Math.min(RUN_LEN, LIVE.length);
+  $("roundBox").textContent = "RIDDLE " + Math.min(S.pos + 1, n) + "/" + n;
+  let h = "";
+  for (let k = 0; k < n; k++){
+    const m = S.marks[k] || 0;
+    const cls = m === 2 ? "won" : (m === 1 ? "done" : (k === S.pos && S.running ? "cur" : ""));
+    h += '<span class="' + cls + '">' + (m === 2 ? "⭐" : (m === 1 ? "✔️" : "☆")) + "</span>";
+  }
+  $("starRow").innerHTML = h;
+  $("coinBox").textContent = "🪙 " + S.coins;
+  $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
+}
+function say(t, cls){ const m = $("sub"); m.innerHTML = t; m.className = cls || ""; }
+
+/* ---------- answering ---------- */
+function answer(x){
+  if (!S.running || S.cur < 0 || S.solved) return null;
+  const R = RIDDLES[S.cur];
+  let key = String(x == null ? "" : x);
+  if (R.type === "drag" && key.indexOf("@") < 0 && R.to) key = key + "@" + R.to;
+  hideCard();
+  const ok = key === R.a;
+  if (ok){
+    S.solved = true;
+    const star = !S.hintUsed && !S.missed;
+    S.marks[S.pos] = star ? 2 : 1;
+    Snd.any(RIGHT_SFX);
+    setMood("cheer");
+    markRight(R, key);
+    earn(EARN_SOLVE);
+    showCard(true, star);
+  } else {
+    S.missed = true; S.wrong++;
+    Snd.any(WRONG_SFX);
+    setMood("sad");
+    markWrong(R, key);
+    showCard(false, false);
+  }
+  hud();
+  return ok;
+}
+
+function markRight(R, key){
+  let id = key;
+  if (R.type === "drag") id = key.split("@")[0];
+  if (R.type === "choice"){
+    choicesEl.querySelectorAll("button").forEach(b => { if (b.dataset.id === key) b.classList.add("right"); });
+    return;
+  }
+  const el = sceneEl.querySelector('.prop[data-id="' + id + '"]');
+  if (el){
+    el.classList.add("yes");
+    const r = document.createElement("div"); r.className = "ring"; el.appendChild(r);
+  }
+}
+function markWrong(R, key){
+  if (R.type === "choice"){
+    choicesEl.querySelectorAll("button").forEach(b => { if (b.dataset.id === key) b.classList.add("wrong"); });
+    return;
+  }
+  const id = R.type === "drag" ? key.split("@")[0] : key;
+  const el = sceneEl.querySelector('.prop[data-id="' + id + '"]');
+  if (el){ el.classList.remove("no"); void el.offsetWidth; el.classList.add("no"); }
+}
+
+/* ---------- the "here's the trick" card ---------- */
+function showCard(right, star){
+  const R = RIDDLES[S.cur];
+  cardEl.classList.toggle("miss", !right);
+  $("cardTitle").textContent = right ? "✅ You got it!" : "❌ Not quite!";
+  $("cardAns").textContent = right ? R.win : "";
+  $("cardAns").style.display = right ? "" : "none";
+  $("cardTrick").innerHTML = "<b>Here's the trick:</b> " + R.trick;
+  $("cardStar").textContent = right
+    ? (star ? "⭐ Star earned! No hints, no mistakes." : (S.hintUsed ? "No star this time (you used a hint). Still solved!" : "No star this time, but you figured it out!"))
+    : "Read it one more time, then try again. It's free!";
+  const last = S.pos >= S.order.length - 1;
+  $("cardBtn").textContent = right ? (last ? (EMBED ? "⚔️ Back to the dungeon" : "🏆 Finish") : "Next riddle ▶") : "↩︎ Try again";
+  $("cardBtn").className = "btn " + (right ? "gold" : "blue");
+  cardEl.classList.add("on"); veilEl.classList.add("on");
+}
+function hideCard(){ cardEl.classList.remove("on"); veilEl.classList.remove("on"); }
+
+$("cardBtn").onclick = () => {
+  if (!S.solved){                      // wrong answer: back to the same riddle
+    hideCard();
+    choicesEl.querySelectorAll("button.wrong").forEach(b => b.classList.remove("wrong"));
+    say("Read every word, then try again.", "hint");
+    setMood("idle");
+    return;
+  }
+  next();
+};
+
+function next(){
+  if (!S.running) return false;
+  hideCard();
+  Voice.stop();
+  if (S.pos >= S.order.length - 1){ endRun(); return false; }
+  S.pos++;
+  load(S.order[S.pos]);
+  return true;
+}
+
+/* ---------- hint: a nudge, 3 coins, only charged once per riddle ---------- */
+function hint(){
+  if (!S.running || S.cur < 0 || S.solved) return false;
+  const R = RIDDLES[S.cur];
+  if (!S.hintUsed){
+    S.hintUsed = true; S.hints++;
+    spend(COST_HINT);
+  }
+  say("💡 " + R.hint, "hint");
+  hud();
+  return true;
+}
+
+/* ---------- end of run ---------- */
+function postSolved(){
+  if (!EMBED || S.posted) return;
+  S.posted = true;
+  toGame({ type:"solved", riddles: S.order.length, stars: S.marks.filter(m => m === 2).length });
+}
+function endRun(){
+  S.running = false;
+  Voice.stop();
+  const n = S.order.length, stars = S.marks.filter(m => m === 2).length;
+  const perfect = stars === n;
+  if (perfect) Snd.file("50-ta-daaa", 0.7);
+  $("endBig").textContent = perfect ? "🏆" : "🧩";
+  $("endTitle").textContent = perfect ? "PERFECT RIDDLE RUN!" : "ROOM CLEARED";
+  $("endLine").innerHTML = "You solved all <b>" + n + "</b> riddle" + (n === 1 ? "" : "s") + " and earned <b>" + stars +
+    " ⭐</b> out of " + n + ".<br>" +
+    (perfect ? "Not one trick fooled you. Sharp eyes!" : "Every star comes from reading slowly and trusting the words.") +
+    "<br>🪙 " + S.coins + " coins" + (S.hints ? " · " + S.hints + " hint" + (S.hints === 1 ? "" : "s") + " used" : " · no hints used");
+  $("endBtn").textContent = EMBED ? "⚔️ Back to the dungeon" : "Play again";
+  $("endScreen").classList.add("on");
+  hud();
+}
+
+/* ---------- pointer input: tap props, move covers, drag things ---------- */
+let drag = null;       // { el, id, x0, y0, ox, oy, moved, left, top }
+
+function propAt(target){ return target && target.closest ? target.closest(".prop") : null; }
+function propData(id){ const R = RIDDLES[S.cur]; return R ? R.props.find(p => p.id === id) : null; }
+
+function reveal(p, el){
+  if (S.revealed[p.id]) return;
+  S.revealed[p.id] = true;
+  el.classList.add("moved");
+  const hid = sceneEl.querySelector('.prop[data-id="' + p.cover + '"]');
+  if (hid) hid.classList.add("shown");
+  say("You found something hiding behind the " + (p.lab || plainName(p)) + "!", "good");
+}
+function plainName(p){
+  const names = { rock:"rock", paint:"painting", barrel:"barrel" };
+  return names[p.id] || "thing";
+}
+
+function onDown(e){
+  if (!S.running || S.solved || cardEl.classList.contains("on")) return;
+  const el = propAt(e.target);
+  if (!el || !sceneEl.contains(el)) return;
+  const p = propData(el.dataset.id);
+  if (!p) return;
+  const R = RIDDLES[S.cur];
+  if (R.type === "drag" && p.drag){
+    e.preventDefault();
+    const sr = sceneEl.getBoundingClientRect();
+    drag = { el: el, id: p.id, x0: e.clientX, y0: e.clientY, moved: false, sr: sr,
+             left: el.style.left, top: el.style.top };
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+  }
+}
+
+function onMove(e){
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6){
+    drag.moved = true; drag.el.classList.add("dragging");
+  }
+  if (!drag.moved) return;
+  const sr = drag.sr;
+  const x = Math.max(0, Math.min(sr.width, e.clientX - sr.left));
+  const y = Math.max(0, Math.min(sr.height, e.clientY - sr.top));
+  drag.el.style.left = x + "px"; drag.el.style.top = y + "px";
+  const t = targetAt(e.clientX, e.clientY);
+  sceneEl.querySelectorAll(".prop.target").forEach(n => n.classList.toggle("hot", n === t));
+}
+
+function targetAt(x, y){
+  const pad = 18;
+  const list = sceneEl.querySelectorAll(".prop.target");
+  let best = null, bestD = 1e9;
+  list.forEach(n => {
+    const r = n.getBoundingClientRect();
+    if (x > r.left - pad && x < r.right + pad && y > r.top - pad && y < r.bottom + pad){
+      const d = Math.hypot(x - (r.left + r.width/2), y - (r.top + r.height/2));
+      if (d < bestD){ bestD = d; best = n; }
+    }
+  });
+  return best;
+}
+
+function snapBack(d){
+  d.el.classList.remove("dragging");
+  d.el.style.left = d.left; d.el.style.top = d.top;
+}
+
+function onUp(e){
+  if (!drag) return;
+  const d = drag; drag = null;
+  sceneEl.querySelectorAll(".prop.target").forEach(n => n.classList.remove("hot"));
+  if (!d.moved){
+    d.el.classList.remove("dragging");
+    d.el.classList.remove("wig"); void d.el.offsetWidth; d.el.classList.add("wig");
+    say("Press and <b>drag</b> it with your finger.", "hint");
+    return;
+  }
+  const t = targetAt(e.clientX, e.clientY);
+  if (!t){ snapBack(d); return; }
+  const ok = answer(d.id + "@" + t.dataset.id);
+  if (ok){
+    d.el.classList.remove("dragging");
+    d.el.style.left = t.style.left; d.el.style.top = t.style.top;
+  } else {
+    snapBack(d);
+  }
+}
+
+sceneEl.addEventListener("pointerdown", onDown, { passive:false });
+window.addEventListener("pointermove", onMove, { passive:true });
+window.addEventListener("pointerup", onUp, { passive:true });
+window.addEventListener("pointercancel", () => { if (drag){ snapBack(drag); drag = null; } });
+
+/* taps (click fires for mouse, pen and finger) */
+sceneEl.addEventListener("click", e => {
+  if (!S.running || S.solved || cardEl.classList.contains("on")) return;
+  const el = propAt(e.target);
+  if (!el) return;
+  const p = propData(el.dataset.id);
+  if (!p) return;
+  const R = RIDDLES[S.cur];
+  if (p.cover && !S.revealed[p.id]){ reveal(p, el); return; }
+  if (p.drag) return;                              // handled by pointer drag
+  if (R.type === "tap" && p.pick){ answer(p.id); return; }
+  el.classList.remove("wig"); void el.offsetWidth; el.classList.add("wig");
+  if (R.type === "choice") say("Use the answer buttons under the picture.", "hint");
+  else if (R.type === "drag") say("Drag something onto the " + (R.to ? "glowing target" : "right box") + ".", "hint");
+});
+
+/* keyboard: 1-9 pick answer buttons, Enter presses the card button */
+window.addEventListener("keydown", e => {
+  if (cardEl.classList.contains("on") && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); $("cardBtn").click(); return; }
+  if (!S.running || S.solved) return;
+  const n = parseInt(e.key, 10);
+  if (isFinite(n) && n >= 1){
+    const b = choicesEl.querySelectorAll("button")[n - 1];
+    if (b) b.click();
+  }
+});
+
+/* ---------- buttons ---------- */
+$("hintBtn").onclick = hint;
+if (!Voice.ok) $("sayBtn").style.display = "none";
+$("sayBtn").onclick = () => {
+  if (S.cur < 0) return;
+  const R = RIDDLES[S.cur];
+  let txt = plain(R.q);
+  if (R.type === "choice") txt += " Is it: " + R.choices.map(c => plain(c[1])).join(", or ") + "?";
+  Voice.say(txt);
+};
+$("muteBtn").onclick = () => { Snd.toggle(); hud(); };
+$("quitBtn").onclick = () => {
+  Voice.stop();
+  if (EMBED) toGame({ type:"close" });
+  else backToStart();
+};
+$("startBtn").onclick = () => { start(); };
+$("endBtn").onclick = () => {
+  $("endScreen").classList.remove("on");
+  if (EMBED) postSolved();
+  else start();
+};
+function backToStart(){
+  S.running = false;
+  hideCard();
+  $("startScreen").classList.add("on");
+}
+
+/* ---------- run control ---------- */
+function start(){
+  S.order = buildOrder();
+  S.marks = S.order.map(() => 0);
+  S.pos = 0; S.hints = 0; S.wrong = 0; S.posted = false;
+  if (!EMBED){ S.coins = START_COINS; syncCoins(); }
+  S.running = true;
+  $("startScreen").classList.remove("on");
+  $("endScreen").classList.remove("on");
+  load(S.order[0]);
+  hud();
+}
+
+/* ---------- boot ---------- */
+if (EMBED){
+  const c = parseInt(QS.get("coins"), 10);
+  if (isFinite(c) && c >= 0) S.coins = c;
+  $("quitBtn").title = "Back to the dungeon";
+  start();
+} else {
+  syncCoins();
+  hud();
+  fitScene();
+}
+
+/* =====================================================================
+   THE CHOSEN HERO, next to the riddle, reacting to every answer.
+   Same sprite as runedoor.html, kept self-contained on purpose.
+   ===================================================================== */
+const HERO_ART = {
+  knight:   {body:"#b9c6d4", trim:"#8795a5", skin:"#f0c9a0", accent:"#ffd23f", name:"The Knight"},
+  wizard:   {body:"#7b5cd6", trim:"#4a35a0", skin:"#f0c9a0", accent:"#ffd23f", name:"The Mage"},
+  ninja:    {body:"#263445", trim:"#151f2b", skin:"#f0c9a0", accent:"#ff4d5e", name:"The Shadow"},
+  robot:    {body:"#cfd8e3", trim:"#8b9bad", skin:"#cfd8e3", accent:"#4ff0ff", name:"BEEP-9"},
+  explorer: {body:"#c8a86a", trim:"#8a6f3c", skin:"#f0c9a0", accent:"#6d8f4a", name:"The Explorer"},
+  dragon:   {body:"#4fbf6a", trim:"#2f8f4a", skin:"#4fbf6a", accent:"#f5e6a8", name:"Lil' Dragon"}
+};
+
+function drawHeroSprite(g, X, Y, u, id, o){
+  o = o || {};
+  const A = HERO_ART[id] || HERO_ART.knight;
+  const b = o.bob || 0;
+  const ex = Math.max(-1, Math.min(1, o.fx || 0)) * u * 0.06;
+  const ey = Math.max(-1, Math.min(1, o.fy || 0)) * u * 0.04;
+  const cheer = !!o.cheer;
+  const HY = Y - u*0.20 + b, HR = u*0.22;
+  const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
+
+  g.fillStyle = "rgba(0,0,0,.45)";
+  g.beginPath(); g.ellipse(X, Y + u*0.34, u*0.30, u*0.12, 0, 0, 7); g.fill();
+
+  if (id === "dragon"){
+    g.fillStyle = A.trim;
+    g.beginPath();
+    g.moveTo(X + u*0.16, Y + u*0.18 + b);
+    g.quadraticCurveTo(X + u*0.66, Y + u*0.30 + b, X + u*0.52, Y - u*0.06 + b);
+    g.quadraticCurveTo(X + u*0.44, Y + u*0.16 + b, X + u*0.16, Y + u*0.30 + b);
+    g.closePath(); g.fill();
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.14, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.54, Y - u*0.40 + b);
+      g.lineTo(X + s*u*0.46, Y + u*0.08 + b);
+      g.closePath(); g.fill();
+    });
+  }
+  if (id === "explorer"){
+    g.fillStyle = "#6b4a24"; g.fillRect(X - u*0.36, Y - u*0.12 + b, u*0.21, u*0.36);
+    g.fillStyle = "#4e3518"; g.fillRect(X - u*0.36, Y + u*0.02 + b, u*0.21, u*0.06);
+  }
+  if (id === "wizard"){
+    g.strokeStyle = "#8a5a2b"; g.lineWidth = Math.max(1.5, u*0.06);
+    g.beginPath(); g.moveTo(X + u*0.32, Y + u*0.34 + b); g.lineTo(X + u*0.36, Y - u*0.44 + b); g.stroke();
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X + u*0.36, Y - u*0.50 + b, u*0.09, 0, 7); g.fill();
+  }
+
+  if (id === "robot"){
+    g.fillStyle = A.body; g.fillRect(X - u*0.26, Y - u*0.10 + b, u*0.52, u*0.40);
+    g.fillStyle = A.trim; g.fillRect(X - u*0.26, Y + u*0.16 + b, u*0.52, u*0.07);
+    g.fillStyle = A.accent;
+    g.beginPath(); g.arc(X, Y + u*0.03 + b, u*0.07, 0, 7); g.fill();
+    g.fillStyle = A.trim; g.fillRect(X - u*0.30, Y + u*0.30 + b, u*0.60, u*0.08);
+  } else {
+    const flare = id === "wizard" ? 0.38 : 0.30;
+    g.fillStyle = A.body;
+    g.beginPath();
+    g.moveTo(X - u*flare, Y + u*0.32 + b);
+    g.lineTo(X - u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*0.20, Y - u*0.10 + b);
+    g.lineTo(X + u*flare, Y + u*0.32 + b);
+    g.closePath(); g.fill();
+    g.fillStyle = A.trim;
+    g.fillRect(X - u*0.22, Y + u*0.05 + b, u*0.44, u*0.06);
+    if (id === "knight"){
+      g.fillStyle = A.trim;
+      [-1, 1].forEach(s => { g.beginPath(); g.ellipse(X + s*u*0.24, Y - u*0.06 + b, u*0.12, u*0.09, 0, 0, 7); g.fill(); });
+    }
+    if (id === "ninja"){
+      g.fillStyle = A.accent;
+      g.beginPath();
+      g.moveTo(X + u*0.16, Y - u*0.06 + b);
+      g.lineTo(X + u*0.46, Y + u*0.04 + b);
+      g.lineTo(X + u*0.18, Y + u*0.06 + b);
+      g.closePath(); g.fill();
+    }
+    if (id === "dragon"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.ellipse(X, Y + u*0.13 + b, u*0.15, u*0.17, 0, 0, 7); g.fill();
+    }
+    if (id === "explorer"){
+      g.fillStyle = A.trim;
+      g.fillRect(X - u*0.02, Y - u*0.08 + b, u*0.04, u*0.14);
+    }
+  }
+
+  if (cheer){
+    /* arms in the TRIM colour so they read against the body, with a hand
+       blob on the end: waving arms are the whole point of a cheer */
+    g.strokeStyle = id === "ninja" ? A.accent : A.trim;
+    g.lineWidth = Math.max(2, u*0.11);
+    g.lineCap = "round";
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.19, Y - u*0.02 + b);
+      g.lineTo(X + s*u*0.40, Y - u*0.42 + b);
+      g.stroke();
+    });
+    g.lineCap = "butt";
+    g.fillStyle = id === "robot" ? A.accent : A.skin;
+    [-1, 1].forEach(s => { g.beginPath(); g.arc(X + s*u*0.40, Y - u*0.44 + b, u*0.075, 0, 7); g.fill(); });
+  }
+
+  if (id === "robot"){
+    g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
+    g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    g.fillStyle = "#e3e9f0"; g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.32);
+    g.fillStyle = A.trim;    g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.05);
+    g.fillStyle = "#0a1418"; g.fillRect(X - u*0.17, Y - u*0.30 + b, u*0.34, u*0.13);
+    g.fillStyle = A.accent;
+    g.fillRect(X - u*0.14 + ex, Y - u*0.27 + ey + b, u*0.28, u*0.07);
+    g.save(); g.globalAlpha = 0.45;
+    g.fillRect(X - u*0.18 + ex, Y - u*0.29 + ey + b, u*0.36, u*0.11);
+    g.restore();
+  } else if (id === "dragon"){
+    g.fillStyle = A.body; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.trim;
+    g.beginPath(); g.ellipse(X + ex*1.4, HY + u*0.09 + ey, u*0.16, u*0.10, 0, 0, 7); g.fill();
+    g.fillStyle = A.accent;
+    [-1, 1].forEach(s => {
+      g.beginPath();
+      g.moveTo(X + s*u*0.12, HY - u*0.18);
+      g.lineTo(X + s*u*0.22, HY - u*0.40);
+      g.lineTo(X + s*u*0.02, HY - u*0.22);
+      g.closePath(); g.fill();
+    });
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    g.fillStyle = "#0d1a12";
+    g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+    g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+  } else if (id === "ninja"){
+    g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
+    g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);   // eye slit
+    g.fillStyle = A.trim; g.fillRect(X - u*0.23, HY + u*0.06, u*0.46, u*0.15);   // mask
+    g.fillStyle = A.accent;                                                      // headband + tail
+    g.fillRect(X - u*0.25, HY - u*0.17, u*0.50, u*0.08);
+    g.beginPath();
+    g.moveTo(X - u*0.23, HY - u*0.16);
+    g.lineTo(X - u*0.46, HY - u*0.04);
+    g.lineTo(X - u*0.23, HY - u*0.07);
+    g.closePath(); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+  } else {
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
+    if (id === "knight"){
+      g.fillStyle = "#cfdae6";
+      g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
+      g.fillStyle = "#1a2129";
+      g.fillRect(X - u*0.13, HY - u*0.05, u*0.26, u*0.045);
+      g.fillStyle = A.accent;
+      [-1, 1].forEach(s => {
+        g.beginPath();
+        g.moveTo(X + s*u*0.20, HY - u*0.12);
+        g.lineTo(X + s*u*0.40, HY - u*0.30);
+        g.lineTo(X + s*u*0.22, HY - u*0.01);
+        g.closePath(); g.fill();
+      });
+    } else if (id === "wizard"){
+      g.fillStyle = "#eef1f5";
+      g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
+      g.fillStyle = A.trim;
+      g.beginPath();
+      g.moveTo(X - u*0.26, HY - u*0.14);
+      g.lineTo(X + u*0.08, HY - u*0.62);
+      g.lineTo(X + u*0.26, HY - u*0.14);
+      g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
+    } else if (id === "explorer"){
+      g.fillStyle = A.accent;
+      g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
+      g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
+      g.fillStyle = "#54713a";
+      g.beginPath(); g.ellipse(X + u*0.16, HY - u*0.02, u*0.20, u*0.055, 0, 0, 7); g.fill();
+    }
+  }
+}
+
+function setMood(m){ S.mood = m; S.moodAt = (window.performance && performance.now) ? performance.now() : Date.now(); }
+
+function paintHero(t){
+  try {
+    const c = $("heroCv"); if (!c) return;
+    const r = c.getBoundingClientRect();
+    const w = Math.max(24, Math.round(r.width)), h = Math.max(24, Math.round(r.height));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w*dpr) || c.height !== Math.round(h*dpr)){
+      c.width = Math.round(w*dpr); c.height = Math.round(h*dpr);
+    }
+    const g = c.getContext("2d"); if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const u = Math.min(w, h) * 0.72;
+    const age = t - S.moodAt;
+    let bob = Math.sin(t/620) * u * 0.02, fx = 0, fy = 0, cheer = false, X = w/2;
+    if (S.mood === "cheer" && age < 1800){
+      bob = -Math.abs(Math.sin(t/130)) * u * 0.20; cheer = true; fy = -1;
+    } else if (S.mood === "sad" && age < 1200){
+      X = w/2 + Math.sin(age/40) * u * 0.06 * (1 - age/1200); fy = 1; bob = u * 0.04;
+    } else if (S.solved){
+      cheer = true; fy = -1;
+    }
+    drawHeroSprite(g, X, h*0.62, u, HERO, { bob: bob, fx: fx, fy: fy, cheer: cheer });
+    if (S.mood === "sad" && age < 1200){
+      g.fillStyle = "#4fc3ff";                    /* a worried sweat drop */
+      g.beginPath(); g.arc(X + u*0.30, h*0.62 - u*0.30, u*0.05, 0, 7); g.fill();
+    }
+  } catch (e) { /* a hero that will not draw never breaks the riddle */ }
+}
+(function heroLoop(t){ paintHero(t || 0); requestAnimationFrame(heroLoop); })(0);
+
+(function(){
+  const A = HERO_ART[HERO] || HERO_ART.knight;
+  $("startLine").innerHTML = "<b>" + Math.min(RUN_LEN, LIVE.length) + " riddles.</b> Tap the picture, tap a button, or drag a thing, " +
+    "whatever the riddle asks. Solve one with no hint and no mistakes to earn a ⭐. A wrong answer is free, just try again. " +
+    "A 💡 hint costs 🪙3." + (Voice.ok ? " Tap 🗣️ to hear the riddle read out loud." : "");
+  $("heroLine").innerHTML = "Solving with you: <span style=\"color:" + A.body + "\">" + A.name + "</span>";
+})();
+
+/* ---------- test hook ---------- */
+window.RIDDLE = {
+  RIDDLES: RIDDLES,
+  BROKEN: BROKEN,
+  state: S,
+  RUN_LEN: RUN_LEN,
+  HERO: HERO,
+  EMBED: EMBED,
+  start: start,
+  load: load,                 // load(RIDDLES index) onto the current run slot
+  answer: answer,             // answer(propId | choiceId | "item@target"); true / false / null
+  hint: hint,
+  next: next,
+  options: function(){ return S.cur >= 0 ? optionsOf(RIDDLES[S.cur]) : []; },
+  get current(){ return S.cur >= 0 ? RIDDLES[S.cur] : null; },
+  get cardOpen(){ return cardEl.classList.contains("on"); },
+  get cardText(){ return $("cardTrick").textContent; },
+  get subText(){ return $("sub").textContent; },
+  mute: function(){ Snd.set(false); hud(); return Snd.isOn(); },
+  unmute: function(){ Snd.set(true); hud(); return Snd.isOn(); },
+  get muted(){ return !Snd.isOn(); },
+  fit: fitScene
+};
+})();
+</script>
+<script src="home-button.js"></script>
+</body>
+</html>
