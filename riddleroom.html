@@ -419,9 +419,9 @@ const RIDDLES = [
     trick:"Zog is taller than Bim, and Bim is taller than Pip. So <b>Pip</b> is shorter than both of them." },
 
   { id:"swordword", type:"tap", cat:"read",
-    q:"Tap the <b>WORD</b> sword.",
-    props:[ P("pic","🗡️",14,50,.50,{pick:1}), P("w1","WORDS",40,50,.17,{t:1, pick:1, bg:"#5a4520"}),
-            P("w2","SWORD",64,50,.17,{t:1, pick:1, bg:"#5a4520"}), P("w3","SOWRD",87,50,.17,{t:1, pick:1, bg:"#5a4520"}) ],
+    q:"Tap the <b>WORD</b> \"SWORD\".",
+    props:[ P("pic","🗡️",14,50,.50,{pick:1}), P("w1","WORDS",40,50,.15,{t:1, pick:1, bg:"#5a4520"}),
+            P("w2","SWORD",64,50,.15,{t:1, pick:1, bg:"#5a4520"}), P("w3","SOWRD",87,50,.15,{t:1, pick:1, bg:"#5a4520"}) ],
     a:"w2", win:"S-W-O-R-D",
     hint:"It asked for the WORD, not a picture. Check each letter: S, W, O, R, D.",
     trick:"The picture is a sword, but it is not the <b>word</b>. WORDS and SOWRD use the same letters in the wrong order. Only one card spells S-W-O-R-D." },
@@ -596,8 +596,8 @@ const RIDDLES = [
 
   { id:"paint", type:"tap", cat:"read",
     q:"Tap the word that is written in <b>BLUE</b> paint.",
-    props:[ P("wR","RED",18,50,.22,{t:1, pick:1, col:"#4f8dff"}), P("wB","BLUE",40,50,.22,{t:1, pick:1, col:"#e8452c"}),
-            P("wG","GREEN",64,50,.22,{t:1, pick:1, col:"#f2dc2a"}), P("wY","YELLOW",87,50,.22,{t:1, pick:1, col:"#33c46a"}) ],
+    props:[ P("wR","RED",13,50,.18,{t:1, pick:1, col:"#4f8dff"}), P("wB","BLUE",36,50,.18,{t:1, pick:1, col:"#e8452c"}),
+            P("wG","GREEN",61,50,.18,{t:1, pick:1, col:"#f2dc2a"}), P("wY","YELLOW",86,50,.18,{t:1, pick:1, col:"#33c46a"}) ],
     a:"wR", win:"The word RED, painted blue",
     hint:"Don't read the words. Only look at the COLOUR of the letters.",
     trick:"The word BLUE is painted red to trick you. The question asks about the <b>paint colour</b>, and it is the word RED that is painted blue." },
@@ -757,7 +757,7 @@ function fitScene(){
   /* props are sized off --sh. On a tall scene (desktop, portrait) the
      height alone would blow emojis up past the width, so the unit is
      capped by the width too: every scene keeps the same composition. */
-  const unit = Math.min(sh, sw / 2.3);
+  const unit = Math.min(sh, sw / 3.1);
   document.documentElement.style.setProperty("--sh", Math.round(unit) + "px");
 }
 window.addEventListener("resize", fitScene);
