@@ -958,6 +958,34 @@ if (EMBED){
    Self-contained on purpose: this file stays independent of every other
    game file, so the sprite code lives here rather than in a shared helper.
    ===================================================================== */
+
+/* What he bought in the shop (shared wallet.js). READ-ONLY here, so it is
+   safe in embed mode too: this file never writes to the wallet from these
+   lines. Cached, refreshed whenever the wallet changes (another tab, the
+   shop, a visibility change), and silent when wallet.js is missing. */
+const WEAR = { hat: null, pet: null };
+function readWear(){
+  let hat = null, pet = null;
+  try {
+    const W = window.Wallet;
+    if (W && typeof W.equipped === "function"){
+      const h = W.equipped("hat"), p = W.equipped("pet");
+      hat = h && typeof h.id === "string" ? h.id : null;
+      pet = p && typeof p.id === "string" ? p.id : null;
+    }
+  } catch (e) { hat = null; pet = null; }
+  WEAR.hat = hat; WEAR.pet = pet;
+}
+readWear();
+try { if (window.Wallet && typeof window.Wallet.onChange === "function") window.Wallet.onChange(readWear); } catch (e) { }
+function drawWear(g, id, x, y, size){
+  if (!id || !g || !(size > 0)) return false;
+  try {
+    if (window.Wallet && typeof window.Wallet.drawItem === "function") return !!window.Wallet.drawItem(g, id, x, y, size);
+  } catch (e) { }
+  return false;
+}
+
 const HERO_ART = {
   knight:   {body:"#b9c6d4", trim:"#8795a5", skin:"#f0c9a0", accent:"#ffd23f", name:"The Knight"},
   wizard:   {body:"#7b5cd6", trim:"#4a35a0", skin:"#f0c9a0", accent:"#ffd23f", name:"The Mage"},
@@ -974,6 +1002,8 @@ function drawHeroSprite(g, X, Y, u, id, o){
   const ex = Math.max(-1, Math.min(1, o.fx || 0)) * u * 0.06;
   const ey = Math.max(-1, Math.min(1, o.fy || 0)) * u * 0.04;
   const cheer = !!o.cheer;
+  /* a shop hat REPLACES the built-in headgear (helm, pointed hat, cap, hood) */
+  const hat = (o.hat !== undefined) ? (o.hat || null) : WEAR.hat;
   const HY = Y - u*0.20 + b, HR = u*0.22;
   const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
 
@@ -1063,8 +1093,10 @@ function drawHeroSprite(g, X, Y, u, id, o){
   }
 
   if (id === "robot"){
-    g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
-    g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    if (!hat){                                   // antenna (a shop hat sits there instead)
+      g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
+      g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    }
     g.fillStyle = "#e3e9f0"; g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.32);
     g.fillStyle = A.trim;    g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.05);
     g.fillStyle = "#0a1418"; g.fillRect(X - u*0.17, Y - u*0.30 + b, u*0.34, u*0.13);
@@ -1089,6 +1121,11 @@ function drawHeroSprite(g, X, Y, u, id, o){
     g.fillStyle = "#0d1a12";
     g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
     g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
+  } else if (id === "ninja" && hat){
+    /* hood off under a shop hat: face, the lower mask, and the eyes */
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY + u*0.02, HR*1.02, 0, Math.PI); g.fill();
+    g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
   } else if (id === "ninja"){
     g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
     g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);   // eye slit
@@ -1104,7 +1141,7 @@ function drawHeroSprite(g, X, Y, u, id, o){
   } else {
     g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
     g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
-    if (id === "knight"){
+    if (id === "knight" && !hat){
       g.fillStyle = "#cfdae6";
       g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
       g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
@@ -1121,22 +1158,30 @@ function drawHeroSprite(g, X, Y, u, id, o){
     } else if (id === "wizard"){
       g.fillStyle = "#eef1f5";
       g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
-      g.fillStyle = A.trim;
-      g.beginPath();
-      g.moveTo(X - u*0.26, HY - u*0.14);
-      g.lineTo(X + u*0.08, HY - u*0.62);
-      g.lineTo(X + u*0.26, HY - u*0.14);
-      g.closePath(); g.fill();
-      g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
-      g.fillStyle = A.accent;
-      g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
-    } else if (id === "explorer"){
+      if (!hat){                                   // his own pointed hat
+        g.fillStyle = A.trim;
+        g.beginPath();
+        g.moveTo(X - u*0.26, HY - u*0.14);
+        g.lineTo(X + u*0.08, HY - u*0.62);
+        g.lineTo(X + u*0.26, HY - u*0.14);
+        g.closePath(); g.fill();
+        g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
+        g.fillStyle = A.accent;
+        g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
+      }
+    } else if (id === "explorer" && !hat){
       g.fillStyle = A.accent;
       g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
       g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
       g.fillStyle = "#54713a";
       g.beginPath(); g.ellipse(X + u*0.16, HY - u*0.02, u*0.20, u*0.055, 0, 0, 7); g.fill();
     }
+  }
+
+  /* ---------- the shop hat, last so it sits on top of everything ---------- */
+  if (hat){
+    if (id === "robot") drawWear(g, hat, X, Y - u*0.38 + b, u*0.50);   // flat box head
+    else drawWear(g, hat, X, HY - HR*0.72, HR*2.07);                   // round head
   }
 }
 
@@ -1155,9 +1200,17 @@ function paintHero(t){
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
     const open = doorEl.classList.contains("open");
-    const u = Math.min(w, h) * 0.70;
+    /* a shop hat needs headroom and a pet needs elbow room: the hero steps
+       down a size and (with a pet) shifts left so both fit this small canvas */
+    const hat = WEAR.hat, pet = WEAR.pet;
+    const u = Math.min(w, h) * ((hat || pet) ? 0.58 : 0.70);
+    const hx = pet ? w*0.40 : w/2, hy = hat ? h*0.66 : h*0.60;
     const bob = open ? -Math.abs(Math.sin(t/130)) * u * 0.20 : Math.sin(t/620) * u * 0.02;
-    drawHeroSprite(g, w/2, h*0.60, u, HERO, { bob: bob, fx: 0, fy: 1, cheer: open });
+    drawHeroSprite(g, hx, hy, u, HERO, { bob: bob, fx: 0, fy: 1, cheer: open, hat: hat });
+    if (pet){
+      const hop = open ? -Math.abs(Math.sin(t/150 + 1)) * u * 0.18 : Math.sin(t/330) * u * 0.05;
+      drawWear(g, pet, w*0.84, h*0.62 + hop, Math.min(w, h) * 0.30);
+    }
   } catch (e) { /* a hero that will not draw never breaks the puzzle */ }
 }
 (function heroLoop(t){ paintHero(t || 0); requestAnimationFrame(heroLoop); })(0);

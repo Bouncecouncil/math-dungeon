@@ -1366,6 +1366,33 @@ var HERO_ART = {
   explorer: {body:"#a8804a", trim:"#6b4a22", head:"#e8b98a", accent:"#3ddc84", brim:true},
   dragon:   {body:"#3ddc84", trim:"#1f8f56", head:"#3ddc84", accent:"#ffd23f", wings:true}
 };
+/* What he bought in the shop (shared wallet.js). READ-ONLY here, so it is
+   safe in embed mode too: these lines never write to the wallet. Cached,
+   refreshed whenever the wallet changes (another tab, the shop, a
+   visibility change), and silent when wallet.js is missing. */
+var WEAR = { hat: null, pet: null };
+function readWear(){
+  var hat = null, pet = null;
+  try {
+    var W = window.Wallet;
+    if (W && typeof W.equipped === "function"){
+      var h = W.equipped("hat"), p = W.equipped("pet");
+      hat = h && typeof h.id === "string" ? h.id : null;
+      pet = p && typeof p.id === "string" ? p.id : null;
+    }
+  } catch (e) { hat = null; pet = null; }
+  WEAR.hat = hat; WEAR.pet = pet;
+}
+readWear();
+try { if (window.Wallet && typeof window.Wallet.onChange === "function") window.Wallet.onChange(function(){ readWear(); heroLast = 0; }); } catch (e) { }
+function drawWear(g, id, x, y, size){
+  if (!id || !g || !(size > 0)) return false;
+  try {
+    if (window.Wallet && typeof window.Wallet.drawItem === "function") return !!window.Wallet.drawItem(g, id, x, y, size);
+  } catch (e) { }
+  return false;
+}
+
 var heroCv = $("hero"), heroCtx = null;
 try { heroCtx = heroCv.getContext("2d"); } catch(e){ heroCtx = null; }
 
@@ -1378,6 +1405,14 @@ function drawHero(t){
   g.scale(W/66, H/66);                       /* draw in a 66 x 66 box */
   var bob = Math.sin(t/260) * 2.2;
   var arm = Math.sin(t/200);
+  /* a shop hat REPLACES his built-in topper and needs headroom, a pet needs
+     elbow room: the hero steps down a size (feet stay on the floor at y=60)
+     and, with a pet, shifts left so the pet fits at his side in this box */
+  var hat = WEAR.hat, pet = WEAR.pet;
+  if (pet) drawWear(g, pet, 56, 47 + Math.sin(t/330) * 2.5, 17);
+  if (hat || pet){
+    g.translate(pet ? 27 : 33, 60); g.scale(0.74, 0.74); g.translate(-33, -60);
+  }
   /* shadow */
   g.fillStyle = "rgba(0,0,0,.35)";
   g.beginPath(); g.ellipse(33, 60, 15, 4, 0, 0, Math.PI*2); g.fill();
@@ -1404,9 +1439,15 @@ function drawHero(t){
   g.lineWidth = 5; g.lineCap = "round";
   g.beginPath(); g.moveTo(21,32); g.lineTo(12, 20 - arm*4); g.stroke();
   g.beginPath(); g.moveTo(45,32); g.lineTo(54, 20 + arm*4); g.stroke();
-  /* head */
-  g.fillStyle = a.head;
+  /* head (under a shop hat the knight's grey helm and the ninja's hood come
+     off, so both show a face; the ninja keeps the mask over his mouth) */
+  var bare = !!hat && (heroType === "knight" || heroType === "ninja");
+  g.fillStyle = bare ? "#f0c9a0" : a.head;
   g.beginPath(); g.arc(33, 19, 11, 0, Math.PI*2); g.fill();
+  if (bare && heroType === "ninja"){
+    g.fillStyle = a.body;
+    g.beginPath(); g.arc(33, 20, 11.2, 0, Math.PI); g.fill();
+  }
   /* eyes */
   g.fillStyle = "#10161d";
   g.beginPath(); g.arc(29.5, 18, 1.8, 0, Math.PI*2); g.fill();
@@ -1414,7 +1455,18 @@ function drawHero(t){
   /* smile */
   g.strokeStyle = "#10161d"; g.lineWidth = 1.6;
   g.beginPath(); g.arc(33, 21, 4, 0.25*Math.PI, 0.75*Math.PI); g.stroke();
-  /* per hero topper */
+  /* per hero topper (a shop hat replaces the helm plume, pointed hat,
+     headband and cap; the robot's antenna makes way for it too) */
+  if (hat){
+    if (a.wings){                            /* the dragon keeps his horns: they are not a hat */
+      g.fillStyle = a.accent;
+      g.beginPath(); g.moveTo(26,9); g.lineTo(23,2); g.lineTo(30,7); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(40,9); g.lineTo(43,2); g.lineTo(36,7); g.closePath(); g.fill();
+    }
+    drawWear(g, hat, 33, 19 - 11*0.72, 11*2.07);
+    g.restore();
+    return;
+  }
   if (a.plume){
     g.fillStyle = "#c9d2e0"; g.fillRect(22, 10, 22, 4);
     g.fillStyle = a.accent;
@@ -1735,6 +1787,20 @@ window.POKE = {
   coins: function(){ return coins; },
   setCoins: function(n){ coins = Math.max(0, n|0); paintCoins(); return coins; },
   layout: layout,
+  /* renders the corner hero into any canvas, as any hero, wearing any shop
+     hat and pet (lets a test check every hero x hat without reloading) */
+  drawHeroAs: function(canvas, id, hat, pet){
+    if (!canvas || typeof canvas.getContext !== "function") return false;
+    var keep = { t: heroType, cv: heroCv, cx: heroCtx, hat: WEAR.hat, pet: WEAR.pet };
+    try {
+      if (HERO_ART[id]) heroType = id;
+      heroCv = canvas; heroCtx = canvas.getContext("2d");
+      WEAR.hat = hat || null; WEAR.pet = pet || null;
+      drawHero(0);
+    } catch (e) { return false; }
+    finally { heroType = keep.t; heroCv = keep.cv; heroCtx = keep.cx; WEAR.hat = keep.hat; WEAR.pet = keep.pet; }
+    return true;
+  },
   /* ---- Pokedex / piece-set hooks ---- */
   newPuzzleMode: function(size, diff, seed, mode, line){ return newPuzzle(size, diff, seed, {mode:mode, line:line}); },
   /* fills every empty square with its answer through the normal place path */

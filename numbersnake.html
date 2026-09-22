@@ -976,14 +976,22 @@ function drawSnake(t, f){
   g.strokeStyle = crashed ? "#8a3a44" : "#1f8f5a"; g.lineWidth = c * 0.62;
   g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.stroke();
   g.restore();
+  /* a shop TRAIL (wallet.js) tints the back half of the serpent in its
+     colours and twinkles sparkles along the tail */
+  let tc = null;
+  if (!crashed){
+    try { const tr = LOOK.trail; if (tr && Array.isArray(tr.colors) && tr.colors.length) tc = tr.colors; } catch (e) { tc = null; }
+  }
+  const TAIL_FROM = 0.45, tick = Math.floor(t / 180);
   for (let i = n - 1; i >= 1; i--){
     const k = i / Math.max(1, n - 1);
     const r = c * (0.34 - 0.12 * k);
-    g.fillStyle = crashed ? "#b34b56" : (i % 2 ? "#3ddc84" : "#2fbf72");
+    g.fillStyle = crashed ? "#b34b56" : (tc && k >= TAIL_FROM ? tc[(i + tick) % tc.length] : (i % 2 ? "#3ddc84" : "#2fbf72"));
     g.beginPath(); g.arc(pts[i].x, pts[i].y, r, 0, 7); g.fill();
     g.fillStyle = "rgba(255,255,255,.18)";
     g.beginPath(); g.arc(pts[i].x - r*0.3, pts[i].y - r*0.35, r*0.35, 0, 7); g.fill();
   }
+  if (tc) drawTrailSparkles(pts, t, tc, TAIL_FROM);
   /* head */
   const h = pts[0], d = S.dir;
   const px = -d.y, py = d.x;          // sideways unit
@@ -1015,6 +1023,46 @@ function drawSnake(t, f){
       drawHeroSprite(g, pts[1].x, pts[1].y - c*0.28, c*0.95, HERO, { bob:bob, fx:d.x, fy:d.y, cheer:cheer });
     } catch (e) { /* hero art is decoration only */ }
   }
+}
+
+/* twinkling four-point sparkles over the tail, plus a fading puff of the
+   trail's own emoji streaming off the tip */
+function drawTrailSparkles(pts, t, tc, from){
+  let saved = false;
+  try {
+    const c = S.cell, n = pts.length;
+    if (n < 2) return;
+    g.save(); saved = true;
+    for (let i = 1; i < n; i++){
+      const k = i / Math.max(1, n - 1);
+      if (k < from) continue;
+      const a = 0.5 + 0.5 * Math.sin(t/150 + i*1.7);
+      if (a < 0.3) continue;
+      const sx = pts[i].x + Math.sin(i*2.3 + t/400) * c*0.30;
+      const sy = pts[i].y + Math.cos(i*1.9 + t/350) * c*0.30;
+      const rr = c * 0.16 * a;
+      g.globalAlpha = a;
+      g.fillStyle = tc[(i*3) % tc.length];
+      g.beginPath();
+      g.moveTo(sx, sy - rr); g.lineTo(sx + rr*0.28, sy - rr*0.28); g.lineTo(sx + rr, sy);
+      g.lineTo(sx + rr*0.28, sy + rr*0.28); g.lineTo(sx, sy + rr); g.lineTo(sx - rr*0.28, sy + rr*0.28);
+      g.lineTo(sx - rr, sy); g.lineTo(sx - rr*0.28, sy - rr*0.28); g.closePath(); g.fill();
+    }
+    let em = null;
+    try { em = LOOK.trail ? LOOK.trail.emoji : null; } catch (e) { em = null; }
+    if (em){
+      const a = pts[n - 1], p = pts[n - 2];
+      let dx = a.x - p.x, dy = a.y - p.y; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+      g.textAlign = "center"; g.textBaseline = "middle";
+      for (let j = 0; j < 3; j++){
+        const ph = ((t / 900) + j / 3) % 1;
+        g.globalAlpha = 0.85 * (1 - ph);
+        g.font = Math.round(c * (0.46 - ph*0.18)) + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+        g.fillText(em, a.x + dx*c*(0.35 + ph*0.9) + Math.sin(ph*6 + j)*c*0.12, a.y + dy*c*(0.35 + ph*0.9) + Math.cos(ph*6 + j)*c*0.12);
+      }
+    }
+    g.restore(); saved = false;
+  } catch (e) { if (saved){ try { g.restore(); } catch (e2) {} } }
 }
 
 function burst(gx, gy){
@@ -1176,6 +1224,60 @@ $("overBtn").onclick = () => {
 document.addEventListener("visibilitychange", () => { if (document.hidden && (S.phase === "play" || S.phase === "ready")) setPause(true); });
 
 /* =====================================================================
+   SHOP LOOK: what he bought in shop.html (wallet.js), worn in this game.
+   Read-only, so it is safe in embed mode too (only WRITING to the wallet
+   is off-limits there). Every Wallet call is guarded: no wallet, or
+   nothing equipped, simply draws the hero exactly as before.
+   ===================================================================== */
+const LOOK = (function(){
+  const st = { hat:null, pet:null, trail:null };
+  function W(){
+    try { return (typeof window.Wallet === "object" && window.Wallet) ? window.Wallet : null; } catch (e) { return null; }
+  }
+  function read(){
+    const w = W();
+    ["hat", "pet", "trail"].forEach(function(slot){
+      let it = null;
+      if (w && typeof w.equipped === "function"){ try { it = w.equipped(slot) || null; } catch (e) { it = null; } }
+      st[slot] = (it && typeof it.id === "string") ? it : null;
+    });
+  }
+  read();
+  try { const w = W(); if (w && typeof w.onChange === "function") w.onChange(function(){ read(); }); } catch (e) { /* no live updates */ }
+  function draw(g, id, x, y, size){
+    const w = W();
+    if (!w || typeof w.drawItem !== "function" || !g || !id || !isFinite(x) || !isFinite(y) || !(size > 0)) return false;
+    try { return !!w.drawItem(g, id, x, y, size); } catch (e) { return false; }
+  }
+  function canDraw(){ const w = W(); return !!(w && typeof w.drawItem === "function"); }
+  return {
+    get hat(){ return st.hat; }, get pet(){ return st.pet; }, get trail(){ return st.trail; },
+    draw: draw, canDraw: canDraw, refresh: read
+  };
+})();
+/* the equipped hat's id, only when it can actually be drawn (so the hero
+   never loses his own headgear to a hat that cannot appear) */
+function lookHatId(){ try { return (LOOK.hat && LOOK.canDraw()) ? LOOK.hat.id : null; } catch (e) { return null; } }
+/* a tall shop hat needs headroom in a small hero canvas: shrink the hero a
+   little and drop him down so the hat (and a cheering hop) stay in frame */
+function lookFit(u, Y){
+  if (!lookHatId()) return { u: u, Y: Y };
+  return { u: u*0.86, Y: Y + u*0.126 };
+}
+/* the pet sits (or hovers) just left of the hero's feet */
+function lookPetBeside(g, X, Y, u, t, cheer){
+  try {
+    const p = LOOK.pet; if (!p) return;
+    const s = u*0.40;
+    const x = Math.max(s*0.55, X - u*0.52);
+    const fly = p.id === "pet_bat" || p.id === "pet_drone";
+    const hop = cheer ? Math.abs(Math.sin(t/130)) * u*0.14 : 0;
+    const y = Y + u*(fly ? 0.02 : 0.16) + Math.sin(t/(fly ? 260 : 420)) * u*(fly ? 0.04 : 0.015) - hop;
+    LOOK.draw(g, p.id, x, y, s);
+  } catch (e) { /* the pet is decoration only */ }
+}
+
+/* =====================================================================
    THE CHOSEN HERO (same art as runedoor.html's drawHeroSprite, kept in
    this file so every arcade page stays standalone)
    ===================================================================== */
@@ -1197,6 +1299,8 @@ function drawHeroSprite(g, X, Y, u, id, o){
   const cheer = !!o.cheer;
   const HY = Y - u*0.20 + b, HR = u*0.22;
   const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
+  /* a shop hat (wallet.js) REPLACES the hero's own headgear; o.hat overrides (null = none) */
+  const hatId = (o.hat !== undefined) ? o.hat : lookHatId();
 
   g.fillStyle = "rgba(0,0,0,.45)";
   g.beginPath(); g.ellipse(X, Y + u*0.34, u*0.30, u*0.12, 0, 0, 7); g.fill();
@@ -1282,8 +1386,10 @@ function drawHeroSprite(g, X, Y, u, id, o){
   }
 
   if (id === "robot"){
-    g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
-    g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    if (!hatId){
+      g.fillStyle = "#93a3b5"; g.fillRect(X - u*0.04, Y - u*0.50 + b, u*0.08, u*0.12);
+      g.fillStyle = A.accent; g.beginPath(); g.arc(X, Y - u*0.53 + b, u*0.06, 0, 7); g.fill();
+    }
     g.fillStyle = "#e3e9f0"; g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.32);
     g.fillStyle = A.trim;    g.fillRect(X - u*0.23, Y - u*0.40 + b, u*0.46, u*0.05);
     g.fillStyle = "#0a1418"; g.fillRect(X - u*0.17, Y - u*0.30 + b, u*0.34, u*0.13);
@@ -1296,8 +1402,8 @@ function drawHeroSprite(g, X, Y, u, id, o){
     g.fillStyle = A.body; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
     g.fillStyle = A.trim;
     g.beginPath(); g.ellipse(X + ex*1.4, HY + u*0.09 + ey, u*0.16, u*0.10, 0, 0, 7); g.fill();
-    g.fillStyle = A.accent;
-    [-1, 1].forEach(s => {
+    if (!hatId) [-1, 1].forEach(s => {
+      g.fillStyle = A.accent;
       g.beginPath();
       g.moveTo(X + s*u*0.12, HY - u*0.18);
       g.lineTo(X + s*u*0.22, HY - u*0.40);
@@ -1309,21 +1415,30 @@ function drawHeroSprite(g, X, Y, u, id, o){
     g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
     g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
   } else if (id === "ninja"){
-    g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
-    g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);
-    g.fillStyle = A.trim; g.fillRect(X - u*0.23, HY + u*0.06, u*0.46, u*0.15);
-    g.fillStyle = A.accent;
-    g.fillRect(X - u*0.25, HY - u*0.17, u*0.50, u*0.08);
-    g.beginPath();
-    g.moveTo(X - u*0.23, HY - u*0.16);
-    g.lineTo(X - u*0.46, HY - u*0.04);
-    g.lineTo(X - u*0.23, HY - u*0.07);
-    g.closePath(); g.fill();
-    g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    if (hatId){
+      /* no hood or headband under a shop hat: bare forehead, ninja mask below the eyes */
+      g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+      g.save(); g.beginPath(); g.arc(X, HY, HR, 0, 7); g.clip();
+      g.fillStyle = A.trim; g.fillRect(X - HR, HY + u*0.09, HR*2, HR*2);
+      g.restore();
+      g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    } else {
+      g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY, HR*1.08, 0, 7); g.fill();
+      g.fillStyle = A.skin; g.fillRect(X - u*0.23, HY - u*0.09, u*0.46, u*0.15);
+      g.fillStyle = A.trim; g.fillRect(X - u*0.23, HY + u*0.06, u*0.46, u*0.15);
+      g.fillStyle = A.accent;
+      g.fillRect(X - u*0.25, HY - u*0.17, u*0.50, u*0.08);
+      g.beginPath();
+      g.moveTo(X - u*0.23, HY - u*0.16);
+      g.lineTo(X - u*0.46, HY - u*0.04);
+      g.lineTo(X - u*0.23, HY - u*0.07);
+      g.closePath(); g.fill();
+      g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
+    }
   } else {
     g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
     g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
-    if (id === "knight"){
+    if (id === "knight" && !hatId){
       g.fillStyle = "#cfdae6";
       g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
       g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
@@ -1340,22 +1455,29 @@ function drawHeroSprite(g, X, Y, u, id, o){
     } else if (id === "wizard"){
       g.fillStyle = "#eef1f5";
       g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
-      g.fillStyle = A.trim;
-      g.beginPath();
-      g.moveTo(X - u*0.26, HY - u*0.14);
-      g.lineTo(X + u*0.08, HY - u*0.62);
-      g.lineTo(X + u*0.26, HY - u*0.14);
-      g.closePath(); g.fill();
-      g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
-      g.fillStyle = A.accent;
-      g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
-    } else if (id === "explorer"){
+      if (!hatId){
+        g.fillStyle = A.trim;
+        g.beginPath();
+        g.moveTo(X - u*0.26, HY - u*0.14);
+        g.lineTo(X + u*0.08, HY - u*0.62);
+        g.lineTo(X + u*0.26, HY - u*0.14);
+        g.closePath(); g.fill();
+        g.beginPath(); g.ellipse(X, HY - u*0.14, u*0.34, u*0.08, 0, 0, 7); g.fill();
+        g.fillStyle = A.accent;
+        g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
+      }
+    } else if (id === "explorer" && !hatId){
       g.fillStyle = A.accent;
       g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
       g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
       g.fillStyle = "#54713a";
       g.beginPath(); g.ellipse(X + u*0.16, HY - u*0.02, u*0.20, u*0.055, 0, 0, 7); g.fill();
     }
+  }
+  /* the shop hat goes on last, on top of the head (x,y = top-centre of the head) */
+  if (hatId){
+    if (id === "robot") LOOK.draw(g, hatId, X, Y - u*0.39 + b, u*0.50);
+    else LOOK.draw(g, hatId, X, HY - HR*0.72, HR*2.07);
   }
 }
 
@@ -1371,9 +1493,10 @@ function paintHero(t){
     hg.setTransform(dpr, 0, 0, dpr, 0, 0);
     hg.clearRect(0, 0, w, h);
     const cheer = t < S.cheerUntil;
-    const u = Math.min(w, h) * 0.70;
+    const fit = lookFit(Math.min(w, h) * 0.70, h*0.60), u = fit.u;
     const bob = cheer ? -Math.abs(Math.sin(t/130)) * u * 0.20 : Math.sin(t/620) * u * 0.02;
-    drawHeroSprite(hg, w/2, h*0.60, u, HERO, { bob:bob, fx:0, fy:1, cheer:cheer });
+    drawHeroSprite(hg, w/2, fit.Y, u, HERO, { bob:bob, fx:0, fy:1, cheer:cheer });
+    lookPetBeside(hg, w/2, fit.Y, u, t, cheer);
   } catch (e) { /* a hero that will not draw never breaks the game */ }
 }
 

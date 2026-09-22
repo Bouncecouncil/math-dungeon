@@ -661,6 +661,45 @@ function loadLevel(li){
   updateHUD();
 }
 
+/* ================= shop cosmetics in the dungeon =================
+   What Lennon bought in the arcade shop comes along: his PET trots a
+   step behind and to the side, and his TRAIL puffs out behind his feet
+   as he walks.
+   Read-only on the wallet; nothing equipped = nothing drawn.          */
+const COS={petX:null,petY:null,trail:[],lastX:null,lastY:null,trailT:0};
+function cosEquipped(slot){
+  try{return (typeof Wallet!=="undefined"&&Wallet)?Wallet.equipped(slot):null;}catch(e){return null;}
+}
+function addCosmetics(push,now){
+  if(S.mode==="title")return;
+  const pet=cosEquipped("pet");
+  if(pet){
+    const side=p.a+Math.PI/2;
+    const tx=p.x-Math.cos(p.a)*0.8+Math.cos(side)*0.28, ty=p.y-Math.sin(p.a)*0.8+Math.sin(side)*0.28;
+    if(COS.petX===null){COS.petX=tx;COS.petY=ty;}
+    COS.petX+=(tx-COS.petX)*0.08; COS.petY+=(ty-COS.petY)*0.08;
+    // never lost, and kept a body-width off the walls so it never sinks into them
+    const nearWall=solidAt(COS.petX+0.22,COS.petY)||solidAt(COS.petX-0.22,COS.petY)||solidAt(COS.petX,COS.petY+0.22)||solidAt(COS.petX,COS.petY-0.22);
+    if(Math.hypot(COS.petX-p.x,COS.petY-p.y)>4||nearWall){COS.petX+=(p.x-COS.petX)*0.35;COS.petY+=(p.y-COS.petY)*0.35;}
+    push(COS.petX,COS.petY,0.30+0.06*Math.sin(now*4),pet.emoji,0.30,[255,255,255],{seed:7});
+  }
+  const tr=cosEquipped("trail");
+  if(tr){
+    const moved=COS.lastX===null?0:Math.hypot(p.x-COS.lastX,p.y-COS.lastY);
+    COS.lastX=p.x;COS.lastY=p.y;
+    if(moved>0.002&&COS.trail.length<24&&(now-COS.trailT)>0.08){
+      COS.trailT=now;
+      COS.trail.push({x:p.x-Math.cos(p.a)*0.35,y:p.y-Math.sin(p.a)*0.35,born:now});
+    }
+    COS.trail=COS.trail.filter(t=>now-t.born<0.9);
+    for(const t of COS.trail){
+      const age=now-t.born;
+      push(t.x,t.y,0.05+age*0.2,tr.emoji,0.13,[255,255,255],{alpha:Math.max(0,1-age/0.9),seed:t.born});
+    }
+  }
+  // (no hat here: the dungeon hero is a real 3D model, and a flat billboard
+  //  hat ballooned to full screen whenever the camera swung in close)
+}
 /* The rune door: obvious enough for a 7-year-old to spot, tucked in the
    far corner of dungeon 2. Walking into it is the way out of the level. */
 function placeRuneDoor(){
@@ -1976,6 +2015,8 @@ function pushWorldSprites(now){
       push(e.x,e.y,0.10+0.04*Math.sin(now*2.6+e.x),e.emoji,0.42,glow,{seed:e.x});
     }
   }
+
+  addCosmetics(push, now);   // his shop pet, trail and hat
 
   // NOTE: the hero is NOT in this list any more. He used to be a 96px
   // emoji baked to a texture and stretched across the screen: flat, no

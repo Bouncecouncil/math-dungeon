@@ -471,6 +471,7 @@ const cart = new THREE.Group();
   head.position.set(0,2.72,-0.1); cart.add(head);
   const hat = new THREE.Mesh(new THREE.BoxGeometry(0.86,0.22,0.86), new THREE.MeshBasicMaterial({color:look.trim}));
   hat.position.set(0,3.14,-0.1); cart.add(hat);
+  cart.userData.hat = hat;             // the shop hat replaces this built-in one
   if (HERO_ID === "dragon"){
     for (const sx of [-1,1]){
       const w = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.5,0.1), new THREE.MeshBasicMaterial({color:look.trim}));
@@ -479,6 +480,118 @@ const cart = new THREE.Group();
   }
 })();
 scene.add(cart);
+
+/* ================= shop cosmetics =================
+   Whatever Lennon bought in the arcade shop shows up on the ride: the
+   cart's paint, the rider's hat, a pet flying alongside, and a trail of
+   sparkles behind the wheels. Read-only on the wallet, so it is safe in
+   embed mode too. Nothing equipped (or no wallet) = the plain cart.   */
+const Look = (function(){
+  const W = () => { try { return (typeof Wallet !== "undefined" && Wallet) ? Wallet : null; } catch(e){ return null; } };
+  const PLAIN_CART = 0x8a5a2b, PLAIN_IRON = 0x50607e;
+  const hatGroup = new THREE.Group();
+  hatGroup.position.set(0, 3.05, -0.1);
+  cart.add(hatGroup);
+  const texCache = {};
+  function emojiTex(emoji){
+    if (texCache[emoji]) return texCache[emoji];
+    const c = document.createElement("canvas"); c.width = c.height = 128;
+    const g = c.getContext("2d");
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = "96px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+    g.fillText(emoji, 64, 70);
+    return (texCache[emoji] = new THREE.CanvasTexture(c));
+  }
+  const hex = h => new THREE.Color(h);
+  const box = (w,h,d,col) => new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshBasicMaterial({color:hex(col)}));
+  const cone = (r,h,col) => new THREE.Mesh(new THREE.CylinderGeometry(0.02, r, h, 12), new THREE.MeshBasicMaterial({color:hex(col)}));
+
+  function buildHat(it){
+    while (hatGroup.children.length) hatGroup.remove(hatGroup.children[0]);
+    const builtIn = cart.userData.hat;
+    if (!it){ if (builtIn) builtIn.visible = true; return; }
+    if (builtIn) builtIn.visible = false;
+    const c = it.colors || ["#ffd23f"];
+    if (it.id === "hat_crown"){
+      const band = box(0.84, 0.26, 0.84, c[0]); hatGroup.add(band);
+      for (const [x,z] of [[-0.32,0],[0.32,0],[0,0.32],[0,-0.32],[0,0]]){
+        const p = cone(0.1, 0.3, c[0]); p.position.set(x, 0.28, z); hatGroup.add(p);
+      }
+      const j1 = box(0.12,0.12,0.04, c[1]||"#e0263b"); j1.position.set(0, 0, -0.44); hatGroup.add(j1);
+    } else if (it.id === "hat_wizard"){
+      const brim = box(1.1, 0.08, 1.1, c[0]); hatGroup.add(brim);
+      const tip = cone(0.42, 1.0, c[0]); tip.position.y = 0.52; hatGroup.add(tip);
+      const star = box(0.14,0.14,0.04, c[1]||"#ffd23f"); star.position.set(0, 0.4, -0.3); hatGroup.add(star);
+    } else if (it.id === "hat_party"){
+      const tip = cone(0.36, 0.8, c[0]); tip.position.y = 0.4; hatGroup.add(tip);
+      const pom = box(0.18,0.18,0.18, c[1]||"#ffd23f"); pom.position.y = 0.86; hatGroup.add(pom);
+    } else if (it.id === "hat_pirate"){
+      const top = box(1.2, 0.34, 0.7, c[0]); top.position.y = 0.12; hatGroup.add(top);
+      const skull = box(0.2,0.2,0.04, c[1]||"#ffffff"); skull.position.set(0, 0.14, -0.37); hatGroup.add(skull);
+    } else if (it.id === "hat_viking"){
+      const dome = box(0.86, 0.34, 0.86, c[0]); dome.position.y = 0.1; hatGroup.add(dome);
+      for (const sx of [-1,1]){
+        const horn = cone(0.12, 0.6, c[1]||"#f3ead2"); horn.position.set(sx*0.55, 0.36, 0); horn.rotation.z = -sx*0.7; hatGroup.add(horn);
+      }
+    } else {
+      const band = box(0.86, 0.3, 0.86, c[0]); hatGroup.add(band);
+    }
+  }
+
+  let petSprite = null, trailItem = null, rainbow = false;
+  const trail = []; let trailT = 0;
+  function setPet(it){
+    if (petSprite){ scene.remove(petSprite); petSprite = null; }
+    if (!it) return;
+    petSprite = new THREE.Sprite(new THREE.SpriteMaterial({map:emojiTex(it.emoji || "\u2728"), transparent:true, depthWrite:false}));
+    petSprite.scale.set(1.3, 1.3, 1);
+    scene.add(petSprite);
+  }
+  function apply(){
+    const w = W();
+    const get = slot => { try { return w ? w.equipped(slot) : null; } catch(e){ return null; } };
+    const c = get("cart");
+    rainbow = !!(c && c.id === "cart_rainbow");
+    mat.cart.color.set(c ? hex(c.colors[0]) : hex(PLAIN_CART));
+    mat.iron.color.set(c && c.colors[1] ? hex(c.colors[1]) : hex(PLAIN_IRON));
+    buildHat(get("hat"));
+    setPet(get("pet"));
+    trailItem = get("trail");
+  }
+  function tick(dt, now){
+    if (rainbow) mat.cart.color.setHSL((now / 2400) % 1, 0.85, 0.55);
+    const cp = cart.position;
+    if (petSprite){
+      petSprite.position.set(cp.x + 1.9, cp.y + 2.6 + Math.sin(now / 260) * 0.25, cp.z + 0.4);
+    }
+    // a trail of sparkles, fading behind the wheels while the cart rolls
+    if (trailItem && S.running && !S.paused){
+      trailT -= dt;
+      if (trailT <= 0 && trail.length < 40){
+        trailT = 0.06;
+        const cols = trailItem.colors || ["#ffd23f"];
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: emojiTex(trailItem.emoji || "\u2728"), transparent:true, depthWrite:false,
+          color: trailItem.id === "trail_rainbow" ? hex(cols[(Math.random()*cols.length)|0]) : hex("#ffffff")
+        }));
+        sp.position.set(cp.x + (Math.random()-0.5)*1.6, cp.y + 0.5 + Math.random()*0.6, cp.z - 1.8);
+        sp.scale.set(0.5, 0.5, 1);
+        sp.userData.life = 0.9;
+        scene.add(sp); trail.push(sp);
+      }
+    }
+    for (let i = trail.length - 1; i >= 0; i--){
+      const sp = trail[i];
+      sp.userData.life -= dt;
+      sp.material.opacity = Math.max(0, sp.userData.life / 0.9);
+      sp.position.y += dt * 0.6;
+      if (sp.userData.life <= 0){ scene.remove(sp); sp.material.dispose(); trail.splice(i, 1); }
+    }
+  }
+  apply();
+  try { const w = W(); if (w && w.onChange) w.onChange(apply); } catch(e){}
+  return { apply, tick };
+})();
 
 /* ---- signs: a question board, and one banner per lane ---- */
 function signTexture(text, opts){
@@ -1038,6 +1151,7 @@ function step(dt, now){
   }
   if (msgT > 0){ msgT -= dt; if (msgT <= 0) $("msg").classList.remove("show"); }
 
+  try { Look.tick(dt, now); } catch(e){}
   renderer.render(scene, camera);
 }
 requestAnimationFrame(frame);

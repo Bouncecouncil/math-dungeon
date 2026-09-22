@@ -1047,6 +1047,7 @@ function frame(now){
     c.ay += (c.y - c.ay) * k;
   }
   if (S.shakeT > 0) S.shakeT = Math.max(0, S.shakeT - dt);
+  try { petStep(k); } catch (e) { PET.on = false; }
   draw(now / 1000);
   requestAnimationFrame(frame);
 }
@@ -1169,6 +1170,9 @@ function draw(time){
   /* ---- crates ---- */
   for (let i = 0; i < S.crates.length; i++) drawCrate(g, S.crates[i], time);
 
+  /* ---- the shop pet (under the hero, one tile behind him) ---- */
+  try { drawPet(g, time); } catch (e) { }
+
   /* ---- hero ---- */
   drawHero(g, S.pax * TS, S.pay * TS, time);
 
@@ -1272,6 +1276,68 @@ function drawCrate(g, c, time){
    Chunky silhouettes, one palette each, and the face always reads
    the direction of the last move.
    ================================================================ */
+/* What he bought in the shop (shared wallet.js). READ-ONLY here, so it is
+   safe in embed mode too: these lines never write to the wallet. Cached,
+   refreshed whenever the wallet changes (another tab, the shop, a
+   visibility change), and silent when wallet.js is missing. */
+const WEAR = { hat: null, pet: null };
+function readWear(){
+  let hat = null, pet = null;
+  try {
+    const W = window.Wallet;
+    if (W && typeof W.equipped === "function"){
+      const h = W.equipped("hat"), p = W.equipped("pet");
+      hat = h && typeof h.id === "string" ? h.id : null;
+      pet = p && typeof p.id === "string" ? p.id : null;
+    }
+  } catch (e) { hat = null; pet = null; }
+  WEAR.hat = hat; WEAR.pet = pet;
+}
+readWear();
+try { if (window.Wallet && typeof window.Wallet.onChange === "function") window.Wallet.onChange(readWear); } catch (e) { }
+function drawWear(g, id, x, y, size){
+  if (!id || !g || !(size > 0)) return false;
+  try {
+    if (window.Wallet && typeof window.Wallet.drawItem === "function") return !!window.Wallet.drawItem(g, id, x, y, size);
+  } catch (e) { }
+  return false;
+}
+
+/* The shop pet trails ONE TILE behind him: it heads for the tile he just
+   stepped off (the top of the undo history), which is always free floor
+   because a push only ever moves a crate AWAY from him. Before his first
+   step it waits on a free tile next to him. Purely decoration: it is never
+   in S.crates, never checked by blocked(), so it can never stop a move. */
+const PET = { ax: 0, ay: 0, li: -1, on: false };
+function petTile(){
+  const top = S.hist && S.hist.length ? S.hist[S.hist.length - 1] : null;
+  if (top && (top.px !== S.px || top.py !== S.py)) return { x: top.px, y: top.py };
+  const d = DIRS[S.face] || [0, 1];
+  const tries = [[-d[0], -d[1]], [d[1], d[0]], [-d[1], -d[0]], [d[0], d[1]]];
+  for (let i = 0; i < tries.length; i++){
+    const x = S.px + tries[i][0], y = S.py + tries[i][1];
+    if (!blocked(x, y) && crateAt(x, y) < 0) return { x: x, y: y };
+  }
+  return null;
+}
+function petStep(k){
+  if (!WEAR.pet){ PET.on = false; return; }
+  const t = petTile();
+  if (!t){ PET.on = false; return; }
+  /* a new level (or a fresh pet) pops straight into place instead of flying */
+  if (!PET.on || PET.li !== S.li || Math.abs(t.x - PET.ax) + Math.abs(t.y - PET.ay) > 2.5){
+    PET.ax = t.x; PET.ay = t.y; PET.li = S.li; PET.on = true; return;
+  }
+  const kk = k * 0.7;                       /* a touch slower than him: it trails */
+  PET.ax += (t.x - PET.ax) * kk;
+  PET.ay += (t.y - PET.ay) * kk;
+}
+function drawPet(g, time){
+  if (!PET.on || !WEAR.pet) return;
+  const hover = Math.sin(time * 4) * TS * 0.04;
+  drawWear(g, WEAR.pet, (PET.ax + 0.5) * TS, (PET.ay + 0.52) * TS + hover, TS * 0.52);
+}
+
 const HERO_DEF = {
   knight:   { body:"#8d99a8", body2:"#5d6875", trim:"#dce4ee", glove:"#c3ccd8", skin:"#f2c9a0" },
   wizard:   { body:"#7350d6", body2:"#432991", trim:"#ffd23f", glove:"#f2c9a0", skin:"#f2c9a0" },
@@ -1291,6 +1357,8 @@ function drawHero(g, x, y, time){
   const fy = (S.face === "U" ? -1 : S.face === "D" ? 1 : 0) * TS*0.035;
   const hy = cyp - TS*0.20 + bob;          /* head centre */
   const R  = TS*0.17;                       /* head radius */
+  /* a shop hat REPLACES the built-in headgear (helm, pointed hat, cap, hood) */
+  const hat = WEAR.hat;
 
   g.save();
   /* ---- ground shadow ---- */
@@ -1399,18 +1467,27 @@ function drawHero(g, x, y, time){
     g.fillRect(cxp - R, hy - R, R*2, R*2);
     g.fillStyle = P.body2;
     g.fillRect(cxp - R, hy + R - TS*0.03, R*2, TS*0.03);
-    /* antenna */
-    g.strokeStyle = P.body2; g.lineWidth = Math.max(1, TS*0.035);
-    g.beginPath(); g.moveTo(cxp, hy - R); g.lineTo(cxp, hy - R - TS*0.11); g.stroke();
-    g.fillStyle = P.trim;
-    g.beginPath(); g.arc(cxp, hy - R - TS*0.13, TS*0.045, 0, Math.PI*2); g.fill();
+    /* antenna (a shop hat sits there instead) */
+    if (!hat){
+      g.strokeStyle = P.body2; g.lineWidth = Math.max(1, TS*0.035);
+      g.beginPath(); g.moveTo(cxp, hy - R); g.lineTo(cxp, hy - R - TS*0.11); g.stroke();
+      g.fillStyle = P.trim;
+      g.beginPath(); g.arc(cxp, hy - R - TS*0.13, TS*0.045, 0, Math.PI*2); g.fill();
+    }
   } else {
     g.fillStyle = P.skin;
     g.beginPath(); g.arc(cxp, hy, R, 0, Math.PI*2); g.fill();
   }
 
   /* ---- headgear + face, per hero ---- */
-  if (HERO === "knight"){
+  if (HERO === "knight" && hat){
+    /* helm off under a shop hat: just his face */
+    if (!up){
+      g.fillStyle = "#1a2029";
+      g.beginPath(); g.arc(cxp - R*0.36 + fx, hy + fy, R*0.16, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(cxp + R*0.36 + fx, hy + fy, R*0.16, 0, Math.PI*2); g.fill();
+    }
+  } else if (HERO === "knight"){
     /* steel helm with a visor slit and two horns */
     g.fillStyle = P.body;
     g.beginPath(); g.arc(cxp, hy, R*1.06, Math.PI, Math.PI*2); g.fill();
@@ -1432,15 +1509,17 @@ function drawHero(g, x, y, time){
       g.fillRect(cxp - R*0.10 + fx, hy + R*0.02 + fy, R*0.06, R*0.30);
     }
   } else if (HERO === "wizard"){
-    /* tall pointed hat with a gold band */
-    g.fillStyle = P.body2;
-    g.beginPath();
-    g.moveTo(cxp - R*1.35, hy - R*0.55);
-    g.lineTo(cxp + R*1.35, hy - R*0.55);
-    g.lineTo(cxp + R*0.26, hy - R*2.55);
-    g.closePath(); g.fill();
-    g.fillStyle = P.trim;
-    g.fillRect(cxp - R*1.35, hy - R*0.80, R*2.70, R*0.30);
+    /* tall pointed hat with a gold band (unless a shop hat replaces it) */
+    if (!hat){
+      g.fillStyle = P.body2;
+      g.beginPath();
+      g.moveTo(cxp - R*1.35, hy - R*0.55);
+      g.lineTo(cxp + R*1.35, hy - R*0.55);
+      g.lineTo(cxp + R*0.26, hy - R*2.55);
+      g.closePath(); g.fill();
+      g.fillStyle = P.trim;
+      g.fillRect(cxp - R*1.35, hy - R*0.80, R*2.70, R*0.30);
+    }
     if (!up){
       g.fillStyle = "#1a2029";
       g.beginPath(); g.arc(cxp - R*0.36 + fx, hy + fy, R*0.16, 0, Math.PI*2); g.fill();
@@ -1452,6 +1531,15 @@ function drawHero(g, x, y, time){
       g.lineTo(cxp + R*0.62, hy + R*0.40);
       g.lineTo(cxp + fx*0.6, hy + R*1.55);
       g.closePath(); g.fill();
+    }
+  } else if (HERO === "ninja" && hat){
+    /* hood off under a shop hat: his face with the lower mask still on */
+    g.fillStyle = P.body2;
+    g.beginPath(); g.arc(cxp, hy + R*0.12, R*1.04, 0, Math.PI); g.fill();
+    if (!up){
+      g.fillStyle = "#141a26";
+      g.beginPath(); g.arc(cxp - R*0.42 + fx, hy - R*0.05 + fy, R*0.15, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(cxp + R*0.42 + fx, hy - R*0.05 + fy, R*0.15, 0, Math.PI*2); g.fill();
     }
   } else if (HERO === "ninja"){
     /* hood over everything but an eye band */
@@ -1482,6 +1570,13 @@ function drawHero(g, x, y, time){
     } else {
       g.fillStyle = P.body2;
       g.fillRect(cxp - R*0.78, hy - R*0.28, R*1.56, R*0.56);
+    }
+  } else if (HERO === "explorer" && hat){
+    /* cap off under a shop hat: just his face */
+    if (!up){
+      g.fillStyle = "#1a2029";
+      g.beginPath(); g.arc(cxp - R*0.36 + fx, hy + R*0.10 + fy, R*0.15, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(cxp + R*0.36 + fx, hy + R*0.10 + fy, R*0.15, 0, Math.PI*2); g.fill();
     }
   } else if (HERO === "explorer"){
     /* cap: a rounded crown and a brim pointing the way he faces */
@@ -1526,6 +1621,12 @@ function drawHero(g, x, y, time){
   g.beginPath();
   g.arc(cxp + d[0]*TS*0.26 + d[1]*TS*0.12, cyp + d[1]*TS*0.24 + d[0]*TS*0.12 + bob, TS*0.075, 0, Math.PI*2);
   g.fill();
+
+  /* ---- the shop hat, last so it sits on top of everything ---- */
+  if (hat){
+    if (HERO === "robot") drawWear(g, hat, cxp, hy - R*0.92, R*2.3);   /* flat box head */
+    else drawWear(g, hat, cxp, hy - R*0.72, R*2.07);                   /* round head */
+  }
   g.restore();
 }
 
