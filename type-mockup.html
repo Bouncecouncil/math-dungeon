@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pokemon Sudoku Type Rounds</title>
+<style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#04060f;color:#f4f1e8;font-family:"Avenir Next","Trebuchet MS",Verdana,sans-serif;padding:18px 14px 40px}
+h1{text-align:center;font-size:clamp(24px,5vw,40px);color:#ffd23f;margin:4px 0 2px;text-shadow:0 3px 0 #7a5a00}
+.sub{text-align:center;color:#9fb0d8;font-size:15px;margin-bottom:4px}
+.sub b{color:#fff}
+.grid{max-width:1180px;margin:18px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:920px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:620px){.grid{grid-template-columns:1fr}}
+.t{position:relative;border-radius:18px;overflow:hidden;border:2px solid rgba(255,255,255,.12);min-height:330px;box-shadow:0 8px 0 rgba(0,0,0,.4)}
+.sky{position:absolute;inset:0}
+.fx{position:absolute;inset:-20%;background-size:70px 70px,110px 110px;background-position:0 0,35px 45px;opacity:.5;animation:drift 14s linear infinite}
+@keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-70px,-110px,0)}}
+.inner{position:relative;padding:14px 14px 16px;display:flex;flex-direction:column;gap:10px;height:100%}
+.head{display:flex;align-items:center;gap:10px}
+.head .e{font-size:30px}
+h2{margin:0;font-size:22px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
+.pill{margin-left:auto;font-size:11px;font-weight:800;border:1px solid currentColor;border-radius:999px;padding:3px 9px;opacity:.85}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:rgba(0,0,0,.35);padding:6px;border-radius:12px}
+.cell{aspect-ratio:1;border:1px solid;border-radius:7px;background:rgba(0,0,0,.25)}
+.mons{display:flex;flex-wrap:wrap;gap:2px;justify-content:center}
+.mons img{width:44px;height:44px;image-rendering:pixelated;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.note{font-size:12px;line-height:1.45;color:#e8eefc;background:rgba(0,0,0,.45);border-radius:10px;padding:8px 10px;margin-top:auto}
+.foot{max-width:900px;margin:26px auto 0;color:#9fb0d8;font-size:14px;line-height:1.6;text-align:center}
+
+.t-grass .sky{background:radial-gradient(ellipse at 50% 0%,#123a16 0%,#04120a 72%,#03040a 100%);}
+.t-grass .pill,.t-grass h2{color:#5be35b;}
+.t-grass .cell{border-color:#5be35b44;box-shadow:inset 0 0 18px #5be35b1c;}
+.t-grass .fx{background-image:radial-gradient(#5be35b55 1.5px,transparent 1.6px),radial-gradient(#5be35b30 2.6px,transparent 2.7px);}
+.t-fire .sky{background:radial-gradient(ellipse at 50% 0%,#4a1206 0%,#190601 72%,#03040a 100%);}
+.t-fire .pill,.t-fire h2{color:#ff7a1a;}
+.t-fire .cell{border-color:#ff7a1a44;box-shadow:inset 0 0 18px #ff7a1a1c;}
+.t-fire .fx{background-image:radial-gradient(#ff7a1a55 1.5px,transparent 1.6px),radial-gradient(#ff7a1a30 2.6px,transparent 2.7px);}
+.t-water .sky{background:radial-gradient(ellipse at 50% 0%,#06345c 0%,#02101f 72%,#03040a 100%);}
+.t-water .pill,.t-water h2{color:#4fc3ff;}
+.t-water .cell{border-color:#4fc3ff44;box-shadow:inset 0 0 18px #4fc3ff1c;}
+.t-water .fx{background-image:radial-gradient(#4fc3ff55 1.5px,transparent 1.6px),radial-gradient(#4fc3ff30 2.6px,transparent 2.7px);}
+.t-lightning .sky{background:radial-gradient(ellipse at 50% 0%,#3f3505 0%,#131008 72%,#03040a 100%);}
+.t-lightning .pill,.t-lightning h2{color:#ffe03b;}
+.t-lightning .cell{border-color:#ffe03b44;box-shadow:inset 0 0 18px #ffe03b1c;}
+.t-lightning .fx{background-image:radial-gradient(#ffe03b55 1.5px,transparent 1.6px),radial-gradient(#ffe03b30 2.6px,transparent 2.7px);}
+.t-psychic .sky{background:radial-gradient(ellipse at 50% 0%,#41104a 0%,#17051b 72%,#03040a 100%);}
+.t-psychic .pill,.t-psychic h2{color:#c86bff;}
+.t-psychic .cell{border-color:#c86bff44;box-shadow:inset 0 0 18px #c86bff1c;}
+.t-psychic .fx{background-image:radial-gradient(#c86bff55 1.5px,transparent 1.6px),radial-gradient(#c86bff30 2.6px,transparent 2.7px);}
+.t-fighting .sky{background:radial-gradient(ellipse at 50% 0%,#4a2a10 0%,#180d04 72%,#03040a 100%);}
+.t-fighting .pill,.t-fighting h2{color:#ff8a3d;}
+.t-fighting .cell{border-color:#ff8a3d44;box-shadow:inset 0 0 18px #ff8a3d1c;}
+.t-fighting .fx{background-image:radial-gradient(#ff8a3d55 1.5px,transparent 1.6px),radial-gradient(#ff8a3d30 2.6px,transparent 2.7px);}
+.t-darkness .sky{background:radial-gradient(ellipse at 50% 0%,#0d1a1f 0%,#020507 72%,#03040a 100%);}
+.t-darkness .pill,.t-darkness h2{color:#3ec9b0;}
+.t-darkness .cell{border-color:#3ec9b044;box-shadow:inset 0 0 18px #3ec9b01c;}
+.t-darkness .fx{background-image:radial-gradient(#3ec9b055 1.5px,transparent 1.6px),radial-gradient(#3ec9b030 2.6px,transparent 2.7px);}
+.t-metal .sky{background:radial-gradient(ellipse at 50% 0%,#2b3440 0%,#0c1117 72%,#03040a 100%);}
+.t-metal .pill,.t-metal h2{color:#c8d3e6;}
+.t-metal .cell{border-color:#c8d3e644;box-shadow:inset 0 0 18px #c8d3e61c;}
+.t-metal .fx{background-image:radial-gradient(#c8d3e655 1.5px,transparent 1.6px),radial-gradient(#c8d3e630 2.6px,transparent 2.7px);}
+.t-dragon .sky{background:radial-gradient(ellipse at 50% 0%,#3a2d05 0%,#120c02 72%,#03040a 100%);}
+.t-dragon .pill,.t-dragon h2{color:#e0b33b;}
+.t-dragon .cell{border-color:#e0b33b44;box-shadow:inset 0 0 18px #e0b33b1c;}
+.t-dragon .fx{background-image:radial-gradient(#e0b33b55 1.5px,transparent 1.6px),radial-gradient(#e0b33b30 2.6px,transparent 2.7px);}
+.t-colorless .sky{background:radial-gradient(ellipse at 50% 0%,#3a3730 0%,#151310 72%,#03040a 100%);}
+.t-colorless .pill,.t-colorless h2{color:#efe6cf;}
+.t-colorless .cell{border-color:#efe6cf44;box-shadow:inset 0 0 18px #efe6cf1c;}
+.t-colorless .fx{background-image:radial-gradient(#efe6cf55 1.5px,transparent 1.6px),radial-gradient(#efe6cf30 2.6px,transparent 2.7px);}
+</style></head>
+<body>
+<h1>POKEMON SUDOKU: CARD-TYPE ROUNDS</h1>
+<div class="sub">The 10 energy types from the card game. Pick one, the room changes to match,<br>and every Pokemon in that round is that type. Finish it and you only catch <b>that</b> type.</div>
+<div class="grid">
+  <section class="t t-grass">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">🍃</span><h2>Grass</h2><span class="pill">66 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png" alt="bulbasaur" title="bulbasaur"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/2.png" alt="ivysaur" title="ivysaur"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/3.png" alt="venusaur" title="venusaur"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10.png" alt="caterpie" title="caterpie"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/11.png" alt="metapod" title="metapod"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/12.png" alt="butterfree" title="butterfree"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/13.png" alt="weedle" title="weedle"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/14.png" alt="kakuna" title="kakuna"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/15.png" alt="beedrill" title="beedrill"></div>
+      <div class="note"><b>Room:</b> deep forest green, leaves drifting down, vines creeping in at the edges<br><b>In this round:</b> Bulbasaur, Ivysaur, Venusaur, Caterpie, Metapod…</div>
+    </div>
+  </section>
+  <section class="t t-fire">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">🔥</span><h2>Fire</h2><span class="pill">26 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png" alt="charmander" title="charmander"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/5.png" alt="charmeleon" title="charmeleon"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png" alt="charizard" title="charizard"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/37.png" alt="vulpix" title="vulpix"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/38.png" alt="ninetales" title="ninetales"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/58.png" alt="growlithe" title="growlithe"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/59.png" alt="arcanine" title="arcanine"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/77.png" alt="ponyta" title="ponyta"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/78.png" alt="rapidash" title="rapidash"></div>
+      <div class="note"><b>Room:</b> ember red, sparks rising off the floor, heat shimmer at the top<br><b>In this round:</b> Charmander, Charmeleon, Charizard, Vulpix, Ninetales…</div>
+    </div>
+  </section>
+  <section class="t t-water">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">💧</span><h2>Water</h2><span class="pill">83 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png" alt="squirtle" title="squirtle"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/8.png" alt="wartortle" title="wartortle"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/9.png" alt="blastoise" title="blastoise"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png" alt="psyduck" title="psyduck"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/55.png" alt="golduck" title="golduck"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/60.png" alt="poliwag" title="poliwag"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/61.png" alt="poliwhirl" title="poliwhirl"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/62.png" alt="poliwrath" title="poliwrath"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/72.png" alt="tentacool" title="tentacool"></div>
+      <div class="note"><b>Room:</b> deep ocean blue, bubbles floating up, a slow caustic glow<br><b>In this round:</b> Squirtle, Wartortle, Blastoise, Psyduck, Golduck…</div>
+    </div>
+  </section>
+  <section class="t t-lightning">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">⚡</span><h2>Lightning</h2><span class="pill">17 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" alt="pikachu" title="pikachu"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/26.png" alt="raichu" title="raichu"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/100.png" alt="voltorb" title="voltorb"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/101.png" alt="electrode" title="electrode"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/125.png" alt="electabuzz" title="electabuzz"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/135.png" alt="jolteon" title="jolteon"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/145.png" alt="zapdos" title="zapdos"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/172.png" alt="pichu" title="pichu"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/179.png" alt="mareep" title="mareep"></div>
+      <div class="note"><b>Room:</b> storm gold, crackling sparks, an occasional bolt flash behind the board<br><b>In this round:</b> Pikachu, Raichu, Voltorb, Electrode, Electabuzz…</div>
+    </div>
+  </section>
+  <section class="t t-psychic">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">🔮</span><h2>Psychic</h2><span class="pill">47 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/23.png" alt="ekans" title="ekans"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/24.png" alt="arbok" title="arbok"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/29.png" alt="nidoran-f" title="nidoran-f"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/30.png" alt="nidorina" title="nidorina"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/32.png" alt="nidoran-m" title="nidoran-m"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/33.png" alt="nidorino" title="nidorino"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/41.png" alt="zubat" title="zubat"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/42.png" alt="golbat" title="golbat"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/63.png" alt="abra" title="abra"></div>
+      <div class="note"><b>Room:</b> violet haze, slow spirals, floating eyes that blink<br><b>In this round:</b> Ekans, Arbok, Nidoran F, Nidorina, Nidoran M…</div>
+    </div>
+  </section>
+  <section class="t t-fighting">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">✊</span><h2>Fighting</h2><span class="pill">42 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/27.png" alt="sandshrew" title="sandshrew"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/28.png" alt="sandslash" title="sandslash"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/31.png" alt="nidoqueen" title="nidoqueen"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/34.png" alt="nidoking" title="nidoking"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/50.png" alt="diglett" title="diglett"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/51.png" alt="dugtrio" title="dugtrio"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/56.png" alt="mankey" title="mankey"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/57.png" alt="primeape" title="primeape"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/66.png" alt="machop" title="machop"></div>
+      <div class="note"><b>Room:</b> dojo clay and orange dust, impact bursts, cracked stone<br><b>In this round:</b> Sandshrew, Sandslash, Nidoqueen, Nidoking, Diglett…</div>
+    </div>
+  </section>
+  <section class="t t-darkness">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">🌑</span><h2>Darkness</h2><span class="pill">16 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/197.png" alt="umbreon" title="umbreon"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/198.png" alt="murkrow" title="murkrow"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/215.png" alt="sneasel" title="sneasel"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/228.png" alt="houndour" title="houndour"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/229.png" alt="houndoom" title="houndoom"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/248.png" alt="tyranitar" title="tyranitar"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/261.png" alt="poochyena" title="poochyena"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/262.png" alt="mightyena" title="mightyena"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/274.png" alt="nuzleaf" title="nuzleaf"></div>
+      <div class="note"><b>Room:</b> near black with teal moonlight, drifting smoke, glowing eyes in the dark<br><b>In this round:</b> Umbreon, Murkrow, Sneasel, Houndour, Houndoom…</div>
+    </div>
+  </section>
+  <section class="t t-metal">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">⚙️</span><h2>Metal</h2><span class="pill">15 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/81.png" alt="magnemite" title="magnemite"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/82.png" alt="magneton" title="magneton"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/205.png" alt="forretress" title="forretress"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/208.png" alt="steelix" title="steelix"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/212.png" alt="scizor" title="scizor"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/227.png" alt="skarmory" title="skarmory"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/303.png" alt="mawile" title="mawile"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/304.png" alt="aron" title="aron"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/305.png" alt="lairon" title="lairon"></div>
+      <div class="note"><b>Room:</b> gunmetal plates and rivets, a shine that sweeps across the board<br><b>In this round:</b> Magnemite, Magneton, Forretress, Steelix, Scizor…</div>
+    </div>
+  </section>
+  <section class="t t-dragon">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">🐉</span><h2>Dragon</h2><span class="pill">13 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/147.png" alt="dratini" title="dratini"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/148.png" alt="dragonair" title="dragonair"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png" alt="dragonite" title="dragonite"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/230.png" alt="kingdra" title="kingdra"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/329.png" alt="vibrava" title="vibrava"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/330.png" alt="flygon" title="flygon"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/334.png" alt="altaria" title="altaria"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/371.png" alt="bagon" title="bagon"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/372.png" alt="shelgon" title="shelgon"></div>
+      <div class="note"><b>Room:</b> gold and indigo, aurora ribbons, scales catching the light<br><b>In this round:</b> Dratini, Dragonair, Dragonite, Kingdra, Vibrava…</div>
+    </div>
+  </section>
+  <section class="t t-colorless">
+    <div class="sky"></div><div class="fx"></div>
+    <div class="inner">
+      <div class="head"><span class="e">⭐</span><h2>Colorless</h2><span class="pill">61 to catch</span></div>
+      <div class="board"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      <div class="mons"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/16.png" alt="pidgey" title="pidgey"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/17.png" alt="pidgeotto" title="pidgeotto"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/18.png" alt="pidgeot" title="pidgeot"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/19.png" alt="rattata" title="rattata"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/20.png" alt="raticate" title="raticate"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/21.png" alt="spearow" title="spearow"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/22.png" alt="fearow" title="fearow"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/35.png" alt="clefairy" title="clefairy"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/36.png" alt="clefable" title="clefable"></div>
+      <div class="note"><b>Room:</b> soft cream and stone, drifting clouds and little stars<br><b>In this round:</b> Pidgey, Pidgeotto, Pidgeot, Rattata, Raticate…</div>
+    </div>
+  </section></div>
+<div class="foot">Every type has at least 13 Pokemon to catch, so even a 9x9 round always fills.<br>Pictures load from the free PokeAPI at play time, and the energy icons are our own, not the card game's artwork.</div>
+</body></html>

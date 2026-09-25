@@ -148,6 +148,11 @@ img{-webkit-user-drag:none;user-drag:none}
 .opts .lnbtn .art .fb{width:100%;height:100%;font-size:15px}
 #modeNote{color:var(--gold);font-weight:800;min-height:0}
 #modeNote:empty{display:none}
+/* the type picker adds two rows, so the start panel trims itself to keep
+   the PLAY button above the fold on a short window */
+#startOv .panel{max-width:660px}
+#startOv .intro{font-size:14px;line-height:1.35;margin:4px 0 2px}
+@media (max-width:700px){ .tcard{width:78px;min-height:66px} .tcard .e{font-size:20px} }
 
 /* ---------------- pokedex ---------------- */
 #dexOv{z-index:30}
@@ -172,6 +177,20 @@ img{-webkit-user-drag:none;user-drag:none}
 #dexDetail .bigbtn{margin:0;font-size:16px;padding:10px 16px}
 #dexGrid{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
   align-content:flex-start;padding:8px 2px 4px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* grouped by energy type: one block per type, each with its own header */
+#dexGrid.grouped{flex-direction:column;flex-wrap:nowrap;gap:10px;justify-content:flex-start}
+/* flex:0 0 auto matters: #dexGrid is a flex column with a fixed height, so
+   without it every type block shrinks and the cards get clipped */
+.dexgrp{flex:0 0 auto;border:2px solid #2b3843;border-radius:14px;padding:8px 6px 10px;
+  background:rgba(0,0,0,.25);position:relative;overflow:hidden}
+.dexgrp .gfx{position:absolute;inset:0;pointer-events:none;opacity:.35;
+  background-size:60px 60px,92px 92px;background-position:0 0,30px 38px}
+.dexgrp h3{position:relative;z-index:1;margin:0 0 7px;font-size:17px;font-weight:900;letter-spacing:1px;
+  text-transform:uppercase;display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
+.dexgrp h3 .ge{font-size:21px}
+.dexgrp h3 .gc{font-size:13px;font-weight:800;color:#c3ceda;letter-spacing:.4px;text-transform:none}
+.dexgrp h3 .gc b{color:var(--gold)}
+.dexrow{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
 .dx{width:86px;background:#243039;border:2px solid #33424f;border-radius:12px;padding:5px 3px 6px;
   display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;box-shadow:0 3px 0 #111820}
 .dx:active{transform:translateY(2px)}
@@ -226,8 +245,74 @@ img{-webkit-user-drag:none;user-drag:none}
 #revMeta .rare{color:var(--gold)} #revMeta .unc{color:var(--blue)}
 .revbtns .bigbtn{margin-top:10px}
 
+/* =========================================================================
+   TYPE ROOMS
+   The look approved in type-mockup.html: a radial gradient from the type's
+   bg1 to its bg2, the accent on the board's cell borders, HUD chips and
+   buttons, and a soft two-layer particle drift behind everything. The dark
+   slate base stays, so sprites and numbers keep their contrast.
+   --taccent / --tacc55 / --tacc44 / --tacc30 / --tacc1c and --tfx are all
+   written onto :root by applyTheme(); nothing here hard-codes a type.
+   ========================================================================= */
+#fx{position:fixed;inset:-20%;z-index:0;pointer-events:none;opacity:0;transition:opacity .45s;
+  background-image:var(--tfx,none);background-size:70px 70px,110px 110px;background-position:0 0,35px 45px;
+  animation:drift 14s linear infinite}
+@keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-70px,-110px,0)}}
+body.typed #fx{opacity:.45}
+@media (prefers-reduced-motion:reduce){ #fx{animation:none} }
+#wrap{z-index:1}
+
+html.typed,body.typed{background:radial-gradient(ellipse at 50% 0%,var(--tbg1) 0%,var(--tbg2) 72%,#03040a 100%)}
+body.typed #hud{background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0))}
+body.typed .chip{background:rgba(5,9,14,.74);border-color:var(--tacc44)}
+body.typed .tool{background:rgba(255,255,255,.13);box-shadow:0 4px 0 rgba(0,0,0,.55)}
+body.typed .tool:active{box-shadow:0 1px 0 rgba(0,0,0,.55)}
+body.typed .tool.blue{background:var(--taccent);color:#06121b;box-shadow:0 4px 0 rgba(0,0,0,.6)}
+body.typed #board{background:rgba(0,0,0,.4);border-color:var(--tacc55)}
+body.typed .cell{background:rgba(10,15,21,.55);border-color:var(--tacc44);box-shadow:inset 0 0 18px var(--tacc1c)}
+body.typed .cell.bR{border-right-color:var(--taccent)}
+body.typed .cell.bB{border-bottom-color:var(--taccent)}
+body.typed .cell.given{background:rgba(0,0,0,.62)}
+body.typed .cell.peer{background:rgba(255,255,255,.09)}
+body.typed .cell.sel{background:rgba(255,255,255,.15)}
+body.typed .pk-tile{background:rgba(9,14,20,.72);border-color:var(--tacc44)}
+body.typed .pk-tile.on{background:var(--tacc30);border-color:var(--taccent);box-shadow:0 3px 0 rgba(0,0,0,.55)}
+body.typed .pk-tile.on .nm{color:var(--taccent)}
+body.typed .panel{background:rgba(17,23,30,.95);border-color:var(--tacc44)}
+body.typed .bigbtn{background:var(--taccent);color:#06121b;box-shadow:0 5px 0 rgba(0,0,0,.6)}
+body.typed .bigbtn:active{box-shadow:0 2px 0 rgba(0,0,0,.6)}
+body.typed .bigbtn.grey{background:#2b3843;color:var(--chalk);box-shadow:0 5px 0 #111820}
+body.typed .bigbtn.red{background:#ff4d5e;color:#fff;box-shadow:0 5px 0 #9c1f2c}
+body.typed #toast{background:rgba(5,9,14,.94);border-color:var(--tacc44)}
+
+/* ---------------- type picker cards ---------------- */
+#typeWrap.off{opacity:.38;pointer-events:none}
+.opts.types{gap:6px;max-width:100%}
+.tcard{position:relative;overflow:hidden;width:88px;min-width:0;height:auto;min-height:70px;padding:6px 4px 5px;
+  border-radius:14px;border:2px solid #3c4c5a;background:#1a2028;color:var(--chalk);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  box-shadow:0 4px 0 rgba(0,0,0,.55)}
+.tcard:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.55)}
+.tcard .e{font-size:22px;line-height:1}
+.tcard .n{font-size:12px;font-weight:800;letter-spacing:.3px;line-height:1.1}
+.tcard .c{font-size:10px;font-weight:800;color:#c3ceda;line-height:1.1}
+.tcard.on{box-shadow:0 0 0 3px var(--gold),0 4px 0 rgba(0,0,0,.55)}
+.tcard.on .c{color:#fff}
+.tcard.full .c{color:var(--good)}
+.tcard .tfx{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-size:34px 34px,52px 52px;background-position:0 0,17px 21px}
+.tcard>span{position:relative;z-index:1}
+
 /* ---------------- phone held sideways ---------------- */
 @media (max-height:430px){
+  .opts.types{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:3px;
+    -webkit-overflow-scrolling:touch}
+  .tcard{flex:0 0 auto;width:74px;min-height:60px;padding:4px 3px 4px;border-radius:11px}
+  .tcard .e{font-size:18px}
+  .tcard .n{font-size:11px}
+  .tcard .c{font-size:9px}
+  .dexgrp h3{font-size:14px}
+  .dexgrp{padding:5px 4px 7px}
   #hud{padding:4px 8px;gap:5px;flex-wrap:nowrap}
   .chip{padding:3px 9px;font-size:12px;gap:4px}
   .chip .lbl{font-size:8px;letter-spacing:.5px}
@@ -289,8 +374,15 @@ img{-webkit-user-drag:none;user-drag:none}
 }
 </style>
 <script src="wallet.js"></script>
+<!-- The 10 Pokemon card energy types + their Pokemon pools. Everything that
+     uses it is guarded, so if this file fails to load the game falls straight
+     back to the classic 60-Pokemon behaviour. -->
+<script src="tcg-types.js"></script>
 </head>
 <body>
+
+<!-- the type room's drifting particle layer; empty and invisible until a type is picked -->
+<div id="fx"></div>
 
 <div id="wrap">
 
@@ -346,6 +438,10 @@ img{-webkit-user-drag:none;user-drag:none}
           <button data-mode="evo">&#10024; Evolution</button>
         </div>
       </div>
+    </div>
+    <div id="typeWrap" class="hide">
+      <div class="rowlbl" id="typeLbl">PICK YOUR ENERGY TYPE</div>
+      <div class="opts types" id="typeOpts"></div>
     </div>
     <div id="lineWrap" class="hide">
       <div class="rowlbl">PICK AN EVOLUTION LINE</div>
@@ -440,17 +536,73 @@ var DIG_BUDGET_MS = 220;     /* hard stop on the dig loop so it can never hang *
 var SPRITE_BASE_DEFAULT = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/";
 var SPRITE_BASE = SPRITE_BASE_DEFAULT;
 
-/* ---------------- the Pokedex: 60 collectable Pokemon ----------------
+/* ---------------- the Pokedex ----------------
    tier 0 = common   (a 4x4 catches these)
    tier 1 = uncommon (a 6x6 catches these, or any common left)
-   tier 2 = rare     (only a 9x9 reaches these: Dragonite, Mewtwo, Mew,
-                      the three legendary birds, the final evolutions)      */
+   tier 2 = rare     (only a 9x9 reaches these)                             */
 var TIER_NAME = ["Common", "Uncommon", "Rare"];
 var TIER_SIZE = [4, 6, 9];
 var C = {grass:"#5fd68a", fire:"#ff8a4c", water:"#6ec6ff", bug:"#a8c83a", normal:"#c9b89a",
          elec:"#f7d02c", poison:"#b07ad8", psy:"#ff7fb0", fight:"#d0604a", rock:"#b8a26a",
          ghost:"#a884e0", dragon:"#7a6cf0", ice:"#9ee6e6", fairy:"#ffa8cc"};
-var DEX = [
+
+/* ---------------- the 10 card energy types (tcg-types.js) ----------------
+   Every read of window.TCG_TYPES / window.TCG_POOL is validated here and
+   nowhere else. If the file is missing, malformed, or a type cannot fill a
+   9x9 board, TYPES stays null and the whole game falls back to the classic
+   60-Pokemon dex with no type picker at all.                              */
+var TYPES = null, TYPE_BY = {}, TYPE_OF = {}, TYPE_POOL = {};
+(function(){
+  try {
+    var T = (typeof window !== "undefined") ? window.TCG_TYPES : null;
+    var P = (typeof window !== "undefined") ? window.TCG_POOL  : null;
+    if (!T || !T.length || Object.prototype.toString.call(T) !== "[object Array]") return;
+    if (!P || typeof P !== "object") return;
+    var claimed = {}, ok = [];
+    for (var i = 0; i < T.length; i++){
+      var t = T[i];
+      if (!t || typeof t.id !== "string" || !t.id) continue;
+      var raw = P[t.id];
+      if (Object.prototype.toString.call(raw) !== "[object Array]") continue;
+      var list = [];
+      for (var j = 0; j < raw.length; j++){
+        var e = raw[j];
+        if (Object.prototype.toString.call(e) !== "[object Array]") continue;
+        var id = parseInt(e[0], 10);
+        if (!isFinite(id) || id <= 0 || claimed[id]) continue;   /* one type per Pokemon */
+        var nm = (typeof e[1] === "string" && e[1]) ? e[1] : ("Pokemon " + id);
+        claimed[id] = true;
+        list.push({id:id, name:nm});
+      }
+      if (list.length < 9) continue;          /* cannot fill a 9x9: skip the type entirely */
+      ok.push({
+        id:t.id,
+        name:(typeof t.name === "string" && t.name) ? t.name : t.id,
+        emoji:(typeof t.emoji === "string" && t.emoji) ? t.emoji : "⭐",
+        bg1:hexOr(t.bg1, "#1a2028"), bg2:hexOr(t.bg2, "#04060f"), accent:hexOr(t.accent, "#8a97a3"),
+        room:(typeof t.room === "string") ? t.room : "",
+        pool:list
+      });
+    }
+    if (!ok.length) return;
+    TYPES = ok;
+    TYPES.forEach(function(t){
+      TYPE_BY[t.id] = t;
+      TYPE_POOL[t.id] = t.pool;
+      t.pool.forEach(function(p){ TYPE_OF[p.id] = t.id; });
+    });
+  } catch(e){ TYPES = null; TYPE_BY = {}; TYPE_OF = {}; TYPE_POOL = {}; }
+})();
+function hexOr(v, dflt){ return (typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v.trim())) ? v.trim() : dflt; }
+/* "#5be35b" + "44" -> "#5be35b44". Only ever used on a validated 6-digit hex. */
+function hexA(hex, aa){ return /^#[0-9a-fA-F]{6}$/.test(hex) ? (hex + aa) : hex; }
+/* the two drifting dot layers from type-mockup.html, in a type's accent */
+function fxImage(accent){
+  return "radial-gradient(" + hexA(accent,"55") + " 1.5px,transparent 1.6px)," +
+         "radial-gradient(" + hexA(accent,"30") + " 2.6px,transparent 2.7px)";
+}
+
+var DEX_LEGACY = [
   [1,"Bulbasaur",0,C.grass],   [2,"Ivysaur",1,C.grass],    [3,"Venusaur",2,C.grass],
   [4,"Charmander",0,C.fire],   [5,"Charmeleon",1,C.fire],  [6,"Charizard",2,C.fire],
   [7,"Squirtle",0,C.water],    [8,"Wartortle",1,C.water],  [9,"Blastoise",2,C.water],
@@ -472,9 +624,38 @@ var DEX = [
   [144,"Articuno",2,C.ice],    [145,"Zapdos",2,C.elec],    [146,"Moltres",2,C.fire],
   [147,"Dratini",1,C.dragon],  [148,"Dragonair",2,C.dragon],[149,"Dragonite",2,"#f2a65a"],
   [150,"Mewtwo",2,C.psy],      [151,"Mew",2,"#ffb3d9"]
-].map(function(a){ return {id:a[0], name:a[1], tier:a[2], color:a[3]}; });
+].map(function(a){ return {id:a[0], name:a[1], tier:a[2], color:a[3], type:null}; });
+
+/* RARITY RULE (bigger board = better catch, WITHIN the chosen type).
+   Every type's pool in tcg-types.js is in Pokedex-number order, so the low
+   numbers are the little ones and the high numbers are the late evolutions
+   and legendaries. Each pool is cut into thirds by that order:
+     first third  -> tier 0 common   (a 4x4 round catches these)
+     middle third -> tier 1 uncommon (a 6x6 round reaches these)
+     last third   -> tier 2 rare     (only a 9x9 round reaches these)
+   A round never catches a tier ABOVE the board's own, so Tyranitar and
+   Rayquaza stay a 9x9 prize. The smallest pool (Dragon, 13) still splits
+   5 / 4 / 4, so every tier of every type is reachable.                    */
+function tierFromPoolIndex(i, len){
+  var a = Math.ceil(len / 3), b = Math.ceil(2 * len / 3);
+  return i < a ? 0 : (i < b ? 1 : 2);
+}
+var DEX;
+if (TYPES){
+  DEX = [];
+  TYPES.forEach(function(t){
+    var len = t.pool.length;
+    t.pool.forEach(function(p, i){
+      DEX.push({id:p.id, name:p.name, tier:tierFromPoolIndex(i, len), color:t.accent, type:t.id});
+    });
+  });
+  DEX.sort(function(a, b){ return a.id - b.id; });
+} else {
+  DEX = DEX_LEGACY;
+}
 var DEX_BY = {};
 DEX.forEach(function(p){ DEX_BY[p.id] = p; });
+function typeOfDex(p){ return (p && p.type && TYPE_BY[p.type]) ? TYPE_BY[p.type] : null; }
 
 /* the classic nine, in the order values 1..9 are handed out */
 var DEFAULT9 = [25, 1, 4, 7, 133, 52, 39, 143, 94].map(function(id){ return DEX_BY[id]; });
@@ -520,6 +701,16 @@ function toGame(msg){
   } catch(e){ /* standalone: nobody is listening, and that is fine */ }
 }
 
+/* ?type=grass|fire|water|lightning|psychic|fighting|darkness|metal|dragon|colorless
+   so the dungeon can hand him one type. An unknown or missing value simply
+   leaves the type unset, exactly as if the parameter were not there. */
+var QS_TYPE = (function(){
+  var v = (QS.get("type") || "").toLowerCase().trim();
+  if (!v) return null;
+  if (v === "random" || v === "surprise") return TYPES ? "random" : null;
+  return TYPE_BY[v] ? v : null;
+})();
+
 var HEROES = ["knight","wizard","ninja","robot","explorer","dragon"];
 var heroType = (QS.get("hero") || "knight").toLowerCase();
 if (HEROES.indexOf(heroType) === -1) heroType = "knight";
@@ -539,7 +730,7 @@ function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
    Every read is validated: unknown ids are dropped, a corrupt blob falls
    back to an empty dex instead of breaking the game.                      */
 var DEX_KEY = "pokeDex.v1";
-function dexEmpty(){ return {v:1, caught:{}, order:[]}; }
+function dexEmpty(){ return {v:1, caught:{}, order:[], extra:{}}; }
 function dexLoad(){
   var raw = null;
   try { raw = localStorage.getItem(DEX_KEY); } catch(e){ return dexEmpty(); }
@@ -552,6 +743,10 @@ function dexLoad(){
     Object.keys(src).forEach(function(k){
       var id = parseInt(k, 10);
       if (DEX_BY[id]) out.caught[id] = Number(src[k]) || 1;
+      /* An id this build does not know (tcg-types.js failed to load, so the
+         dex is only the classic 60) is PARKED, not dropped. dexSave writes
+         it straight back out, so a bad script load can never wipe a catch. */
+      else if (isFinite(id) && id > 0) out.extra[id] = Number(src[k]) || 1;
     });
     var ord = Array.isArray(o.order) ? o.order : [];
     ord.forEach(function(id){
@@ -568,7 +763,13 @@ function dexLoad(){
 }
 var DEXS = dexLoad();
 function dexSave(){
-  try { localStorage.setItem(DEX_KEY, JSON.stringify(DEXS)); return true; }
+  try {
+    var caught = {}, k;
+    for (k in DEXS.extra) if (Object.prototype.hasOwnProperty.call(DEXS.extra, k)) caught[k] = DEXS.extra[k];
+    for (k in DEXS.caught) if (Object.prototype.hasOwnProperty.call(DEXS.caught, k)) caught[k] = DEXS.caught[k];
+    localStorage.setItem(DEX_KEY, JSON.stringify({v:1, caught:caught, order:DEXS.order}));
+    return true;
+  }
   catch(e){ return false; }   /* private mode: the catch still counts this session */
 }
 function isCaught(id){ return !!DEXS.caught[id]; }
@@ -579,6 +780,24 @@ function dexAdd(id){
   DEXS.order.push(id);
   dexSave();
   return true;
+}
+/* how many of one type he already has, and how many there are */
+function typeCaught(typeId){
+  var t = TYPE_BY[typeId];
+  if (!t) return 0;
+  var n = 0;
+  for (var i = 0; i < t.pool.length; i++) if (isCaught(t.pool[i].id)) n++;
+  return n;
+}
+function typeTotal(typeId){ var t = TYPE_BY[typeId]; return t ? t.pool.length : 0; }
+function typeFull(typeId){ return typeTotal(typeId) > 0 && typeCaught(typeId) >= typeTotal(typeId); }
+/* a type that still has uncaught Pokemon in it, so the win panel can point
+   him somewhere useful when he finishes one off */
+function typeWithRoom(exclude){
+  if (!TYPES) return null;
+  var open = TYPES.filter(function(t){ return t.id !== exclude && !typeFull(t.id); });
+  if (!open.length) return null;
+  return open[Math.floor(Math.random() * open.length)];
 }
 
 /* ---------------- guarded sound ---------------- */
@@ -774,8 +993,9 @@ function fallbackNode(p){
   return s;
 }
 /* p = a DEX entry. big = try the large official artwork first (reveal only),
-   dropping to the small sprite, then to the lettered circle. */
-function artNode(p, big){
+   dropping to the small sprite, then to the lettered circle.
+   lazy = let the browser defer the fetch (the 386-strong Pokedex grid). */
+function artNode(p, big, lazy){
   var box = document.createElement("span");
   box.className = "pkart";
   box.style.display = "flex";
@@ -790,6 +1010,7 @@ function artNode(p, big){
   var img = document.createElement("img");
   img.alt = p.name;
   img.draggable = false;
+  if (lazy){ try { img.loading = "lazy"; img.decoding = "async"; } catch(e){} }
   if (useBig) img.style.imageRendering = "auto";
   img.onerror = function(){
     try{
@@ -839,10 +1060,17 @@ function topUp(out, ids, N){
 function unlockedLines(){
   return LINES.filter(function(L){ return isCaught(L.ids[0]); });
 }
-/* Always returns exactly N distinct Pokemon. */
-function buildSet(mode, N, lineKey){
+/* Always returns exactly N distinct Pokemon.
+   In a "type" round EVERY piece comes from that one type's pool and nothing
+   else is ever mixed in: each type has at least 13 Pokemon, so even a 9x9
+   fills from the pool alone. */
+function buildSet(mode, N, lineKey, typeId){
   var out = [];
   var dflt = DEFAULT9.map(function(p){ return p.id; });
+  if (mode === "type" && TYPE_POOL[typeId]){
+    topUp(out, shuffled(TYPE_POOL[typeId].map(function(p){ return p.id; })), N);
+    return out.slice(0, N);      /* pool-only: never topped up from another type */
+  }
   if (mode === "team"){
     /* his own catches, shuffled; topped up from the classic nine if he has fewer than N */
     topUp(out, shuffled(DEXS.order), N);
@@ -864,8 +1092,22 @@ function buildSet(mode, N, lineKey){
    Own tier first (4x4 common, 6x6 uncommon, 9x9 rare), then lower tiers.
    Never a HIGHER tier: rares stay a 9x9 prize. An evolution puzzle prefers
    the next uncaught stage of its own line when the size allows it.       */
-function pickUnlock(N, mode, lineKey){
+function pickUnlock(N, mode, lineKey, typeId){
   var allowed = N >= 9 ? 2 : (N >= 6 ? 1 : 0);
+  var t;
+  /* A type round ALWAYS catches a Pokemon of that type, never anything else. */
+  if (mode === "type" && TYPE_POOL[typeId]){
+    var pool = TYPE_POOL[typeId]
+      .map(function(p){ return DEX_BY[p.id]; })
+      .filter(function(p){ return p && !isCaught(p.id); });
+    if (!pool.length) return {p:null, reason:"type-all", type:typeId};
+    for (t = allowed; t >= 0; t--){
+      var sub = pool.filter(function(p){ return p.tier === t; });
+      if (sub.length) return {p:sub[Math.floor(Math.random()*sub.length)], reason:"type", type:typeId};
+    }
+    /* only rarer ones left in this type: a bigger board reaches them */
+    return {p:null, reason:"type-bigger", type:typeId};
+  }
   var left = DEX.filter(function(p){ return !isCaught(p.id); });
   if (!left.length) return {p:null, reason:"all"};
   if (mode === "evo" && LINE_BY[lineKey]){
@@ -895,11 +1137,54 @@ var S = {
   clash: {},
   started: 0, elapsed: 0, running: false, done: false,
   seed: 0, genMs: 0,
-  mode: "classic", line: null,   /* piece set: classic | team | evo (+ line key) */
+  mode: "classic", line: null,   /* piece set: classic | type | team | evo (+ line key) */
+  type: null,                    /* the chosen energy type in a "type" round */
+  randomType: false,             /* "Surprise me": re-roll the type every puzzle */
   paid: false,                   /* reward + catch happen ONCE per puzzle, even after undo */
   unlock: null                   /* {p, reason} from this puzzle's win */
 };
 var cellEls = [], tileEls = [];
+
+/* =========================================================================
+   TYPE ROOM THEMING
+   Writes one type's colours onto :root as custom properties and flips the
+   `typed` class on <html> and <body>. All the CSS above reads those
+   properties, so no rule anywhere names a type. applyTheme(null) puts the
+   plain arcade slate back.
+   ========================================================================= */
+var THEME_VARS = ["--tbg1","--tbg2","--taccent","--tacc55","--tacc44","--tacc30","--tacc1c","--tfx"];
+var themeNow = null;
+function applyTheme(t){
+  var root = document.documentElement, body = document.body;
+  try {
+    if (!t || !TYPE_BY[t.id]){
+      themeNow = null;
+      THEME_VARS.forEach(function(k){ root.style.removeProperty(k); });
+      root.classList.remove("typed");
+      if (body) body.classList.remove("typed");
+      return null;
+    }
+    var a = t.accent;
+    root.style.setProperty("--tbg1", t.bg1);
+    root.style.setProperty("--tbg2", t.bg2);
+    root.style.setProperty("--taccent", a);
+    root.style.setProperty("--tacc55", hexA(a, "55"));
+    root.style.setProperty("--tacc44", hexA(a, "44"));
+    root.style.setProperty("--tacc30", hexA(a, "30"));
+    root.style.setProperty("--tacc1c", hexA(a, "1c"));
+    root.style.setProperty("--tfx", fxImage(a));
+    root.classList.add("typed");
+    if (body) body.classList.add("typed");
+    themeNow = t.id;
+    return t;
+  } catch(e){ return null; }   /* a theme must never stop the game running */
+}
+/* pick a real type id out of "grass" / "random" / null */
+function resolveType(want){
+  if (!TYPES) return null;
+  if (want === "random") return TYPES[Math.floor(Math.random()*TYPES.length)].id;
+  return TYPE_BY[want] ? want : null;
+}
 
 /* ---------------- coins ---------------- */
 function paintCoins(){ $("coinN").textContent = coins; if (!EMBED && window.Wallet) Wallet.syncFrom(coins); }
@@ -1086,6 +1371,23 @@ function layout(){
   cell = Math.max(30, Math.min(cell, compact ? 78 : 132));
   var tile   = Math.round(cell * (compact ? 1.02 : 1.15));
   var sprite = Math.round(cell * (compact ? 0.72 : 0.80));
+  /* Sideways, the picker is a wrapping column beside the board. On a 4x4 the
+     tiles came out so big that only one fitted per column and the Erase tile
+     fell off the bottom edge, out of reach (the page cannot scroll). Shrink
+     the tiles until all N pieces PLUS Erase fit in the stage. This only ever
+     shrinks, so the 6x6 and 9x9 layouts, which already fit, are untouched. */
+  if (compact){
+    var pw = pickerEl.offsetWidth || 136;
+    var gap = 4, need = N + 1;
+    for (var guard = 0; guard < 40; guard++){
+      var cols = Math.max(1, Math.floor((pw + gap) / (tile + gap)));
+      var rows = Math.ceil(need / cols);
+      if (rows * (sprite + 18) + (rows - 1) * gap <= availH) break;
+      if (tile <= 52) break;                /* the CSS floor: go no smaller */
+      tile -= 4;
+      sprite = Math.round(tile * 0.70);
+    }
+  }
   var root = document.documentElement.style;
   root.setProperty("--cell", cell + "px");
   root.setProperty("--tile", Math.max(52, Math.min(tile, compact ? 84 : 132)) + "px");
@@ -1198,17 +1500,31 @@ function checkWin(){
        (or Start over + re-solve) must not farm extra Pokemon */
     S.paid = true;
     earn(reward);
-    S.unlock = pickUnlock(S.N, S.mode, S.line);
+    S.unlock = pickUnlock(S.N, S.mode, S.line, S.type);
     if (S.unlock.p) dexAdd(S.unlock.p.id);
   }
   Snd.solved();
   $("winStats").innerHTML = "Time <b>" + fmt(S.elapsed) + "</b> &nbsp; Reward <b>\uD83E\uDE99" + (firstWin ? reward : 0) + "</b>";
-  var sub = S.N + " x " + S.N + " " + DIFF_NAME[S.diff] + ". Coins now " + coins + ".";
+  var myType = (S.mode === "type" && TYPE_BY[S.type]) ? TYPE_BY[S.type] : null;
+  var sub = S.N + " x " + S.N + " " + DIFF_NAME[S.diff] +
+            (myType ? " " + myType.emoji + " " + myType.name : "") + ". Coins now " + coins + ".";
   var u = S.unlock;
   var showBall = !!(firstWin && u && u.p);
   if (firstWin && u && !u.p){
-    if (u.reason === "all") sub += " You have caught all " + DEX.length + " Pokemon!";
-    else sub += " Try a " + (S.N < 6 ? "6 x 6" : "9 x 9") + " puzzle to catch rarer Pokemon!";
+    if (u.reason === "all"){
+      sub += " You have caught all " + DEX.length + " Pokemon!";
+    } else if (u.reason === "type-all" && myType){
+      /* every Pokemon of this type is his: say so and send him somewhere new */
+      var nxt = typeWithRoom(myType.id);
+      sub += " You have caught every " + myType.name + " Pokemon, all " + typeTotal(myType.id) + " of them!" +
+             (nxt ? " Try a " + nxt.emoji + " " + nxt.name + " round next, there are still " +
+                    (typeTotal(nxt.id) - typeCaught(nxt.id)) + " to catch there." : "");
+    } else if (u.reason === "type-bigger" && myType){
+      sub += " Only rarer " + myType.name + " Pokemon are left. Try a " +
+             (S.N < 6 ? "6 x 6" : "9 x 9") + " " + myType.name + " round to reach them!";
+    } else {
+      sub += " Try a " + (S.N < 6 ? "6 x 6" : "9 x 9") + " puzzle to catch rarer Pokemon!";
+    }
   }
   if (!firstWin) sub += " (This puzzle's Pokemon is already in your Pokedex.)";
   $("winSub").textContent = sub;
@@ -1265,8 +1581,11 @@ function flipReveal(){
   $("revQ").textContent = "You caught...";
   $("revName").textContent = p.name + "!";
   var cls = p.tier === 2 ? "rare" : (p.tier === 1 ? "unc" : "");
+  var pt = typeOfDex(p);
   $("revMeta").innerHTML = "#" + ("00" + p.id).slice(-3) + " &nbsp;<span class=\"" + cls + "\">" +
-    TIER_NAME[p.tier].toUpperCase() + "</span> &nbsp; Caught " + caughtCount() + " / " + DEX.length;
+    TIER_NAME[p.tier].toUpperCase() + "</span>" +
+    (pt ? " &nbsp;" + pt.emoji + " " + pt.name + " " + typeCaught(pt.id) + " / " + typeTotal(pt.id) : "") +
+    " &nbsp; Caught " + caughtCount() + " / " + DEX.length;
   try { Snd.file("62-toasty", 0.8); } catch(e){}
 }
 function closeReveal(){
@@ -1322,21 +1641,36 @@ function restart(){
 }
 
 /* ---------------- new puzzle ---------------- */
-/* pieces (optional): {mode:"classic"|"team"|"evo", line:"<key>", set:[DEX entries]} */
+/* pieces (optional):
+     {mode:"classic"|"type"|"team"|"evo", line:"<key>", type:"grass"|"random",
+      randomType:bool, set:[DEX entries]} */
 function newPuzzle(size, diff, seed, pieces){
   var N = (size === 4 || size === 6 || size === 9) ? size : 4;
   var d = (diff === "easy" || diff === "medium" || diff === "hard") ? diff : "easy";
   var sd = (seed === undefined || seed === null) ? ((Math.random()*4294967295) >>> 0) : (seed >>> 0);
   var pc = pieces || {};
-  var mode = (pc.mode === "team" || pc.mode === "evo") ? pc.mode : "classic";
+  var mode = (pc.mode === "team" || pc.mode === "evo" || pc.mode === "type") ? pc.mode : "classic";
   var line = (mode === "evo" && LINE_BY[pc.line] && isCaught(LINE_BY[pc.line].ids[0])) ? pc.line : null;
   if (mode === "evo" && !line) mode = "classic";      /* locked line: never start a broken set */
-  var set = (Array.isArray(pc.set) && pc.set.length === N) ? pc.set : buildSet(mode, N, line);
+  /* a type round needs a real type; "Surprise me" re-rolls on every puzzle */
+  var randomType = !!pc.randomType || pc.type === "random";
+  var type = null;
+  if (mode === "type" || (mode === "classic" && pc.type)){
+    type = resolveType(TYPE_BY[pc.type] ? pc.type : (randomType ? "random" : pc.type));
+    mode = type ? "type" : "classic";
+  }
+  if (mode !== "type"){ type = null; randomType = false; }
+  applyTheme(type ? TYPE_BY[type] : null);
+  var set = (Array.isArray(pc.set) && pc.set.length === N) ? pc.set : null;
+  /* a handed-in set is only trusted when every piece really is this type */
+  if (set && type && !set.every(function(p){ return p && TYPE_OF[p.id] === type; })) set = null;
+  if (!set) set = buildSet(mode, N, line, type);
   var made = makePuzzle(N, d, sd);
   clearTimeout(revealT); clearTimeout(flipT);
   $("revOv").classList.add("hide");
   SET = set.slice();
-  S.mode = mode; S.line = line; S.paid = false; S.unlock = null;
+  S.mode = mode; S.line = line; S.type = type; S.randomType = randomType;
+  S.paid = false; S.unlock = null;
   S.N = N; S.diff = d; S.seed = made.seed; S.genMs = made.ms;
   S.puzzle = made.puzzle.slice();
   S.solution = made.solution.slice();
@@ -1346,7 +1680,11 @@ function newPuzzle(size, diff, seed, pieces){
   S.sel = -1; S.selPk = -1;
   S.clash = {};
   S.done = false; S.running = false; S.elapsed = 0; S.started = 0;
-  $("sizeN").textContent = N + "x" + N + (mode === "evo" ? " EVO" : (mode === "team" ? " TEAM" : ""));
+  var tag = "";
+  if (mode === "evo") tag = " EVO";
+  else if (mode === "team") tag = " TEAM";
+  else if (mode === "type" && TYPE_BY[type]) tag = " " + TYPE_BY[type].emoji;
+  $("sizeN").textContent = N + "x" + N + tag;
   $("winOv").classList.add("hide");
   buildPicker();
   buildBoard();
@@ -1525,7 +1863,23 @@ $("closeBtn").addEventListener("click", function(){
 });
 
 var pickSize = 4, pickDiff = "easy", pickMode = "classic", pickLine = null;
+/* the chosen energy type: a type id, or "random" for Surprise me. Remembered
+   between visits so his favourite room comes back. */
+var TYPE_KEY = "poke_type.v1";
+var pickType = (function(){
+  if (!TYPES) return null;
+  if (QS_TYPE) return QS_TYPE;
+  var saved = lsGet(TYPE_KEY, "");
+  if (saved === "random" || TYPE_BY[saved]) return saved;
+  return TYPES[0].id;
+})();
 var pendingSet = null;   /* the exact pieces the roster is showing; PLAY uses these */
+/* the mode the pieces actually come from, once the start screen has settled */
+function activeMode(){
+  if (pickMode === "team" || pickMode === "evo") return pickMode;
+  return (TYPES && pickType) ? "type" : "classic";
+}
+function activeType(){ return activeMode() === "type" ? pickType : null; }
 $("sizeOpts").addEventListener("click", function(e){
   var b = e.target.closest("button"); if (!b) return;
   Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
@@ -1549,6 +1903,46 @@ $("lineOpts").addEventListener("click", function(e){
   pickLine = b.dataset.line;
   paintStart();
 });
+$("typeOpts").addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  if (pickMode === "team" || pickMode === "evo") return;   /* not used in those modes */
+  pickType = b.dataset.type || null;
+  lsSet(TYPE_KEY, pickType || "");
+  paintStart();
+});
+
+/* the 10 energy-type cards plus Surprise me, each in its own colours */
+function paintTypes(){
+  var wrap = $("typeWrap"), box = $("typeOpts");
+  if (!TYPES){ wrap.classList.add("hide"); return; }   /* tcg-types.js missing: no picker at all */
+  wrap.classList.remove("hide");
+  var off = (pickMode === "team" || pickMode === "evo");
+  wrap.classList.toggle("off", off);
+  box.innerHTML = "";
+  function card(id, emoji, name, countTxt, accent, bg1, bg2, full){
+    var b = document.createElement("button");
+    b.className = "tcard" + (!off && pickType === id ? " on" : "") + (full ? " full" : "");
+    b.dataset.type = id;
+    b.setAttribute("aria-label", name + ", " + countTxt);
+    b.style.borderColor = hexA(accent, "88");
+    b.style.background = "radial-gradient(ellipse at 50% 0%," + bg1 + " 0%," + bg2 + " 78%,#03040a 100%)";
+    var fx = document.createElement("span");
+    fx.className = "tfx";
+    fx.style.backgroundImage = fxImage(accent);
+    var e = document.createElement("span"); e.className = "e"; e.textContent = emoji;
+    var n = document.createElement("span"); n.className = "n"; n.textContent = name;
+    n.style.color = accent;
+    var c = document.createElement("span"); c.className = "c"; c.textContent = countTxt;
+    b.appendChild(fx); b.appendChild(e); b.appendChild(n); b.appendChild(c);
+    box.appendChild(b);
+    return b;
+  }
+  TYPES.forEach(function(t){
+    var got = typeCaught(t.id), all = typeTotal(t.id);
+    card(t.id, t.emoji, t.name, got + " / " + all + " caught", t.accent, t.bg1, t.bg2, got >= all);
+  });
+  card("random", "🎲", "Surprise me", "any type", "#ffd23f", "#2a2438", "#0b0a14", false);
+}
 
 /* repaint the whole start screen from pickSize / pickMode / pickLine + the save */
 function paintStart(){
@@ -1586,16 +1980,41 @@ function paintStart(){
     if (have === 0) note = "Solve a puzzle to catch your first Pokemon for your team!";
     else if (have < pickSize) note = "Your " + have + " Pokemon, plus " + (pickSize - have) + " from the classic team. Catch more to fill it!";
   }
-  $("modeNote").textContent = note;
+  /* the type picker only drives Classic rounds; say so plainly in the other two */
+  if (TYPES && (pickMode === "team" || pickMode === "evo")){
+    note = (note ? note + " " : "") +
+      "Energy types are off in " + (pickMode === "team" ? "My team" : "Evolution") +
+      " mode, so this round uses your own Pokemon instead.";
+  }
+  paintTypes();
   var mode = (pickMode === "evo" && !lines.length) ? "classic" : pickMode;
-  pendingSet = buildSet(mode, pickSize, pickLine);
+  var useType = null;
+  if (TYPES && mode === "classic" && pickType){
+    if (TYPE_BY[pickType]){ mode = "type"; useType = pickType; }
+    else if (pickType === "random"){ mode = "classic"; }   /* rolled at PLAY */
+  }
+  if (TYPES && mode === "classic" && pickType === "random"){
+    note = "A different energy type every round. You only catch that type!";
+    pendingSet = null;
+  } else if (mode === "type"){
+    var tt = TYPE_BY[useType];
+    var left = typeTotal(useType) - typeCaught(useType);
+    note = tt.emoji + " " + tt.name + " round: " + tt.room + ". " +
+           (left > 0 ? left + " " + tt.name + " Pokemon still to catch." : "You have every " + tt.name + " Pokemon already!");
+    pendingSet = buildSet("type", pickSize, null, useType);
+  } else {
+    pendingSet = buildSet(mode, pickSize, pickLine);
+  }
+  $("modeNote").textContent = note;
+  applyTheme(useType ? TYPE_BY[useType] : null);
   paintRoster();
   $("dexCountS").textContent = caughtCount() + "/" + DEX.length;
 }
 function paintRoster(){
   var w = $("roster");
   w.innerHTML = "";
-  var set = pendingSet || buildSet("classic", pickSize, null);
+  if (!pendingSet){ return; }   /* Surprise me: the pieces are a surprise too */
+  var set = pendingSet;
   for (var v = 0; v < set.length; v++){
     var d = document.createElement("div"); d.className = "r";
     var art = document.createElement("div"); art.className = "art";
@@ -1619,30 +2038,68 @@ function openDex(focusId){
   return true;
 }
 function closeDex(){ $("dexOv").classList.add("hide"); }
+function dexCard(p){
+  var got = isCaught(p.id);
+  var b = document.createElement("button");
+  b.className = "dx t" + p.tier + (got ? "" : " un") + (p.id === dexFresh ? " fresh" : "");
+  b.dataset.id = String(p.id);
+  var no = document.createElement("span"); no.className = "no";
+  no.textContent = "#" + ("00" + p.id).slice(-3);
+  var a = document.createElement("span"); a.className = "art";
+  a.appendChild(artNode(p, false, true));      /* lazy: the whole dex is 386 sprites */
+  var nm = document.createElement("span"); nm.className = "nm";
+  nm.textContent = got ? p.name : "???";
+  b.appendChild(no); b.appendChild(a); b.appendChild(nm);
+  if (p.tier === 2){ var tr = document.createElement("span"); tr.className = "tier"; tr.textContent = "⭐"; b.appendChild(tr); }
+  if (got && LINE_START[p.id]){ var ev = document.createElement("span"); ev.className = "evo"; ev.textContent = "EVO"; b.appendChild(ev); }
+  b.addEventListener("click", function(){ dexDetail(p.id); });
+  return b;
+}
 function paintDex(focusId){
   var n = caughtCount();
   $("dexCount").innerHTML = "Caught <b>" + n + "</b> / " + DEX.length;
   $("dexBarFill").style.width = Math.round(100 * n / DEX.length) + "%";
   var g = $("dexGrid");
   g.innerHTML = "";
-  DEX.forEach(function(p){
-    var got = isCaught(p.id);
-    var b = document.createElement("button");
-    b.className = "dx t" + p.tier + (got ? "" : " un") + (p.id === dexFresh ? " fresh" : "");
-    b.dataset.id = String(p.id);
-    var no = document.createElement("span"); no.className = "no";
-    no.textContent = "#" + ("00" + p.id).slice(-3);
-    var a = document.createElement("span"); a.className = "art";
-    a.appendChild(artNode(p));
-    var nm = document.createElement("span"); nm.className = "nm";
-    nm.textContent = got ? p.name : "???";
-    b.appendChild(no); b.appendChild(a); b.appendChild(nm);
-    if (p.tier === 2){ var tr = document.createElement("span"); tr.className = "tier"; tr.textContent = "⭐"; b.appendChild(tr); }
-    if (got && LINE_START[p.id]){ var ev = document.createElement("span"); ev.className = "evo"; ev.textContent = "EVO"; b.appendChild(ev); }
-    b.addEventListener("click", function(){ dexDetail(p.id); });
-    g.appendChild(b);
-  });
+  g.classList.toggle("grouped", !!TYPES);
+  if (TYPES){
+    /* one block per energy type, in card order, each with its own count */
+    TYPES.forEach(function(t){
+      var got = typeCaught(t.id), all = typeTotal(t.id);
+      var sec = document.createElement("section");
+      sec.className = "dexgrp";
+      sec.dataset.type = t.id;
+      sec.style.borderColor = hexA(t.accent, "55");
+      sec.style.background = "radial-gradient(ellipse at 50% 0%," + t.bg1 + "cc 0%," + t.bg2 + "cc 80%)";
+      var fx = document.createElement("div");
+      fx.className = "gfx";
+      fx.style.backgroundImage = fxImage(t.accent);
+      var h = document.createElement("h3");
+      h.style.color = t.accent;
+      var ge = document.createElement("span"); ge.className = "ge"; ge.textContent = t.emoji;
+      var gn = document.createElement("span"); gn.textContent = t.name;
+      var gc = document.createElement("span"); gc.className = "gc";
+      gc.innerHTML = "caught <b>" + got + "</b> / " + all;
+      h.appendChild(ge); h.appendChild(gn); h.appendChild(gc);
+      var row = document.createElement("div");
+      row.className = "dexrow";
+      t.pool.forEach(function(q){
+        var p = DEX_BY[q.id];
+        if (p) row.appendChild(dexCard(p));
+      });
+      sec.appendChild(fx); sec.appendChild(h); sec.appendChild(row);
+      g.appendChild(sec);
+    });
+  } else {
+    DEX.forEach(function(p){ g.appendChild(dexCard(p)); });
+  }
   dexDetail(focusId || null);
+  if (focusId){
+    try {
+      var el = g.querySelector('.dx[data-id="' + focusId + '"]');
+      if (el && el.scrollIntoView) el.scrollIntoView({block:"center"});
+    } catch(e){}
+  }
   dexFresh = null;
 }
 function dexDetail(id){
@@ -1658,11 +2115,14 @@ function dexDetail(id){
   a.appendChild(artNode(p));
   if (!got){ a.style.filter = "brightness(0)"; }
   var t = document.createElement("div"); t.className = "dtxt";
+  var pt = typeOfDex(p);
+  var tName = pt ? (pt.emoji + " " + pt.name) : "";
   if (got){
-    t.innerHTML = "#" + ("00" + p.id).slice(-3) + " " + p.name + "<small>" + TIER_NAME[p.tier] + "</small>";
+    t.innerHTML = "#" + ("00" + p.id).slice(-3) + " " + p.name +
+      "<small>" + TIER_NAME[p.tier] + (tName ? " &middot; " + tName : "") + "</small>";
   } else {
-    t.innerHTML = "???<small>Solve a " + TIER_SIZE[p.tier] + " x " + TIER_SIZE[p.tier] +
-      " puzzle to find this " + TIER_NAME[p.tier].toLowerCase() + " Pokemon</small>";
+    t.innerHTML = "???<small>Solve a " + TIER_SIZE[p.tier] + " x " + TIER_SIZE[p.tier] + " " +
+      (tName ? tName + " " : "") + "puzzle to find this " + TIER_NAME[p.tier].toLowerCase() + " Pokemon</small>";
   }
   box.appendChild(a); box.appendChild(t);
   var L = LINE_START[p.id];
@@ -1688,13 +2148,22 @@ $("playBtn").addEventListener("click", function(){
   $("startOv").classList.add("hide");
   var mode = pickMode;
   if (mode === "evo" && !unlockedLines().length) mode = "classic";
-  newPuzzle(pickSize, pickDiff, undefined, {mode:mode, line:pickLine, set:pendingSet});
+  var type = null, rnd = false;
+  if (TYPES && mode === "classic" && pickType){
+    rnd = (pickType === "random");
+    type = pickType;
+    mode = "type";
+  }
+  newPuzzle(pickSize, pickDiff, undefined,
+            {mode:mode, line:pickLine, type:type, randomType:rnd, set:pendingSet});
 });
 function nextPuzzle(){
   $("winOv").classList.add("hide");
   closeReveal();
-  /* same size and piece style; "My team" re-deals so new catches can join */
-  newPuzzle(S.N, S.diff, undefined, {mode:S.mode, line:S.line});
+  /* same size and piece style; "My team" re-deals so new catches can join,
+     and "Surprise me" rolls a fresh energy type for every round */
+  newPuzzle(S.N, S.diff, undefined,
+            {mode:S.mode, line:S.line, type:S.randomType ? "random" : S.type, randomType:S.randomType});
 }
 $("nextBtn").addEventListener("click", nextPuzzle);
 $("menuBtn").addEventListener("click", function(){
@@ -1740,10 +2209,12 @@ if (EMBED){
   var size = (qs === 4 || qs === 6 || qs === 9) ? qs : 4;
   var qd = (QS.get("diff") || "easy").toLowerCase();
   $("startOv").classList.add("hide");
-  newPuzzle(size, qd);
+  /* ?type= hands the dungeon's chosen energy type straight into the round */
+  newPuzzle(size, qd, undefined, QS_TYPE ? {mode:"type", type:QS_TYPE, randomType:QS_TYPE === "random"} : null);
 } else {
   /* the start screen is showing, but build a 4x4 behind it so layout is settled */
-  newPuzzle(4, "easy");
+  newPuzzle(4, "easy", undefined,
+            (TYPES && pickType) ? {mode:"type", type:pickType, randomType:pickType === "random"} : null);
 }
 paintStart();
 setTimeout(layout, 60);
@@ -1766,7 +2237,10 @@ window.POKE = {
       size:S.N, diff:S.diff, seed:S.seed, genMs:S.genMs, clues:S.puzzle.filter(function(v){return v!==0;}).length,
       coins:coins, seconds:seconds(), done:S.done, sel:S.sel, selPk:S.selPk,
       history:S.history.length, embed:EMBED, hero:heroType,
-      spriteFail:Object.keys(spriteFail).length, spriteBase:SPRITE_BASE
+      spriteFail:Object.keys(spriteFail).length, spriteBase:SPRITE_BASE,
+      mode:S.mode, type:S.type, randomType:S.randomType,
+      themed:document.documentElement.classList.contains("typed"), theme:themeNow,
+      typesLoaded:!!TYPES, dexTotal:DEX.length
     };
   },
   /* engine access, used to prove uniqueness in bulk */
@@ -1803,6 +2277,35 @@ window.POKE = {
   },
   /* ---- Pokedex / piece-set hooks ---- */
   newPuzzleMode: function(size, diff, seed, mode, line){ return newPuzzle(size, diff, seed, {mode:mode, line:line}); },
+  /* ---- energy-type hooks ---- */
+  typesLoaded: function(){ return !!TYPES; },
+  types: function(){
+    return (TYPES || []).map(function(t){
+      return {id:t.id, name:t.name, emoji:t.emoji, accent:t.accent,
+              total:t.pool.length, caught:typeCaught(t.id),
+              ids:t.pool.map(function(p){ return p.id; })};
+    });
+  },
+  typeOf: function(id){ return TYPE_OF[id] || null; },
+  newPuzzleType: function(size, diff, seed, typeId){
+    return newPuzzle(size, diff, seed, {mode:"type", type:typeId});
+  },
+  theme: function(){
+    var cs = getComputedStyle(document.documentElement);
+    return {typed:document.documentElement.classList.contains("typed"),
+            bodyTyped:document.body.classList.contains("typed"),
+            id:themeNow,
+            accent:cs.getPropertyValue("--taccent").trim(),
+            bg1:cs.getPropertyValue("--tbg1").trim(),
+            bg2:cs.getPropertyValue("--tbg2").trim(),
+            fx:cs.getPropertyValue("--tfx").trim().slice(0, 40)};
+  },
+  pickType: function(id){ pickType = id; lsSet(TYPE_KEY, id || ""); paintStart(); return pickType; },
+  pickMode: function(m){ pickMode = m; paintStart(); return pickMode; },
+  pickSize: function(n){ pickSize = n; paintStart(); return pickSize; },
+  play: function(){ $("playBtn").click(); return {mode:S.mode, type:S.type}; },
+  winSub: function(){ return $("winSub").textContent; },
+  tierOf: function(id){ return DEX_BY[id] ? DEX_BY[id].tier : null; },
   /* fills every empty square with its answer through the normal place path */
   solve: function(){
     var N = S.N;
@@ -1811,12 +2314,14 @@ window.POKE = {
   },
   set: function(){ return SET.map(function(p){ return p.id; }); },
   setNames: function(){ return SET.map(function(p){ return p.name; }); },
-  mode: function(){ return {mode:S.mode, line:S.line, paid:S.paid, unlock:S.unlock && S.unlock.p ? S.unlock.p.id : (S.unlock ? S.unlock.reason : null)}; },
+  mode: function(){ return {mode:S.mode, line:S.line, type:S.type, paid:S.paid,
+    unlock:S.unlock && S.unlock.p ? S.unlock.p.id : (S.unlock ? S.unlock.reason : null),
+    unlockReason:S.unlock ? S.unlock.reason : null}; },
   dex: function(){ return JSON.parse(JSON.stringify(DEXS)); },
   dexRaw: function(){ try { return localStorage.getItem(DEX_KEY); } catch(e){ return "ERR " + e; } },
-  dexAll: function(){ return DEX.map(function(p){ return {id:p.id, name:p.name, tier:p.tier}; }); },
+  dexAll: function(){ return DEX.map(function(p){ return {id:p.id, name:p.name, tier:p.tier, type:p.type}; }); },
   lines: function(){ return LINES.map(function(L){ return {key:L.key, ids:L.ids.slice(), open:isCaught(L.ids[0])}; }); },
-  buildSet: function(mode, N, line){ return buildSet(mode, N, line).map(function(p){ return p.id; }); },
+  buildSet: function(mode, N, line, type){ return buildSet(mode, N, line, type).map(function(p){ return p.id; }); },
   /* replace the saved dex with exactly these ids (tests only) */
   setDex: function(ids){
     DEXS = dexEmpty();
