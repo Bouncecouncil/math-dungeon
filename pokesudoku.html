@@ -206,44 +206,24 @@ img{-webkit-user-drag:none;user-drag:none}
 .dx.un .art .fb{background:#05080b !important;color:transparent;box-shadow:none}
 .dx.un .nm{color:#56636e;letter-spacing:2px}
 .dx.pick{outline:3px solid var(--gold);outline-offset:1px}
-.dx .evo{position:absolute;bottom:19px;right:3px;font-size:9px;font-weight:800;background:var(--good);color:#06121b;
+.dx .evo{position:absolute;top:20px;right:3px;bottom:auto;z-index:3;font-size:9px;font-weight:800;background:var(--good);color:#06121b;
   border-radius:6px;padding:1px 4px}
 .dx .tier{position:absolute;top:3px;left:4px;font-size:10px;line-height:1}
+/* how many copies of this card he owns, e.g. "x4" */
+.dx .cnt{position:absolute;top:2px;right:3px;z-index:3;font-size:11px;font-weight:900;line-height:1;
+  color:#0c1117;background:var(--gold);border-radius:6px;padding:2px 5px}
+.dx .gnm{font-size:9px;font-weight:900;letter-spacing:.5px;line-height:1;color:#9fb0c0}
+.dx.g1 .gnm{color:#6be7ff} .dx.g2 .gnm{color:#c86bff} .dx.g3 .gnm{color:var(--gold)}
+.dx .art{position:relative;z-index:1}
+.dx .nm,.dx .no{position:relative;z-index:1}
+/* the sparkle layer is clipped to the card's own rounded corners */
+.dx{overflow:hidden}
+/* the big view's picture wears the same frame as the card */
+#dexDetail .art{position:relative;border-style:solid;border-width:0;border-radius:10px;overflow:hidden}
+#dexDetail .art.g1,#dexDetail .art.g2,#dexDetail .art.g3{border-width:3px;padding:2px}
+#dexDetail .dtxt small+small{margin-top:1px}
 .dx.fresh{animation:fresh 1.2s 2}
 @keyframes fresh{40%{box-shadow:0 0 0 4px var(--gold),0 0 22px rgba(255,210,63,.8)}}
-
-/* ---------------- NEW POKEMON reveal ---------------- */
-#revOv{z-index:25}
-#revOv .panel{max-width:470px;overflow:hidden;position:relative}
-.revtitle{font-size:clamp(28px,7vw,46px);color:var(--gold);font-weight:900;letter-spacing:1px;margin:0;
-  text-shadow:0 3px 0 #a3830f,0 0 18px rgba(255,210,63,.5);animation:revpulse 1s infinite}
-@keyframes revpulse{50%{transform:scale(1.06)}}
-.revq{font-size:17px;font-weight:800;color:#cfd8e0;margin:2px 0 0;min-height:22px}
-.flipwrap{perspective:900px;width:min(230px,44vh);height:min(230px,44vh);margin:8px auto 4px;cursor:pointer;position:relative}
-.flipwrap::before{content:"";position:absolute;inset:-14%;border-radius:50%;
-  background:conic-gradient(from 0deg,rgba(255,210,63,.0),rgba(255,210,63,.35),rgba(255,210,63,0),rgba(79,195,255,.3),rgba(255,210,63,0));
-  animation:spin 4s linear infinite;opacity:0}
-.flipwrap.lit::before{transition:opacity .6s}
-.flipwrap.lit::before{opacity:1}
-@keyframes spin{to{transform:rotate(360deg)}}
-.flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;
-  transition:transform 1s cubic-bezier(.3,1.35,.5,1)}
-.flip.go{transform:rotateY(180deg)}
-.face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  backface-visibility:hidden;-webkit-backface-visibility:hidden;
-  background:radial-gradient(circle,#34506a 0%,#1a2530 68%);border:4px solid #3c4c5a}
-.face.back{transform:rotateY(180deg);background:radial-gradient(circle,#fffbe6 0%,#ffe27a 38%,#2a3642 74%);border-color:var(--gold)}
-.face .art{width:82%;height:82%;display:flex;align-items:center;justify-content:center}
-.face .art img{width:100%;height:100%;object-fit:contain}
-.face .art .fb{width:78%;height:78%;font-size:64px}
-.face.front .art img{filter:brightness(0)}
-.face.front .art .fb{background:#05080b !important;color:transparent;box-shadow:none}
-.flip.shake .face.front{animation:shake .45s infinite}
-@keyframes shake{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
-#revName{font-size:clamp(24px,6vw,34px);font-weight:900;color:var(--chalk);margin:2px 0 0;min-height:36px}
-#revMeta{font-size:15px;font-weight:800;color:var(--dim);min-height:20px}
-#revMeta .rare{color:var(--gold)} #revMeta .unc{color:var(--blue)}
-.revbtns .bigbtn{margin-top:10px}
 
 /* =========================================================================
    TYPE ROOMS
@@ -303,8 +283,78 @@ body.typed #toast{background:rgba(5,9,14,.94);border-color:var(--tacc44)}
   background-size:34px 34px,52px 52px;background-position:0 0,17px 21px}
 .tcard>span{position:relative;z-index:1}
 
+/* =========================================================================
+   CARD PACKS + GRADES
+   A solved puzzle opens a 3-card pack. Each card flips on a tap.
+   The FRAME says the grade: Normal plain, Shiny a sparkle border, Full Art
+   a thicker purple frame with a bigger picture, Gold a gold frame.
+   Nothing here can lie about a pull: the whole pack is rolled AND SAVED
+   before this overlay ever opens, and a flip only uncovers what is already
+   in the binder. There is no swap animation and no near-miss frame.
+   ========================================================================= */
+/* the four grade treatments, shared by pack fronts and binder cards */
+.g1{border-color:#6be7ff !important;
+    box-shadow:0 0 0 2px rgba(107,231,255,.45),0 0 16px rgba(107,231,255,.45) !important}
+.g2{border-width:5px !important;border-color:#c86bff !important;
+    box-shadow:0 0 0 3px rgba(200,107,255,.3),0 0 20px rgba(200,107,255,.45) !important}
+.g3{border-color:var(--gold) !important;
+    box-shadow:0 0 0 3px rgba(255,210,63,.5),0 0 26px rgba(255,210,63,.6) !important;
+    background-image:linear-gradient(135deg,rgba(255,210,63,.26),rgba(255,210,63,0) 46%,rgba(255,210,63,.3))}
+.g1::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background-image:radial-gradient(rgba(255,255,255,.9) 1px,transparent 1.5px);
+  background-size:20px 20px;opacity:.55;animation:sparkle 2.4s linear infinite}
+@keyframes sparkle{to{background-position:20px 20px}}
+@media (prefers-reduced-motion:reduce){ .g1::before{animation:none} }
+
+#packOv{z-index:26}
+#packOv .panel{max-width:680px}
+#packOv h1{margin:0}
+#packSub{margin:2px 0 0}
+#packRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0 2px}
+.pcard{position:relative;width:146px;height:206px;flex:0 0 auto;padding:0;background:none;
+  perspective:900px;-webkit-perspective:900px}
+.pflip{position:relative;width:100%;height:100%;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;
+  transition:transform .7s cubic-bezier(.3,1.3,.5,1)}
+.pcard.open .pflip{transform:rotateY(180deg)}
+.pface{position:absolute;inset:0;border-radius:13px;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border:3px solid #3c4c5a;background:#243039}
+.pface.bk{background:radial-gradient(circle at 50% 36%,#46617b 0%,#18212c 72%);border-color:#5b7186}
+.pcard:not(.open):active .pflip{transform:scale(.96)}
+.ball{width:62px;height:62px;border-radius:50%;border:4px solid #10161d;position:relative;
+  background:linear-gradient(180deg,#ff4d5e 0 47%,#10161d 47% 53%,#f4f1e8 53% 100%)}
+.ball::after{content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;
+  border-radius:50%;background:#f4f1e8;border:4px solid #10161d}
+.pface .tap{font-size:11px;font-weight:800;color:#aebcc9;letter-spacing:1.5px;margin-top:8px}
+.pface.fr{transform:rotateY(180deg)}
+.pface.fr .art{width:92px;height:92px;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+.pface.fr .art img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.pface.fr .art .fb{width:86%;height:86%;font-size:34px}
+.pface.fr.g2 .art{width:112px;height:112px}
+.pface .pn{font-size:14px;font-weight:900;color:#eef3f8;max-width:94%;line-height:1.1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;z-index:1}
+.pface .pg{font-size:11px;font-weight:800;letter-spacing:.8px;color:#aebcc9;position:relative;z-index:1}
+.pface .pc{font-size:12px;font-weight:900;color:var(--gold);position:relative;z-index:1}
+.pface .newtag{position:absolute;top:6px;left:6px;z-index:3;background:var(--good);color:#06121b;
+  font-size:10px;font-weight:900;letter-spacing:1px;border-radius:6px;padding:2px 6px}
+.pface .uptag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;
+  background:var(--gold);color:#1a1405;font-size:10px;font-weight:900;letter-spacing:.6px;border-radius:6px;padding:2px 7px}
+.pcard.up .pface.fr{animation:upflash 1.1s 2}
+@keyframes upflash{45%{box-shadow:0 0 0 5px var(--gold),0 0 26px rgba(255,210,63,.85)}}
+#packMsg{font-size:15px;font-weight:800;color:#cfd8e0;min-height:20px;margin-top:4px}
+#packMsg .up{color:var(--gold)} #packMsg .nw{color:var(--good)}
+#packMsg:empty{display:none}
+
 /* ---------------- phone held sideways ---------------- */
 @media (max-height:430px){
+  .pcard{width:104px;height:148px}
+  .pface.fr .art{width:62px;height:62px}
+  .pface.fr.g2 .art{width:76px;height:76px}
+  .pface .pn{font-size:12px}
+  .ball{width:44px;height:44px}
+  #packRow{gap:7px;margin:6px 0 2px}
+  #packMsg{font-size:13px;min-height:16px}
   .opts.types{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:3px;
     -webkit-overflow-scrolling:touch}
   .tcard{flex:0 0 auto;width:74px;min-height:60px;padding:4px 3px 4px;border-radius:11px}
@@ -363,14 +413,9 @@ body.typed #toast{background:rgba(5,9,14,.94);border-color:var(--tacc44)}
   .dx{width:74px;padding:3px 2px 4px}
   .dx .art{width:46px;height:46px}
   .dx .nm{font-size:10px}
-  #revOv .panel{max-width:620px;padding:8px 14px}
-  .revtitle{font-size:24px}
-  .revq{font-size:14px;min-height:18px}
-  .flipwrap{width:min(150px,40vh);height:min(150px,40vh);margin:4px auto 2px}
-  .face .art .fb{font-size:42px}
-  #revName{font-size:22px;min-height:26px}
-  #revMeta{font-size:13px}
-  .revbtns .bigbtn{margin-top:6px;padding:8px 16px;font-size:15px}
+  #packOv .panel{max-width:760px;padding:8px 14px}
+  #packOv h1{font-size:20px}
+  #packOv .btnrow .bigbtn{margin-top:6px;padding:8px 16px;font-size:15px}
 }
 </style>
 <script src="wallet.js"></script>
@@ -463,28 +508,23 @@ body.typed #toast{background:rgba(5,9,14,.94);border-color:var(--tacc44)}
     <h1>SOLVED IT!</h1>
     <div id="winStats"></div>
     <p class="small" id="winSub"></p>
-    <button class="bigbtn red hide" id="ballBtn">&#127873; OPEN YOUR POKE BALL</button>
+    <button class="bigbtn red hide" id="ballBtn">&#127873; OPEN YOUR CARD PACK</button>
     <button class="bigbtn gold" id="nextBtn">&#9654; NEW PUZZLE</button>
     <button class="bigbtn grey" id="menuBtn">Change size</button>
   </div>
 </div>
 
-<!-- NEW POKEMON REVEAL -->
-<div class="overlay hide" id="revOv">
+<!-- CARD PACK -->
+<div class="overlay hide" id="packOv">
   <div class="panel">
-    <div class="revtitle">NEW POKEMON!</div>
-    <div class="revq" id="revQ">Who's that Pokemon?</div>
-    <div class="flipwrap" id="flipWrap">
-      <div class="flip" id="flip">
-        <div class="face front"><span class="art" id="revFront"></span></div>
-        <div class="face back"><span class="art" id="revBack"></span></div>
-      </div>
-    </div>
-    <div id="revName"></div>
-    <div id="revMeta"></div>
-    <div class="btnrow revbtns">
-      <button class="bigbtn gold" id="revNextBtn">&#9654; NEW PUZZLE</button>
-      <button class="bigbtn red" id="revDexBtn">&#128214; POKEDEX</button>
+    <h1 id="packTitle">YOUR CARD PACK</h1>
+    <p class="small" id="packSub"></p>
+    <div id="packRow"></div>
+    <div id="packMsg"></div>
+    <div class="btnrow">
+      <button class="bigbtn" id="packAllBtn">&#128072; Open all</button>
+      <button class="bigbtn gold" id="packNextBtn">&#9654; NEW PUZZLE</button>
+      <button class="bigbtn red" id="packDexBtn">&#128214; POKEDEX</button>
     </div>
   </div>
 </div>
@@ -535,6 +575,89 @@ var DIG_BUDGET_MS = 220;     /* hard stop on the dig loop so it can never hang *
 
 var SPRITE_BASE_DEFAULT = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/";
 var SPRITE_BASE = SPRITE_BASE_DEFAULT;
+
+/* =========================================================================
+   CARD PACKS — THE ONE TUNABLE BLOCK (Will, 2026-09-25)
+   Change the numbers here and nothing else. Every pack rule reads from PACK.
+
+   HOW A PACK IS EARNED
+     Solving a puzzle. That is the only way. There is no shop, no coin
+     price, no daily pack, no timer. Coins buy hints, and nothing else.
+
+   WHAT IS IN A PACK
+     Exactly PACK.SIZE cards, all drawn from the round's own energy type
+     (a Grass round can only ever give Grass cards). At least one card is a
+     Pokemon he has NEVER caught, unless he already owns every Pokemon of
+     that type, and then the pack says so out loud and gives duplicates,
+     which still count toward upgrades.
+
+   THE LADDER
+     PACK.UPGRADE_AT copies of a card become one of the next grade:
+       3 Normals  -> 1 Shiny
+       3 Shinies  -> 1 Full Art
+       3 Full Arts-> 1 Gold
+     So a Gold, from Normals alone, is 27 copies. Direct Shiny and Full Art
+     pulls shortcut that. Copies are never destroyed for the count he sees:
+     the binder shows lifetime copies ("Charizard x4") and the frame shows
+     the best grade he has reached.
+
+   EFFORT DRIVES LUCK — the grade odds of EVERY card in the pack.
+     Bigger board and harder difficulty = better cards. Nothing else moves
+     these numbers: not coins, not streaks, not how long he has played.
+
+       BOARD / DIFF   Normal   Shiny   Full Art   Gold
+       4x4 Easy       97.0%     3.0%      0.0%     0%
+       4x4 Medium     95.5%     4.5%      0.0%     0%
+       4x4 Tricky     94.0%     6.0%      0.0%     0%
+       6x6 Easy       92.0%     7.6%      0.4%     0%
+       6x6 Medium     90.0%     9.4%      0.6%     0%
+       6x6 Tricky     88.0%    11.2%      0.8%     0%
+       9x9 Easy       84.0%    15.0%      1.0%     0%
+       9x9 Medium     80.0%    18.5%      1.5%     0%
+       9x9 Tricky     75.0%    22.5%      2.5%     0%
+
+     Gold is 0% on purpose: a Gold card is EARNED on the ladder, never
+     handed out. Expected cards per pack at 9x9 Tricky: 2.25 Normal,
+     0.675 Shiny, 0.075 Full Art.
+   ========================================================================= */
+var PACK = {
+  SIZE: 3,              /* cards per pack */
+  UPGRADE_AT: 3,        /* copies at one grade that become one of the next */
+  GUARANTEE_NEW: true,  /* at least one never-caught Pokemon per pack */
+  /* [Normal, Shiny, Full Art, Gold] — each row must add up to 1 */
+  ODDS: {
+    4: { easy:[0.970, 0.030, 0.000, 0], medium:[0.955, 0.045, 0.000, 0], hard:[0.940, 0.060, 0.000, 0] },
+    6: { easy:[0.920, 0.076, 0.004, 0], medium:[0.900, 0.094, 0.006, 0], hard:[0.880, 0.112, 0.008, 0] },
+    9: { easy:[0.840, 0.150, 0.010, 0], medium:[0.800, 0.185, 0.015, 0], hard:[0.750, 0.225, 0.025, 0] }
+  }
+};
+/* grade 0..3. `nm` is what he reads, `cls` is the CSS treatment. */
+var GRADES = [
+  {key:"normal", nm:"Normal",   cls:"g0", tag:""},
+  {key:"shiny",  nm:"Shiny",    cls:"g1", tag:"✨"},
+  {key:"full",   nm:"Full Art", cls:"g2", tag:"\u{1F5BC}️"},
+  {key:"gold",   nm:"Gold",     cls:"g3", tag:"\u{1F3C6}"}
+];
+var MAX_GRADE = GRADES.length - 1;
+/* Read one odds row, validated. A row that is missing, the wrong length, or
+   does not add up to 1 (within a rounding hair) falls back to all-Normal,
+   so a bad edit above can never crash a pack or invent a Gold. */
+function oddsFor(N, diff){
+  var flat = [1, 0, 0, 0];
+  try {
+    var row = PACK.ODDS[N] && PACK.ODDS[N][diff];
+    if (Object.prototype.toString.call(row) !== "[object Array]") return flat;
+    if (row.length !== GRADES.length) return flat;
+    var sum = 0, out = [];
+    for (var i = 0; i < row.length; i++){
+      var v = Number(row[i]);
+      if (!isFinite(v) || v < 0) return flat;
+      sum += v; out.push(v);
+    }
+    if (Math.abs(sum - 1) > 0.0005) return flat;
+    return out;
+  } catch(e){ return flat; }
+}
 
 /* ---------------- the Pokedex ----------------
    tier 0 = common   (a 4x4 catches these)
@@ -780,6 +903,160 @@ function dexAdd(id){
   DEXS.order.push(id);
   dexSave();
   return true;
+}
+
+/* =========================================================================
+   THE CARD BINDER (localStorage "pokeCards.v1")
+   Shape: {v:1, cards:{"<id>":{c:<lifetime copies>, b:[n0,n1,n2,n3]}}, order:[ids]}
+     c    = every copy he has ever pulled, which is the "x4" the binder shows
+     b[g] = how many copies are sitting at grade g right now, so b is what
+            the upgrade ladder eats from. b[0]=4 becomes b=[1,1,0,0] the
+            moment the third Normal lands: 3 Normals turn into 1 Shiny.
+
+   "pokeDex.v1" is NOT replaced and NOT rewritten in a new shape. It stays
+   exactly as it was (the caught set + order) and keeps being saved, so
+   nothing that already reads it can break. This file is the extra half.
+
+   MIGRATION: on first load after this change, every id already caught in
+   pokeDex.v1 that has no card row gets {c:1, b:[1,0,0,0]} — one Normal
+   copy, which is exactly what "already caught" meant. Lossless, automatic,
+   inside try/catch, and it never deletes a caught Pokemon.
+   ========================================================================= */
+var CARD_KEY = "pokeCards.v1";
+function cardsEmpty(){ return {v:1, cards:{}, extra:{}, order:[]}; }
+function blankCard(){ return {c:0, b:[0,0,0,0]}; }
+/* validate one stored row into a clean {c, b} or null */
+function cleanCard(raw){
+  if (!raw || typeof raw !== "object") return null;
+  var e = blankCard(), i, n, tot = 0;
+  var src = Object.prototype.toString.call(raw.b) === "[object Array]" ? raw.b : [];
+  for (i = 0; i < GRADES.length; i++){
+    n = Math.floor(Number(src[i]));
+    if (!isFinite(n) || n < 0) n = 0;
+    e.b[i] = Math.min(n, 1e6);
+    tot += e.b[i];
+  }
+  n = Math.floor(Number(raw.c));
+  e.c = (isFinite(n) && n > 0) ? Math.min(n, 1e7) : 0;
+  /* a row with a count but no copies (hand-edited or truncated) is repaired
+     to the smallest honest thing: one Normal. Never zero copies. */
+  if (tot === 0){ e.b[0] = 1; tot = 1; }
+  if (e.c < tot) e.c = tot;
+  return e;
+}
+function cardsLoad(){
+  var out = cardsEmpty(), raw = null;
+  try { raw = localStorage.getItem(CARD_KEY); } catch(e){ return out; }
+  if (!raw) return out;
+  try {
+    var o = JSON.parse(raw);
+    if (!o || typeof o !== "object") return cardsEmpty();
+    var src = (o.cards && typeof o.cards === "object") ? o.cards : {};
+    Object.keys(src).forEach(function(k){
+      var id = parseInt(k, 10);
+      if (!isFinite(id) || id <= 0) return;
+      var e = cleanCard(src[k]);
+      if (!e) return;
+      /* an id this build does not know (tcg-types.js failed to load) is
+         PARKED exactly like the dex does it, never dropped */
+      if (DEX_BY[id]) out.cards[id] = e; else out.extra[id] = e;
+    });
+    var ord = Object.prototype.toString.call(o.order) === "[object Array]" ? o.order : [];
+    ord.forEach(function(id){
+      id = parseInt(id, 10);
+      if (out.cards[id] && out.order.indexOf(id) === -1) out.order.push(id);
+    });
+    Object.keys(out.cards).forEach(function(k){
+      var id = parseInt(k, 10);
+      if (out.order.indexOf(id) === -1) out.order.push(id);
+    });
+    return out;
+  } catch(e){ return cardsEmpty(); }
+}
+var CARDS = cardsLoad();
+function cardsSave(){
+  try {
+    var cards = {}, k;
+    for (k in CARDS.extra) if (Object.prototype.hasOwnProperty.call(CARDS.extra, k)) cards[k] = CARDS.extra[k];
+    for (k in CARDS.cards) if (Object.prototype.hasOwnProperty.call(CARDS.cards, k)) cards[k] = CARDS.cards[k];
+    localStorage.setItem(CARD_KEY, JSON.stringify({v:1, cards:cards, order:CARDS.order}));
+    return true;
+  } catch(e){ return false; }   /* private mode: the pull still counts this session */
+}
+/* Every already-caught Pokemon becomes one Normal copy. Runs on every load
+   and is a no-op once done, so it also repairs a dex entry that somehow
+   never got a card row. */
+function cardsMigrate(){
+  var added = 0;
+  try {
+    DEXS.order.forEach(function(id){
+      if (CARDS.cards[id]) return;
+      var e = blankCard();
+      e.c = 1; e.b[0] = 1;
+      CARDS.cards[id] = e;
+      if (CARDS.order.indexOf(id) === -1) CARDS.order.push(id);
+      added++;
+    });
+    /* the mirror case: a card row for something the dex forgot */
+    Object.keys(CARDS.cards).forEach(function(k){
+      var id = parseInt(k, 10);
+      if (DEX_BY[id] && !isCaught(id)) dexAdd(id);
+    });
+    if (added) cardsSave();
+  } catch(e){ /* a migration must never stop him playing */ }
+  return added;
+}
+cardsMigrate();
+
+function cardOf(id){ return CARDS.cards[id] || null; }
+function cardCount(id){ var e = cardOf(id); return e ? e.c : 0; }
+/* the best grade he has reached with this card, or -1 when he has none */
+function cardGrade(id){
+  var e = cardOf(id);
+  if (!e) return -1;
+  for (var g = MAX_GRADE; g >= 0; g--) if (e.b[g] > 0) return g;
+  return -1;
+}
+/* copies still needed at the current grade to step up, 0 when already Gold */
+function cardToNext(id){
+  var e = cardOf(id), g = cardGrade(id);
+  if (!e || g < 0 || g >= MAX_GRADE) return 0;
+  return Math.max(0, PACK.UPGRADE_AT - e.b[g]);
+}
+function gradeName(g){ return (g >= 0 && g <= MAX_GRADE) ? GRADES[g].nm : ""; }
+function gradeCls(g){ return (g >= 0 && g <= MAX_GRADE) ? GRADES[g].cls : "g0"; }
+/* roll PACK.UPGRADE_AT copies at one grade up into the next, repeatedly */
+function cardCascade(e){
+  for (var g = 0; g < MAX_GRADE; g++){
+    while (e.b[g] >= PACK.UPGRADE_AT){
+      e.b[g] -= PACK.UPGRADE_AT;
+      e.b[g+1] += 1;
+    }
+  }
+  return e;
+}
+/* Add one copy of `id` at grade `g`. Returns what actually happened, which
+   is what the reveal is allowed to show and nothing more. */
+function gainCard(id, g){
+  var p = DEX_BY[id];
+  if (!p) return null;
+  if (!(g >= 0 && g <= MAX_GRADE)) g = 0;
+  var fresh = !cardOf(id);
+  var e = fresh ? blankCard() : cardOf(id);
+  if (fresh){
+    CARDS.cards[id] = e;
+    if (CARDS.order.indexOf(id) === -1) CARDS.order.push(id);
+  }
+  var before = fresh ? -1 : cardGrade(id);
+  e.c += 1;
+  e.b[g] += 1;
+  cardCascade(e);
+  var after = cardGrade(id);
+  var isNew = !isCaught(id);
+  if (isNew) dexAdd(id);           /* keeps pokeDex.v1 in step, unchanged shape */
+  cardsSave();
+  return {id:id, name:p.name, pulled:g, isNew:isNew, from:before, to:after,
+          upgraded:(!fresh && after > before), count:e.c, toNext:cardToNext(id)};
 }
 /* how many of one type he already has, and how many there are */
 function typeCaught(typeId){
@@ -1088,38 +1365,82 @@ function buildSet(mode, N, lineKey, typeId){
   return out.slice(0, N);
 }
 
-/* Which Pokemon does this win catch?
-   Own tier first (4x4 common, 6x6 uncommon, 9x9 rare), then lower tiers.
-   Never a HIGHER tier: rares stay a 9x9 prize. An evolution puzzle prefers
-   the next uncaught stage of its own line when the size allows it.       */
-function pickUnlock(N, mode, lineKey, typeId){
-  var allowed = N >= 9 ? 2 : (N >= 6 ? 1 : 0);
-  var t;
-  /* A type round ALWAYS catches a Pokemon of that type, never anything else. */
+/* =========================================================================
+   PACK GENERATION
+   A solved puzzle rolls one pack. Every card in it comes from the round's
+   own pool and nothing else:
+     type round  -> ONLY that energy type's Pokemon
+     team / evo  -> the whole dex (those rounds have no energy type)
+   The board's own rarity gate from before still holds: a 4x4 reaches
+   commons, a 6x6 uncommons, a 9x9 rares, and never a rarity above its own.
+
+   The one deliberate exception, and it is Will's rule: the GUARANTEED new
+   card outranks the rarity gate. If the only Pokemon of this type he has
+   not caught are rarer than this board, the guaranteed slot reaches up and
+   gives him one anyway rather than handing him a pack of pure duplicates.
+   The filler slots never reach up.
+   ========================================================================= */
+function rarityAllowed(N){ return N >= 9 ? 2 : (N >= 6 ? 1 : 0); }
+/* every DEX entry this round is allowed to deal, before the rarity gate */
+function packPool(mode, typeId){
   if (mode === "type" && TYPE_POOL[typeId]){
-    var pool = TYPE_POOL[typeId]
-      .map(function(p){ return DEX_BY[p.id]; })
-      .filter(function(p){ return p && !isCaught(p.id); });
-    if (!pool.length) return {p:null, reason:"type-all", type:typeId};
-    for (t = allowed; t >= 0; t--){
-      var sub = pool.filter(function(p){ return p.tier === t; });
-      if (sub.length) return {p:sub[Math.floor(Math.random()*sub.length)], reason:"type", type:typeId};
-    }
-    /* only rarer ones left in this type: a bigger board reaches them */
-    return {p:null, reason:"type-bigger", type:typeId};
+    return TYPE_POOL[typeId].map(function(p){ return DEX_BY[p.id]; })
+                            .filter(function(p){ return !!p; });
   }
-  var left = DEX.filter(function(p){ return !isCaught(p.id); });
-  if (!left.length) return {p:null, reason:"all"};
-  if (mode === "evo" && LINE_BY[lineKey]){
-    var nextStage = LINE_BY[lineKey].ids.map(function(id){ return DEX_BY[id]; })
-      .filter(function(p){ return p && !isCaught(p.id) && p.tier <= allowed; });
-    if (nextStage.length) return {p:nextStage[0], reason:"line"};
+  return DEX.slice();
+}
+/* one grade, rolled straight off the odds row. No memory, no pity, no
+   streak: the roll cannot see how many packs came before it. */
+function rollGrade(N, diff){
+  var odds = oddsFor(N, diff);
+  var r = Math.random(), acc = 0;
+  for (var g = 0; g < odds.length; g++){
+    acc += odds[g];
+    if (r < acc) return g;
   }
-  for (var t = allowed; t >= 0; t--){
-    var pool = left.filter(function(p){ return p.tier === t; });
-    if (pool.length) return {p:pool[Math.floor(Math.random()*pool.length)], reason:"tier"};
+  return 0;
+}
+function pickOne(list){ return list[Math.floor(Math.random() * list.length)]; }
+/* Rolls a pack WITHOUT saving it. Returns
+   {cards:[{id,grade}], type, exhausted, reachedUp, poolSize} */
+function makePack(N, diff, mode, typeId){
+  var pool = packPool(mode, typeId);
+  var allowed = rarityAllowed(N);
+  var gated = pool.filter(function(p){ return p.tier <= allowed; });
+  var deal  = gated.length ? gated : pool;                      /* tier 0 always exists */
+  var freshGated = gated.filter(function(p){ return !isCaught(p.id); });
+  var freshAny   = pool.filter(function(p){ return !isCaught(p.id); });
+  var out = {cards:[], type:(mode === "type" && TYPE_BY[typeId]) ? typeId : null,
+             exhausted:(freshAny.length === 0), reachedUp:false, poolSize:pool.length};
+  if (!deal.length) return out;                                 /* cannot happen: guarded anyway */
+  var i;
+  if (PACK.GUARANTEE_NEW && freshAny.length){
+    var src = freshGated.length ? freshGated : freshAny;
+    if (!freshGated.length) out.reachedUp = true;
+    out.cards.push({id:pickOne(src).id, grade:rollGrade(N, diff)});
   }
-  return {p:null, reason:"bigger"};
+  while (out.cards.length < PACK.SIZE){
+    out.cards.push({id:pickOne(deal).id, grade:rollGrade(N, diff)});
+  }
+  /* shuffle so the guaranteed card is not always slot 1 */
+  for (i = out.cards.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i+1));
+    var t = out.cards[i]; out.cards[i] = out.cards[j]; out.cards[j] = t;
+  }
+  return out;
+}
+/* Saves a rolled pack into the binder and returns what each card did.
+   This runs the INSTANT the puzzle is solved, before any card is shown, so
+   closing the tab mid-reveal cannot cost him a card and the reveal has
+   nothing left to decide. */
+function applyPack(pack){
+  var res = [];
+  if (!pack || !pack.cards) return res;
+  for (var i = 0; i < pack.cards.length; i++){
+    var r = gainCard(pack.cards[i].id, pack.cards[i].grade);
+    if (r) res.push(r);
+  }
+  return res;
 }
 
 /* =========================================================================
@@ -1140,8 +1461,9 @@ var S = {
   mode: "classic", line: null,   /* piece set: classic | type | team | evo (+ line key) */
   type: null,                    /* the chosen energy type in a "type" round */
   randomType: false,             /* "Surprise me": re-roll the type every puzzle */
-  paid: false,                   /* reward + catch happen ONCE per puzzle, even after undo */
-  unlock: null                   /* {p, reason} from this puzzle's win */
+  paid: false,                   /* reward + pack happen ONCE per puzzle, even after undo */
+  pack: null,                    /* the rolled pack {cards:[{id,grade}], ...} */
+  packRes: null                  /* what each card did once it hit the binder */
 };
 var cellEls = [], tileEls = [];
 
@@ -1496,101 +1818,157 @@ function checkWin(){
   var reward = REWARD[S.N] || 10;
   var firstWin = !S.paid;
   if (firstWin){
-    /* coins and the Pokedex catch pay out ONCE per puzzle: undo + re-solve
-       (or Start over + re-solve) must not farm extra Pokemon */
+    /* coins and the card pack pay out ONCE per puzzle: undo + re-solve
+       (or Start over + re-solve) must not farm extra packs */
     S.paid = true;
     earn(reward);
-    S.unlock = pickUnlock(S.N, S.mode, S.line, S.type);
-    if (S.unlock.p) dexAdd(S.unlock.p.id);
+    S.pack = makePack(S.N, S.diff, S.mode, S.type);
+    S.packRes = applyPack(S.pack);   /* banked immediately, before any reveal */
   }
   Snd.solved();
   $("winStats").innerHTML = "Time <b>" + fmt(S.elapsed) + "</b> &nbsp; Reward <b>\uD83E\uDE99" + (firstWin ? reward : 0) + "</b>";
   var myType = (S.mode === "type" && TYPE_BY[S.type]) ? TYPE_BY[S.type] : null;
   var sub = S.N + " x " + S.N + " " + DIFF_NAME[S.diff] +
             (myType ? " " + myType.emoji + " " + myType.name : "") + ". Coins now " + coins + ".";
-  var u = S.unlock;
-  var showBall = !!(firstWin && u && u.p);
-  if (firstWin && u && !u.p){
-    if (u.reason === "all"){
-      sub += " You have caught all " + DEX.length + " Pokemon!";
-    } else if (u.reason === "type-all" && myType){
-      /* every Pokemon of this type is his: say so and send him somewhere new */
+  var showBall = !!(firstWin && S.packRes && S.packRes.length);
+  if (firstWin && S.pack && S.pack.exhausted){
+    if (myType){
+      /* every Pokemon of this type is his: say so plainly and point him on */
       var nxt = typeWithRoom(myType.id);
-      sub += " You have caught every " + myType.name + " Pokemon, all " + typeTotal(myType.id) + " of them!" +
+      sub += " You have every " + myType.name + " Pokemon, all " + typeTotal(myType.id) +
+             " of them, so this pack is all duplicates. They still build upgrades!" +
              (nxt ? " Try a " + nxt.emoji + " " + nxt.name + " round next, there are still " +
                     (typeTotal(nxt.id) - typeCaught(nxt.id)) + " to catch there." : "");
-    } else if (u.reason === "type-bigger" && myType){
-      sub += " Only rarer " + myType.name + " Pokemon are left. Try a " +
-             (S.N < 6 ? "6 x 6" : "9 x 9") + " " + myType.name + " round to reach them!";
     } else {
-      sub += " Try a " + (S.N < 6 ? "6 x 6" : "9 x 9") + " puzzle to catch rarer Pokemon!";
+      sub += " You have caught all " + DEX.length + " Pokemon, so this pack is all duplicates." +
+             " They still build upgrades!";
     }
   }
-  if (!firstWin) sub += " (This puzzle's Pokemon is already in your Pokedex.)";
-  $("winSub").textContent = sub;
+  if (!firstWin) sub += " (You already opened this puzzle's pack.)";
   $("ballBtn").classList.toggle("hide", !showBall);
+  $("winSub").textContent = sub;
   $("winOv").classList.remove("hide");
-  clearTimeout(revealT);
+  clearTimeout(packT);
   if (showBall){
-    /* start downloading the big artwork now so the silhouette is ready */
-    try { var pre = new Image(); pre.src = SPRITE_BASE + "other/official-artwork/" + u.p.id + ".png"; } catch(e){}
-    /* the win panel gets a moment, then the Poke Ball opens by itself */
-    revealT = setTimeout(function(){ openReveal(u.p); }, 1700);
+    /* start the artwork downloading now so the flips are instant */
+    S.packRes.forEach(function(r){
+      try { var pre = new Image(); pre.src = SPRITE_BASE + r.id + ".png"; } catch(e){}
+    });
+    /* the win panel gets a moment, then the pack opens by itself */
+    packT = setTimeout(function(){ openPack(); }, 1700);
   }
   if (EMBED) toGame({type:"solved", size:S.N, seconds:S.elapsed});
   return true;
 }
 
 /* =========================================================================
-   NEW POKEMON REVEAL
+   CARD PACK REVEAL
+   Every card in S.packRes is ALREADY in the binder before this screen
+   opens. A flip uncovers a decided card and says exactly what it is: new,
+   a duplicate, or an upgrade. Nothing here re-rolls, swaps, teases a card
+   it is not going to give, or counts how close he was to anything.
    ========================================================================= */
-var revealT = null, flipT = null, revealP = null;
-function openReveal(p){
-  clearTimeout(revealT); clearTimeout(flipT);
-  if (!p) return false;
-  revealP = p;
+var packT = null, packCards = [];
+function packCardNode(r, i){
+  var p = DEX_BY[r.id];
+  var wrap = document.createElement("button");
+  wrap.className = "pcard";
+  wrap.dataset.i = String(i);
+  wrap.setAttribute("aria-label", "Card " + (i+1) + ", tap to turn over");
+
+  var flip = document.createElement("div");
+  flip.className = "pflip";
+
+  var bk = document.createElement("div");
+  bk.className = "pface bk";
+  var ball = document.createElement("span"); ball.className = "ball";
+  var tap = document.createElement("span"); tap.className = "tap"; tap.textContent = "TAP";
+  bk.appendChild(ball); bk.appendChild(tap);
+
+  var fr = document.createElement("div");
+  fr.className = "pface fr " + gradeCls(r.to);
+  var art = document.createElement("span"); art.className = "art";
+  art.appendChild(artNode(p));
+  var nm = document.createElement("span"); nm.className = "pn"; nm.textContent = p ? p.name : "?";
+  var gd = document.createElement("span"); gd.className = "pg";
+  gd.textContent = (GRADES[r.to] ? GRADES[r.to].tag + " " + GRADES[r.to].nm : "").trim();
+  var ct = document.createElement("span"); ct.className = "pc";
+  ct.textContent = "x" + r.count;
+  fr.appendChild(art); fr.appendChild(nm); fr.appendChild(gd); fr.appendChild(ct);
+  if (r.isNew){
+    var nt = document.createElement("span"); nt.className = "newtag"; nt.textContent = "NEW";
+    fr.appendChild(nt);
+  }
+  if (r.upgraded){
+    var ut = document.createElement("span"); ut.className = "uptag";
+    ut.textContent = "UPGRADE → " + gradeName(r.to).toUpperCase();
+    fr.appendChild(ut);
+  }
+  flip.appendChild(bk); flip.appendChild(fr);
+  wrap.appendChild(flip);
+  wrap.addEventListener("click", function(){ flipPackCard(i); });
+  return wrap;
+}
+function openPack(){
+  clearTimeout(packT);
+  var res = S.packRes;
+  if (!res || !res.length) return false;
   $("ballBtn").classList.add("hide");
-  var front = $("revFront"), back = $("revBack");
-  front.innerHTML = ""; back.innerHTML = "";
-  front.appendChild(artNode(p, true));
-  back.appendChild(artNode(p, true));
-  var flip = $("flip");
-  /* snap back to the silhouette side with NO animation, otherwise the card
-     spins back from the last reveal and spoils who it is */
-  flip.style.transition = "none";
-  flip.classList.remove("go");
-  $("flipWrap").classList.remove("lit");
-  void flip.offsetWidth;
-  flip.style.transition = "";
-  flip.classList.add("shake");
-  $("revQ").textContent = "Who's that Pokemon?";
-  $("revName").textContent = "";
-  $("revMeta").innerHTML = "";
-  $("revOv").classList.remove("hide");
-  flipT = setTimeout(flipReveal, 1400);
+  var myType = (S.pack && S.pack.type && TYPE_BY[S.pack.type]) ? TYPE_BY[S.pack.type] : null;
+  $("packTitle").textContent = res.length + "-CARD PACK";
+  $("packSub").textContent = myType
+    ? (myType.emoji + " " + myType.name + " pack from your " + S.N + " x " + S.N + " " + DIFF_NAME[S.diff] + " win")
+    : ("From your " + S.N + " x " + S.N + " " + DIFF_NAME[S.diff] + " win");
+  $("packMsg").innerHTML = "";
+  var row = $("packRow");
+  row.innerHTML = "";
+  packCards = [];
+  res.forEach(function(r, i){
+    var node = packCardNode(r, i);
+    row.appendChild(node);
+    packCards.push(node);
+  });
+  $("packAllBtn").classList.remove("hide");
+  $("packOv").classList.remove("hide");
   return true;
 }
-function flipReveal(){
-  clearTimeout(flipT);
-  var p = revealP;
-  var flip = $("flip");
-  if (!p || flip.classList.contains("go")) return;
-  flip.classList.remove("shake");
-  flip.classList.add("go");
-  $("flipWrap").classList.add("lit");
-  $("revQ").textContent = "You caught...";
-  $("revName").textContent = p.name + "!";
-  var cls = p.tier === 2 ? "rare" : (p.tier === 1 ? "unc" : "");
-  var pt = typeOfDex(p);
-  $("revMeta").innerHTML = "#" + ("00" + p.id).slice(-3) + " &nbsp;<span class=\"" + cls + "\">" +
-    TIER_NAME[p.tier].toUpperCase() + "</span>" +
-    (pt ? " &nbsp;" + pt.emoji + " " + pt.name + " " + typeCaught(pt.id) + " / " + typeTotal(pt.id) : "") +
-    " &nbsp; Caught " + caughtCount() + " / " + DEX.length;
-  try { Snd.file("62-toasty", 0.8); } catch(e){}
+function flipPackCard(i){
+  var node = packCards[i], r = S.packRes && S.packRes[i];
+  if (!node || !r || node.classList.contains("open")) return false;
+  node.classList.add("open");
+  if (r.upgraded) node.classList.add("up");
+  try {
+    if (r.upgraded) Snd.file("13-got-em", 0.8);
+    else if (r.isNew) Snd.file("62-toasty", 0.8);
+    else Snd.file("40-noice", 0.55);
+  } catch(e){}
+  packSummary();
+  return true;
 }
-function closeReveal(){
-  clearTimeout(revealT); clearTimeout(flipT);
-  $("revOv").classList.add("hide");
+function flipAllPack(){
+  for (var i = 0; i < packCards.length; i++) flipPackCard(i);
+  return true;
+}
+/* the line under the cards: only ever a count of what is already flipped */
+function packSummary(){
+  var res = S.packRes || [], open = 0, nw = 0, up = 0, i;
+  for (i = 0; i < packCards.length; i++){
+    if (!packCards[i].classList.contains("open")) continue;
+    open++;
+    if (res[i] && res[i].isNew) nw++;
+    if (res[i] && res[i].upgraded) up++;
+  }
+  var bits = [];
+  if (nw) bits.push('<span class="nw">' + nw + " new Pokemon</span>");
+  if (up) bits.push('<span class="up">' + up + " upgraded</span>");
+  if (open && !nw && !up) bits.push("Duplicates, and every one counts toward an upgrade");
+  $("packMsg").innerHTML = bits.join(" &nbsp;&middot;&nbsp; ");
+  $("packAllBtn").classList.toggle("hide", open >= packCards.length);
+  return open;
+}
+function closePack(){
+  clearTimeout(packT);
+  $("packOv").classList.add("hide");
 }
 
 function hint(){
@@ -1633,7 +2011,7 @@ function restart(){
   S.sel = -1; S.selPk = -1;
   S.done = false; S.running = false; S.elapsed = 0; S.started = 0;
   $("winOv").classList.add("hide");
-  closeReveal();
+  closePack();
   render();
   layout();
   toast("Fresh start!", "", 900);
@@ -1666,11 +2044,12 @@ function newPuzzle(size, diff, seed, pieces){
   if (set && type && !set.every(function(p){ return p && TYPE_OF[p.id] === type; })) set = null;
   if (!set) set = buildSet(mode, N, line, type);
   var made = makePuzzle(N, d, sd);
-  clearTimeout(revealT); clearTimeout(flipT);
-  $("revOv").classList.add("hide");
+  clearTimeout(packT);
+  $("packOv").classList.add("hide");
+  packCards = [];
   SET = set.slice();
   S.mode = mode; S.line = line; S.type = type; S.randomType = randomType;
-  S.paid = false; S.unlock = null;
+  S.paid = false; S.pack = null; S.packRes = null;
   S.N = N; S.diff = d; S.seed = made.seed; S.genMs = made.ms;
   S.puzzle = made.puzzle.slice();
   S.solution = made.solution.slice();
@@ -2040,9 +2419,14 @@ function openDex(focusId){
 function closeDex(){ $("dexOv").classList.add("hide"); }
 function dexCard(p){
   var got = isCaught(p.id);
+  var g = cardGrade(p.id), n = cardCount(p.id);
   var b = document.createElement("button");
-  b.className = "dx t" + p.tier + (got ? "" : " un") + (p.id === dexFresh ? " fresh" : "");
+  /* the grade class paints the frame; an uncaught silhouette never gets one */
+  b.className = "dx t" + p.tier + (got ? " " + gradeCls(g) : " un") +
+                (p.id === dexFresh ? " fresh" : "");
   b.dataset.id = String(p.id);
+  b.dataset.grade = got ? String(g) : "";
+  b.dataset.count = String(n);
   var no = document.createElement("span"); no.className = "no";
   no.textContent = "#" + ("00" + p.id).slice(-3);
   var a = document.createElement("span"); a.className = "art";
@@ -2050,6 +2434,15 @@ function dexCard(p){
   var nm = document.createElement("span"); nm.className = "nm";
   nm.textContent = got ? p.name : "???";
   b.appendChild(no); b.appendChild(a); b.appendChild(nm);
+  if (got){
+    /* how many copies, and what grade those copies have reached */
+    var cn = document.createElement("span"); cn.className = "cnt";
+    cn.textContent = "x" + n;
+    b.appendChild(cn);
+    var gn = document.createElement("span"); gn.className = "gnm";
+    gn.textContent = (GRADES[g] ? (GRADES[g].tag + " " + GRADES[g].nm).trim() : "");
+    b.appendChild(gn);
+  }
   if (p.tier === 2){ var tr = document.createElement("span"); tr.className = "tier"; tr.textContent = "⭐"; b.appendChild(tr); }
   if (got && LINE_START[p.id]){ var ev = document.createElement("span"); ev.className = "evo"; ev.textContent = "EVO"; b.appendChild(ev); }
   b.addEventListener("click", function(){ dexDetail(p.id); });
@@ -2118,7 +2511,17 @@ function dexDetail(id){
   var pt = typeOfDex(p);
   var tName = pt ? (pt.emoji + " " + pt.name) : "";
   if (got){
+    /* the big view: "Charizard x4 - Shiny - 2 more to Full Art" */
+    var g = cardGrade(p.id), n = cardCount(p.id), need = cardToNext(p.id);
+    var gTxt = (GRADES[g] ? (GRADES[g].tag + " " + GRADES[g].nm).trim() : "");
+    var step = (g >= MAX_GRADE)
+      ? "Gold, the top of the ladder"
+      : (need + " more " + gradeName(g) + (need === 1 ? " copy" : " copies") +
+         " to " + gradeName(g + 1));
+    a.className = "art " + gradeCls(g);
     t.innerHTML = "#" + ("00" + p.id).slice(-3) + " " + p.name +
+      ' <span style="color:var(--gold)">x' + n + "</span>" +
+      "<small>" + gTxt + " &middot; " + step + "</small>" +
       "<small>" + TIER_NAME[p.tier] + (tName ? " &middot; " + tName : "") + "</small>";
   } else {
     t.innerHTML = "???<small>Solve a " + TIER_SIZE[p.tier] + " x " + TIER_SIZE[p.tier] + " " +
@@ -2138,7 +2541,7 @@ function dexDetail(id){
 function startEvoFromDex(key){
   if (!LINE_BY[key] || !isCaught(LINE_BY[key].ids[0])) return false;
   pickMode = "evo"; pickLine = key;
-  closeDex(); closeReveal();
+  closeDex(); closePack();
   $("winOv").classList.add("hide");
   showStart();
   return true;
@@ -2159,7 +2562,7 @@ $("playBtn").addEventListener("click", function(){
 });
 function nextPuzzle(){
   $("winOv").classList.add("hide");
-  closeReveal();
+  closePack();
   /* same size and piece style; "My team" re-deals so new catches can join,
      and "Surprise me" rolls a fresh energy type for every round */
   newPuzzle(S.N, S.diff, undefined,
@@ -2168,18 +2571,22 @@ function nextPuzzle(){
 $("nextBtn").addEventListener("click", nextPuzzle);
 $("menuBtn").addEventListener("click", function(){
   $("winOv").classList.add("hide");
-  closeReveal();
+  closePack();
   if (EMBED) toGame({type:"close"});
   else showStart();
 });
-$("ballBtn").addEventListener("click", function(){ if (S.unlock && S.unlock.p) openReveal(S.unlock.p); });
-$("flipWrap").addEventListener("click", flipReveal);
-$("revNextBtn").addEventListener("click", nextPuzzle);
-$("revDexBtn").addEventListener("click", function(){
-  var id = revealP ? revealP.id : null;
-  flipReveal();
-  dexFresh = id;
-  openDex(id);
+$("ballBtn").addEventListener("click", function(){ openPack(); });
+$("packAllBtn").addEventListener("click", function(){ flipAllPack(); });
+$("packNextBtn").addEventListener("click", nextPuzzle);
+$("packDexBtn").addEventListener("click", function(){
+  /* nothing is hidden from him on the way out: turn the rest over first */
+  flipAllPack();
+  var res = S.packRes || [];
+  var focus = null;
+  for (var i = 0; i < res.length; i++){ if (res[i].isNew){ focus = res[i].id; break; } }
+  if (focus === null && res.length) focus = res[0].id;
+  dexFresh = focus;
+  openDex(focus);
 });
 $("dexBtn").addEventListener("click", function(){ openDex(); });
 $("dexOpenBtn").addEventListener("click", function(){ openDex(); });
@@ -2190,7 +2597,7 @@ window.addEventListener("keydown", function(e){
   if (S.done) return;
   /* no board moves while a menu, the Pokedex or the reveal is on top */
   if (!$("startOv").classList.contains("hide") || !$("dexOv").classList.contains("hide") ||
-      !$("revOv").classList.contains("hide")) return;
+      !$("packOv").classList.contains("hide")) return;
   if (/^[1-9]$/.test(e.key)){
     var v = Number(e.key);
     if (v <= S.N) onPickTap(v);
@@ -2315,8 +2722,12 @@ window.POKE = {
   set: function(){ return SET.map(function(p){ return p.id; }); },
   setNames: function(){ return SET.map(function(p){ return p.name; }); },
   mode: function(){ return {mode:S.mode, line:S.line, type:S.type, paid:S.paid,
-    unlock:S.unlock && S.unlock.p ? S.unlock.p.id : (S.unlock ? S.unlock.reason : null),
-    unlockReason:S.unlock ? S.unlock.reason : null}; },
+    pack:S.pack ? S.pack.cards.map(function(c){ return c.id; }) : null,
+    packGrades:S.pack ? S.pack.cards.map(function(c){ return c.grade; }) : null,
+    packType:S.pack ? S.pack.type : null,
+    packExhausted:S.pack ? S.pack.exhausted : null,
+    packReachedUp:S.pack ? S.pack.reachedUp : null,
+    packNew:S.packRes ? S.packRes.filter(function(r){ return r.isNew; }).length : null}; },
   dex: function(){ return JSON.parse(JSON.stringify(DEXS)); },
   dexRaw: function(){ try { return localStorage.getItem(DEX_KEY); } catch(e){ return "ERR " + e; } },
   dexAll: function(){ return DEX.map(function(p){ return {id:p.id, name:p.name, tier:p.tier, type:p.type}; }); },
@@ -2325,15 +2736,97 @@ window.POKE = {
   /* replace the saved dex with exactly these ids (tests only) */
   setDex: function(ids){
     DEXS = dexEmpty();
+    CARDS = cardsEmpty();
     (ids || []).forEach(function(id){ dexAdd(id); });
     dexSave();
+    cardsMigrate();     /* each seeded catch becomes one Normal copy */
+    cardsSave();
     paintStart();
     return caughtCount();
   },
   openDex: function(id){ return openDex(id); },
-  openReveal: function(id){ return openReveal(DEX_BY[id]); },
-  flip: function(){ flipReveal(); return true; },
-  soundOn: function(){ return Snd.isOn(); }
+  soundOn: function(){ return Snd.isOn(); },
+
+  /* ---- card pack hooks ---- */
+  odds: function(N, diff){ return oddsFor(N, diff).slice(); },
+  oddsTable: function(){
+    var out = {};
+    [4,6,9].forEach(function(N){
+      out[N] = {};
+      ["easy","medium","hard"].forEach(function(d){ out[N][d] = oddsFor(N, d).slice(); });
+    });
+    return out;
+  },
+  packSize: function(){ return PACK.SIZE; },
+  upgradeAt: function(){ return PACK.UPGRADE_AT; },
+  /* rolls a pack WITHOUT banking it: lets a test read the raw draw */
+  rollPack: function(size, diff, mode, type){
+    var pk = makePack(size, diff, mode || "classic", type || null);
+    return {cards:pk.cards.slice(), type:pk.type, exhausted:pk.exhausted,
+            reachedUp:pk.reachedUp, poolSize:pk.poolSize};
+  },
+  /* the full live path a win takes: roll, bank, report. Same code, no UI. */
+  earnPack: function(size, diff, mode, type){
+    var pk = makePack(size, diff, mode || "classic", type || null);
+    var res = applyPack(pk);
+    return {type:pk.type, exhausted:pk.exhausted, reachedUp:pk.reachedUp,
+            cards:res.map(function(r){
+              return {id:r.id, name:r.name, pulled:r.pulled, isNew:r.isNew,
+                      from:r.from, to:r.to, upgraded:r.upgraded, count:r.count, toNext:r.toNext};
+            })};
+  },
+  /* one copy of one card at one grade, through the real gain path */
+  grantCard: function(id, grade, times){
+    var n = Math.max(1, (times|0) || 1), last = null;
+    for (var i = 0; i < n; i++) last = gainCard(id, grade|0);
+    paintStart();
+    return last;
+  },
+  card: function(id){
+    var e = cardOf(id);
+    return e ? {id:id, count:e.c, b:e.b.slice(), grade:cardGrade(id),
+                gradeName:gradeName(cardGrade(id)), toNext:cardToNext(id)} : null;
+  },
+  cards: function(){ return JSON.parse(JSON.stringify(CARDS)); },
+  cardsRaw: function(){ try { return localStorage.getItem(CARD_KEY); } catch(e){ return "ERR " + e; } },
+  cardKey: function(){ return CARD_KEY; },
+  dexKey: function(){ return DEX_KEY; },
+  /* wipe the binder to exactly these {id:{c,b}} rows (tests only) */
+  setCards: function(rows){
+    CARDS = cardsEmpty();
+    Object.keys(rows || {}).forEach(function(k){
+      var id = parseInt(k, 10);
+      var e = cleanCard(rows[k]);
+      if (!DEX_BY[id] || !e) return;
+      CARDS.cards[id] = e;
+      CARDS.order.push(id);
+    });
+    cardsSave();
+    paintStart();
+    return CARDS.order.length;
+  },
+  migrate: function(){ CARDS = cardsLoad(); return cardsMigrate(); },
+  /* pack UI */
+  openPack: function(){ return openPack(); },
+  flipPack: function(i){ return flipPackCard(i|0); },
+  flipAllPack: function(){ return flipAllPack(); },
+  packOpen: function(){ return !$("packOv").classList.contains("hide"); },
+  packShown: function(){
+    return packCards.map(function(n, i){
+      return {i:i, open:n.classList.contains("open"),
+              cls:(n.querySelector(".pface.fr") || {className:""}).className};
+    });
+  },
+  packMsg: function(){ return $("packMsg").textContent; },
+  /* what the binder is actually rendering for one card */
+  dexCardInfo: function(id){
+    var el = $("dexGrid").querySelector('.dx[data-id="' + (id|0) + '"]');
+    if (!el) return null;
+    return {cls:el.className, count:el.dataset.count, grade:el.dataset.grade,
+            badge:(el.querySelector(".cnt") || {textContent:""}).textContent,
+            gradeTxt:(el.querySelector(".gnm") || {textContent:""}).textContent};
+  },
+  dexDetailText: function(){ return $("dexDetail").textContent; }
 };
 
 })();
