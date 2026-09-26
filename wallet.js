@@ -116,9 +116,17 @@
     return function () { var i = subs.indexOf(fn); if (i >= 0) subs.splice(i, 1); };
   }
   try {
-    window.addEventListener("storage", function (e) { if (e.key === KEY) { W = load(); emit({ type: "sync" }); } });
+    window.addEventListener("storage", function (e) { if (e.key === KEY) { refresh(); } });
   } catch (e) { }
-  function refresh() { W = load(); emit({ type: "sync" }); return W.coins; }
+  /* Reload the purse from disk because something OUTSIDE this page changed it:
+     another tab, or the Move-my-stuff transfer writing a whole new save.
+     The syncFrom anchor MUST be dropped at the same time. It holds the local
+     coin count this page last pushed, and it is measured against the OLD
+     total; leaving it in place makes the next syncFrom() push the difference
+     between a stale local count and a brand new wallet, which silently drains
+     the purse (a restored 1480 became 1 in testing). Dropping it means the
+     next syncFrom() simply re-anchors, costing at most one unpushed award. */
+  function refresh() { W = load(); lastLocal = null; emit({ type: "sync" }); return W.coins; }
   try {
     window.addEventListener("pageshow", function (e) { if (e.persisted) refresh(); });
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") refresh(); });

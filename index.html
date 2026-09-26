@@ -86,6 +86,9 @@
   @media (max-width:560px){.brain{flex-basis:100%;}.coinsBox,a.shopBtn{flex:1 1 40%;justify-content:center;}}
 
   /* ---------- MOVE MY STUFF (transfer) ---------- */
+  .tvQR{margin:10px auto 4px;padding:12px;background:#fff;border-radius:12px;width:max-content;max-width:100%;}
+  .tvQR canvas,.tvQR img{display:block;width:min(300px,68vw);height:auto;image-rendering:pixelated;}
+  .tvQRcap{text-align:center;font-size:13px;color:#b9c6e6;margin:2px 0 8px;}
   .moveRow{text-align:center;margin-top:14px;}
   .moveBtn{font:inherit;font-size:13px;font-weight:800;letter-spacing:.4px;color:#9fb0d8;cursor:pointer;
     background:rgba(22,32,74,.7);border:1px solid #2a3668;border-radius:999px;padding:8px 16px;}
@@ -114,8 +117,8 @@
   .tvBig:hover,.tvBig:focus{border-color:#ffd23f;outline:none;}
   .tvBig .bi{font-size:26px;line-height:1;flex:0 0 auto;}
   .tvBig .bx{flex:1;min-width:0;}
-  .tvBig .bt{font-size:15px;font-weight:900;}
-  .tvBig .bs{font-size:12.5px;color:#a9b8de;line-height:1.35;margin-top:2px;}
+  .tvBig .bt{display:block;font-size:15px;font-weight:900;}
+  .tvBig .bs{display:block;font-size:12.5px;color:#a9b8de;line-height:1.35;margin-top:2px;}
   .tvCode{width:100%;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;line-height:1.7;
     letter-spacing:.6px;color:#ffe9a8;background:#080d22;border:1px solid #34458f;border-radius:12px;
     padding:10px;resize:none;height:118px;word-break:break-all;-webkit-user-select:all;user-select:all;}
@@ -140,8 +143,16 @@
   .tvSide.hot h3{color:#ffd23f;}
   .tvSide ul{margin:0;padding:0;list-style:none;font-size:14px;line-height:1.6;color:#fff;font-weight:700;}
   .tvSide li span{color:#a9b8de;font-weight:400;font-size:12.5px;}
+  .tvMenuWrap .tvPick{margin-top:12px;}
   /* landscape phone: shorter everything, side-by-side controls, never a page scroll */
   @media (max-height:460px){
+    /* the summary sits BESIDE the choices, so the two big buttons are still
+       on screen without scrolling the card */
+    .tvMenuWrap{display:flex;gap:10px;align-items:flex-start;}
+    .tvMenuWrap .tvVs{flex:0 0 40%;margin:0;}
+    .tvMenuWrap .tvPick{flex:1 1 auto;margin-top:0;}
+    .tvMenuWrap .tvBig{padding:9px 11px;}
+    .tvMenuWrap .tvBig .bs{font-size:11.5px;}
     .tvShade{padding:8px;}
     .tvCard{max-width:700px;}
     .tvHead{padding:9px 12px 8px;} .tvHead h2{font-size:15px;}
@@ -275,6 +286,7 @@
 <script src="brain.js"></script>
 <script src="wallet.js"></script>
 <script src="transfer.js"></script>
+<script src="qrcode.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -355,6 +367,7 @@
                     robot:"BEEP-9", explorer:"The Explorer", dragon:"Lil' Dragon" };
   var pending = null;        /* the validated code waiting on a yes/no */
   var lastCode = "";
+  var dirty = false;         /* storage was rewritten: the page MUST reload before play */
 
   function esc(s){
     return String(s === null || s === undefined ? "" : s)
@@ -416,8 +429,9 @@
     show(
       '<p class="tvP">Your games are saved <b>on this device only</b>. To play on another one, make a code here and type or paste it over there.</p>'
       + (blocked ? '<div class="tvBad">This browser is not letting the arcade save anything, so there is nothing to move and a code cannot be used here.</div>' : "")
+      + '<div class="tvMenuWrap">'
       + '<div class="tvVs">' + sideHTML("ON THIS DEVICE", here, false) + '</div>'
-      + '<div class="tvPick" style="margin-top:12px;">'
+      + '<div class="tvPick">'
       + '<button class="tvBig" id="tvMake" type="button"' + (got.present === 0 ? " disabled" : "") + '><span class="bi">&#x1F4E4;</span>'
       + '<span class="bx"><span class="bt">Send my stuff to another device</span>'
       + '<span class="bs">' + (got.present === 0 ? "Nothing is saved here yet, so there is nothing to send." : "Makes the code. Do this on the device that has the good stuff.") + '</span></span></button>'
@@ -425,7 +439,7 @@
       + '<span class="bx"><span class="bt">I have a code from my other device</span>'
       + '<span class="bs">Paste it in and this device becomes a copy of that one.</span></span></button>'
       + undoBit
-      + "</div>"
+      + "</div></div>"
     );
     on("tvMake", send); on("tvTake", receive); on("tvUndoGo", undoAsk);
   }
@@ -441,18 +455,21 @@
       on("tvBack1", menu); return;
     }
     lastCode = code;
-    var groups = code.split("-").length - 1;
+    var bare = code.replace(/-/g, "");
+    var link = location.origin + location.pathname + "#move=" + bare;
     show(
-      '<p class="tvP">Here is your code. It holds <b>everything</b>: your Pokemon, your cards, your coins, your shop things and your brain level.</p>'
+      '<p class="tvP">Point the other phone or iPad at this square. It carries <b>everything</b>: your Pokemon, your cards, your coins, your shop things and your brain level.</p>'
+      + '<div id="tvQRwrap"></div>'
       + '<textarea class="tvCode" id="tvOut" readonly spellcheck="false">' + esc(code) + "</textarea>"
       + '<div class="tvBtns">'
-      + '<button class="tvB" id="tvCopy" type="button">&#x1F4CB; Copy the code</button>'
+      + '<button class="tvB" id="tvCopy" type="button">&#x1F4CB; Copy the code instead</button>'
       + '<button class="tvB alt" id="tvBack2" type="button">Back</button>'
       + "</div>"
-      + '<div class="tvNote" id="tvNote">It is <b>' + code.replace(/-/g,"").length + '</b> letters long, in ' + groups
-      + ' little groups. That is far too much to type by hand, so tap <b>Copy the code</b> and send it to the other device '
-      + 'with AirDrop, Messages or email. Then open the arcade there and pick <b>I have a code</b>.</div>'
+      + '<div class="tvNote" id="tvNote">Open the camera on the other device and hold it over the square. '
+      + 'It will offer to open the arcade, and your stuff comes with it. No typing. '
+      + 'If the camera will not read it, tap <b>Copy the code instead</b> and send it over by Messages or AirDrop.</div>'
     );
+    drawQR(link, bare.length);
     on("tvBack2", menu);
     on("tvCopy", function(){
       var out = document.getElementById("tvOut");
@@ -475,6 +492,44 @@
         done(ok);
       }
     });
+  }
+
+  /* ---------- the QR square ----------
+     A QR code tops out at 2,953 characters at the lowest error-correction
+     level, so a save CAN outgrow it. Rather than drawing a square that
+     silently fails to scan, the panel says so and points at Copy instead.
+     The strongest error correction the payload still fits inside is used,
+     so smaller collections get a square that shrugs off glare and angles. */
+  var QR_CAP = [ ["H", 1273], ["Q", 1663], ["M", 2331], ["L", 2953] ];
+  function drawQR(link, codeLen){
+    var wrap = document.getElementById("tvQRwrap");
+    if (!wrap) return;
+    var lvl = null, i;
+    for (i = 0; i < QR_CAP.length; i++){ if (link.length <= QR_CAP[i][1]){ lvl = QR_CAP[i][0]; break; } }
+    if (!lvl || typeof window.QRCode === "undefined"){
+      wrap.innerHTML = '<div class="tvQRcap">'
+        + (lvl ? "The QR helper did not load, so use the code below."
+               : "This collection is too big for one QR square (" + codeLen + " letters). Use <b>Copy the code instead</b>.")
+        + "</div>";
+      return;
+    }
+    try {
+      var box = document.createElement("div");
+      box.className = "tvQR";
+      wrap.innerHTML = "";
+      wrap.appendChild(box);
+      new window.QRCode(box, {
+        text: link, width: 660, height: 660,
+        colorDark: "#0b1020", colorLight: "#ffffff",
+        correctLevel: window.QRCode.CorrectLevel[lvl]
+      });
+      var cap = document.createElement("div");
+      cap.className = "tvQRcap";
+      cap.textContent = "Point a camera here";
+      wrap.appendChild(cap);
+    } catch (e) {
+      wrap.innerHTML = '<div class="tvQRcap">This device could not draw the square. Use <b>Copy the code instead</b>.</div>';
+    }
   }
 
   /* ---------- take a code ---------- */
@@ -501,13 +556,13 @@
         return;
       }
       pending = el ? el.value : "";
-      confirm(res.summary);
+      askReplace(res.summary);
     });
     try { var i = document.getElementById("tvIn"); if (i) i.focus(); } catch(e){}
   }
 
   /* ---------- the "are you sure" screen ---------- */
-  function confirm(codeSum){
+  function askReplace(codeSum){
     var t = T(); if (!t) return oops();
     var here = t.summarize();
     var a = num(here.pokemon), b = num(codeSum && codeSum.pokemon);
@@ -534,14 +589,14 @@
            + '<div class="tvBtns"><button class="tvB alt" id="tvBack4" type="button">Back</button></div>');
         on("tvBack4", menu); return;
       }
-      pending = null;
+      pending = null; dirty = true;
       show('<div class="tvGood">Done. This device is now a copy of the other one.</div>'
          + '<div class="tvVs" style="margin-top:12px;">' + sideHTML("ON THIS DEVICE NOW", t.summarize(), true) + "</div>"
          + '<div class="tvBtns">'
          + '<button class="tvB" id="tvDone" type="button">Great, play now</button>'
          + '<button class="tvB alt" id="tvUndo2" type="button">Undo, that was wrong</button>'
          + "</div>");
-      on("tvDone", function(){ shut(); try { location.reload(); } catch(e){} });
+      on("tvDone", shut);
       on("tvUndo2", undoAsk);
     });
   }
@@ -571,27 +626,41 @@
            + '<div class="tvBtns"><button class="tvB alt" id="tvBack6" type="button">Back</button></div>');
         on("tvBack6", menu); return;
       }
+      dirty = true;
       show('<div class="tvGood">Put back. This device is exactly how it was before.</div>'
          + '<div class="tvBtns"><button class="tvB" id="tvDone2" type="button">Great, play now</button></div>');
-      on("tvDone2", function(){ shut(); try { location.reload(); } catch(e){} });
+      on("tvDone2", shut);
     });
   }
 
   /* ---------- open / shut ---------- */
-  var scrollLock = "";
+  /* The scroll lock has to hold BOTH elements. On iOS Safari the scrolling
+     element is <html>, not <body>, so body{overflow:hidden} alone does not
+     stop the page drifting behind the panel (it scrolled to 915px in a
+     812x375 landscape test). Pin the scroll position and restore it after. */
+  var scrollLock = "", htmlLock = "", scrollWas = 0;
   function shut(){
     try {
       shade.classList.remove("open");
       document.body.style.overflow = scrollLock;
+      document.documentElement.style.overflow = htmlLock;
+      try { window.scrollTo(0, scrollWas); } catch(e){}
       pending = null;
       body.innerHTML = "";
       paintDot();
+      /* wallet.js and brain.js hold their save in memory. After a rewrite the
+         page MUST reload, or the next coin earned would save the OLD numbers
+         straight back over the code we just applied. */
+      if (dirty) { dirty = false; try { location.reload(); } catch(e){} }
     } catch(e){}
   }
   function launch(){
     try {
+      scrollWas = window.pageYOffset || document.documentElement.scrollTop || 0;
       scrollLock = document.body.style.overflow;
-      document.body.style.overflow = "hidden";   /* the page never scrolls behind the panel */
+      htmlLock = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";              /* the page never */
+      document.documentElement.style.overflow = "hidden";   /* scrolls behind the panel */
       shade.classList.add("open");
       menu();
       close.focus();
@@ -601,6 +670,35 @@
     try { var t = T(); open.classList.toggle("has", !!(t && t.canUndo())); } catch(e){}
   }
 
+  /* ---------- arriving from a scanned QR ----------
+     The camera on the other device opens the arcade with the whole code in
+     the address, e.g. .../#move=MD1XXXX. The code is read, the address is
+     wiped immediately so a stray refresh cannot re-apply it, and the normal
+     "are you sure, here is what you would lose" screen does the rest.
+     Nothing is written without a yes. */
+  function fromLink(){
+    var h = "";
+    try { h = String(location.hash || ""); } catch(e){ return; }
+    var m = /^#move=([0-9A-Za-z\-]+)$/.exec(h);
+    if (!m) return;
+    var incoming = m[1];
+    try { history.replaceState(null, "", location.pathname + location.search); }
+    catch(e){ try { location.hash = ""; } catch(e2){} }
+    var t = T(); if (!t) return;
+    var res;
+    try { res = t.inspect(incoming); } catch(e){ res = null; }
+    try { launch(); } catch(e){ return; }
+    if (!res || !res.ok){
+      show('<div class="tvBad">' + esc((res && res.message) || "That code could not be read.")
+         + ' Nothing on this device was changed.</div>'
+         + '<div class="tvBtns"><button class="tvB alt" id="tvLinkBad" type="button">Back</button></div>');
+      on("tvLinkBad", menu);
+      return;
+    }
+    pending = incoming;
+    askReplace(res.summary);
+  }
+
   open.onclick = function(ev){ try { ev.preventDefault(); launch(); } catch(e){} };
   close.onclick = function(ev){ try { ev.preventDefault(); shut(); } catch(e){} };
   shade.onclick = function(ev){ if (ev.target === shade) shut(); };
@@ -608,6 +706,10 @@
     if (ev.key === "Escape" && shade.classList.contains("open")) shut();
   });
   paintDot();
+  try { fromLink(); } catch(e){}
+  /* scanning while the arcade is ALREADY open only changes the address, it does
+     not reload the page, so listen for that too */
+  window.addEventListener("hashchange", function(){ try { fromLink(); } catch(e){} });
 })();
 </script>
 </body>

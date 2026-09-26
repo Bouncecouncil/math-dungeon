@@ -107,6 +107,7 @@
   }
 
   function isOurKey(k) {
+    if (k === PK_KEY) return true;
     if (typeof k !== "string" || !k || k.length > MAX_KEY_LEN) return false;
     if (k === BACKUP_KEY) return false;
     if (KEYS.indexOf(k) !== -1) return true;
@@ -306,6 +307,135 @@
   /* ---------------------------------------------------------------
      8. READ THIS DEVICE
      --------------------------------------------------------------- */
+
+  /* ---------------------------------------------------------------
+     POKEMON PACK (added 2026-09-26)
+     The collection is the bulk of a save and it was stored as JSON
+     full of 13-digit catch timestamps, so a full 386-pokemon code ran
+     to 15,149 characters. A QR code holds 2,953, so the code had to
+     shrink or the QR would silently stop working once he passed about
+     50 pokemon. The catch timestamp is never read anywhere in the
+     game (only whether a pokemon is caught at all), so it is dropped.
+     What survives, exactly: which pokemon he has, how many copies of
+     each, and the upgrade buckets behind the Normal/Shiny/Full Art/
+     Gold ladder. Catch ORDER is not kept; the Pokedex simply reads in
+     number order, which is how a Pokedex reads anyway.
+     Layout: [maxId 16b][caught bitfield][per caught: c 8b, b0-b2 2b
+     each, b3 4b] = 18 bits per pokemon, about 918 bytes when full.
+     --------------------------------------------------------------- */
+  var PK_KEY = "__pk", PK_MAXID = 1024;
+  var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+  function b64enc(bytes) {
+    var out = "", i;
+    for (i = 0; i < bytes.length; i += 3) {
+      var a = bytes[i], b = bytes[i + 1], c = bytes[i + 2];
+      var n = (a << 16) | ((b === undefined ? 0 : b) << 8) | (c === undefined ? 0 : c);
+      out += B64.charAt((n >>> 18) & 63) + B64.charAt((n >>> 12) & 63);
+      out += (b === undefined) ? "=" : B64.charAt((n >>> 6) & 63);
+      out += (c === undefined) ? "=" : B64.charAt(n & 63);
+    }
+    return out;
+  }
+  function b64dec(str) {
+    var out = [], buf = 0, bits = 0, i;
+    for (i = 0; i < str.length; i++) {
+      var ch = str.charAt(i); if (ch === "=") break;
+      var v = B64.indexOf(ch); if (v < 0) return null;
+      buf = (buf << 6) | v; bits += 6;
+      if (bits >= 8) { bits -= 8; out.push((buf >>> bits) & 255); }
+    }
+    return out;
+  }
+
+  function BitOut() { this.by = []; this.cur = 0; this.n = 0; }
+  BitOut.prototype.put = function (val, width) {
+    for (var i = width - 1; i >= 0; i--) {
+      this.cur = (this.cur << 1) | ((val >>> i) & 1); this.n++;
+      if (this.n === 8) { this.by.push(this.cur & 255); this.cur = 0; this.n = 0; }
+    }
+  };
+  BitOut.prototype.done = function () {
+    if (this.n) { this.by.push((this.cur << (8 - this.n)) & 255); this.cur = 0; this.n = 0; }
+    return this.by;
+  };
+  function BitIn(by) { this.by = by; this.at = 0; this.n = 0; }
+  BitIn.prototype.get = function (width) {
+    var v = 0;
+    for (var i = 0; i < width; i++) {
+      if (this.at >= this.by.length) return null;
+      v = (v << 1) | ((this.by[this.at] >>> (7 - this.n)) & 1);
+      this.n++; if (this.n === 8) { this.n = 0; this.at++; }
+    }
+    return v;
+  };
+
+  function clampInt(v, lo, hi) { v = Number(v); if (!isFinite(v)) return lo; v = Math.round(v); return v < lo ? lo : (v > hi ? hi : v); }
+
+  /* the two big keys -> one short string. Returns null if there is nothing
+     to pack or the save is not the shape we expect, and the caller then
+     simply ships the original JSON. */
+  function packPoke(dexStr, cardStr) {
+    try {
+      var dex = dexStr ? JSON.parse(dexStr) : null;
+      var crd = cardStr ? JSON.parse(cardStr) : null;
+      var caught = (dex && dex.caught && typeof dex.caught === "object") ? dex.caught : null;
+      var cards = (crd && crd.cards && typeof crd.cards === "object") ? crd.cards : null;
+      if (!caught && !cards) return null;
+
+      var ids = [], seen = {}, k, id;
+      for (k in caught || {}) if (Object.prototype.hasOwnProperty.call(caught, k)) {
+        id = Number(k); if (id >= 1 && id < PK_MAXID && !seen[id]) { seen[id] = 1; ids.push(id); }
+      }
+      for (k in cards || {}) if (Object.prototype.hasOwnProperty.call(cards, k)) {
+        id = Number(k); if (id >= 1 && id < PK_MAXID && !seen[id]) { seen[id] = 1; ids.push(id); }
+      }
+      if (!ids.length) return null;
+      ids.sort(function (a, b) { return a - b; });
+      var maxId = ids[ids.length - 1];
+
+      var bits = new BitOut();
+      bits.put(maxId, 16);
+      var have = {}, i;
+      for (i = 0; i < ids.length; i++) have[ids[i]] = 1;
+      for (i = 1; i <= maxId; i++) bits.put(have[i] ? 1 : 0, 1);
+      for (i = 0; i < ids.length; i++) {
+        var c = cards ? cards[ids[i]] : null;
+        var b = (c && Object.prototype.toString.call(c.b) === "[object Array]") ? c.b : [];
+        bits.put(clampInt(c ? c.c : 1, 0, 255), 8);
+        bits.put(clampInt(b[0], 0, 3), 2);
+        bits.put(clampInt(b[1], 0, 3), 2);
+        bits.put(clampInt(b[2], 0, 3), 2);
+        bits.put(clampInt(b[3], 0, 15), 4);
+      }
+      return b64enc(bits.done());
+    } catch (e) { return null; }
+  }
+
+  function unpackPoke(str) {
+    try {
+      var by = b64dec(String(str || "")); if (!by || by.length < 3) return null;
+      var bits = new BitIn(by);
+      var maxId = bits.get(16);
+      if (maxId === null || maxId < 1 || maxId >= PK_MAXID) return null;
+      var ids = [], i, bit;
+      for (i = 1; i <= maxId; i++) { bit = bits.get(1); if (bit === null) return null; if (bit) ids.push(i); }
+      var caught = {}, cards = {}, order = [];
+      for (i = 0; i < ids.length; i++) {
+        var c = bits.get(8), b0 = bits.get(2), b1 = bits.get(2), b2 = bits.get(2), b3 = bits.get(4);
+        if (c === null || b3 === null) return null;
+        var id = ids[i];
+        caught[id] = 1;                    /* truthy is all the game ever reads */
+        cards[id] = { c: c, b: [b0, b1, b2, b3] };
+        order.push(id);
+      }
+      return {
+        "pokeDex.v1": JSON.stringify({ v: 1, caught: caught, order: order }),
+        "pokeCards.v1": JSON.stringify({ v: 1, cards: cards, order: order })
+      };
+    } catch (e) { return null; }
+  }
+
   function collect() {
     var ks = allKeys(), data = {}, bytes = 0, present = 0, hit = [];
     for (var i = 0; i < ks.length; i++) {
@@ -314,6 +444,12 @@
       if (typeof v !== "string") v = String(v);
       if (v.length > MAX_VALUE_LEN) continue;         /* absurd: skip, never truncate */
       data[ks[i]] = v; present++; bytes += ks[i].length + v.length; hit.push(ks[i]);
+    }
+    var packed = packPoke(data["pokeDex.v1"], data["pokeCards.v1"]);
+    if (packed && packed.length < (String(data["pokeDex.v1"] || "").length + String(data["pokeCards.v1"] || "").length)) {
+      delete data["pokeDex.v1"]; delete data["pokeCards.v1"];
+      data[PK_KEY] = packed;
+      hit = []; for (var h in data) if (Object.prototype.hasOwnProperty.call(data, h)) hit.push(h);
     }
     return { data: data, keys: hit, bytes: bytes, present: present };
   }
@@ -387,7 +523,9 @@
     chars:    "That does not look like one of our codes. It should start with MD1.",
     tooshort: "That code is too short. Some of it is missing, so copy the whole thing.",
     unpack:   "That code did not open. A letter is wrong, or a piece is missing.",
-    version:  "That code came from a different version of the arcade.",
+    /* today there is only version 1, so a wrong version byte almost always
+       means a damaged code rather than a genuinely newer one. Say both. */
+    version:  "That code did not come out right. Something is missing from it, or it was made by a newer arcade. Nothing was changed.",
     broken:   "That code is damaged. Something got typed wrong or cut off. Nothing was changed.",
     shape:    "That code opened, but what is inside is not a save file.",
     big:      "That code is too big to be one of ours.",
@@ -439,6 +577,13 @@
       }
       if (n === 0) return fail("nothing");
 
+      if (Object.prototype.hasOwnProperty.call(clean, PK_KEY)) {
+        var wide = unpackPoke(clean[PK_KEY]);
+        if (!wide) return fail("broken");
+        delete clean[PK_KEY];
+        clean["pokeDex.v1"] = wide["pokeDex.v1"];
+        clean["pokeCards.v1"] = wide["pokeCards.v1"];
+      }
       return { ok: true, data: clean, keys: Object.keys(clean), summary: summarize(clean) };
     } catch (e) { return fail("broken"); }
   }
