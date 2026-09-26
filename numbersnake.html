@@ -75,7 +75,7 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 /* out of coins: dimmed but still there and still tappable, so a tap can explain */
 .btn.broke{opacity:.42;filter:grayscale(.85);box-shadow:0 4px 0 rgba(0,0,0,.35)}
 .btn.broke:active{box-shadow:0 1px 0 rgba(0,0,0,.35)}
-.need{font-size:12px;font-weight:800;color:#ffd23f;background:rgba(0,0,0,.35);border-radius:7px;padding:1px 5px;margin-left:4px}
+.need{display:block;font-size:12px;font-weight:800;color:#ffd23f;background:rgba(0,0,0,.35);border-radius:7px;padding:1px 5px;margin:3px auto 0;white-space:nowrap;width:-moz-fit-content;width:fit-content}
 .need.hide{display:none}
 .btn.nope{animation:nope .32s ease}
 @keyframes nope{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
@@ -398,7 +398,7 @@ const S = {
   gems: [],            // {x, y, v, born}
   op: "add", target: 0, sum: 0, first: null, eaten: [],
   lives: LIVES, score: 0, hits: 0, best: 0,
-  stepMs: 300, lastStep: 0, phaseUntil: 0, pausedFrom: null,
+  stepMs: 300, lastStep: 0, stepNow: 0, lastPull: 0, phaseUntil: 0, pausedFrom: null,
   auto: true, hint: [], hintUntil: 0, posted: false,
   fx: [], pops: [], flash: null, cheerUntil: 0, lastTarget: 0
 };
@@ -407,6 +407,14 @@ S.best = (function(){ const b = parseInt(lsGet("snake_best"), 10); return isFini
 const now = () => (window.performance && performance.now) ? performance.now() : Date.now();
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const DIRS = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+/* how soon a turn takes effect once he presses, in ms */
+const TURN_LAG = 70;
+/* A turn pulls the next move forward so it feels instant. Without a limit,
+   mashing the arrows pulls EVERY step forward and the snake sprints (measured
+   at 3.3x normal speed), which is chaos for a 7-year-old hammering the keys.
+   So a pull is allowed at most once per PULL_COOLDOWN ms: a single turn is
+   always snappy, a held-down mash cannot run away. */
+const PULL_COOLDOWN = 260;
 
 /* =====================================================================
    DIFFICULTY: climbs slowly with every target hit this run.
@@ -621,7 +629,7 @@ function resetSnake(){
   S.snake = [];
   for (let i = 0; i < START_LEN; i++) S.snake.push({ x: x - i, y: y });
   S.prev = S.snake.map(p => ({x:p.x, y:p.y}));
-  S.dir = {x:1, y:0}; S.queue = []; S.grow = 0;
+  S.dir = {x:1, y:0}; S.queue = []; S.grow = 0; S.stepNow = 0; S.lastPull = 0;
   /* clear gems off the serpent and off its opening runway */
   S.gems.forEach(q => {
     const onRunway = q.y === y && q.x >= 0 && q.x <= x + 3;
@@ -640,8 +648,20 @@ function queueDir(name){
   const last = S.queue.length ? S.queue[S.queue.length - 1] : S.dir;
   if (d.x === last.x && d.y === last.y) return false;
   if (d.x === -last.x && d.y === -last.y && S.snake.length > 1) return false;   // no instant U-turn into your own neck
-  if (S.queue.length >= 3) S.queue.shift();
+  if (S.queue.length >= 2) S.queue.shift();   /* 3 deep felt like the snake was on rails */
   S.queue.push(d);
+  /* RESPONSIVENESS (2026-09-26, Will: "doesnt respond fast enough to the arow
+     pressing ... its a dealy and quite sticky"). A turn used to wait out the
+     rest of the current step, up to a full 300ms at the start of a run, which
+     is what read as lag. The current step is now SHORTENED so the turn lands
+     within TURN_LAG ms. Shortening the step (rather than moving lastStep)
+     keeps the between-cells animation smooth instead of making the snake jump.
+     One shortening per step, so holding a key cannot sprint the snake. */
+  if (S.phase === "play" && now() - S.lastPull >= PULL_COOLDOWN){
+    const t = now(), dur = S.stepNow || S.stepMs, elapsed = t - S.lastStep;
+    const want = elapsed + TURN_LAG;
+    if (want < dur){ S.stepNow = want; S.lastPull = t; }
+  }
   return true;
 }
 
@@ -1168,7 +1188,7 @@ function overlay(t){
 }
 
 function draw(t){
-  const f = S.phase === "play" ? Math.max(0, Math.min(1, (t - S.lastStep) / S.stepMs)) : 1;
+  const f = S.phase === "play" ? Math.max(0, Math.min(1, (t - S.lastStep) / (S.stepNow || S.stepMs))) : 1;
   g.clearRect(0, 0, S.cols*S.cell, S.rows*S.cell);
   floor();
   if (t >= S.hintUntil && S.hint.length) S.hint = [];
@@ -1184,10 +1204,11 @@ function loop(){
   try {
     if (S.phaseUntil && t >= S.phaseUntil && (S.phase === "ready" || S.phase === "crash")) advancePhase();
     if (S.phase === "play" && S.auto){
-      if (t - S.lastStep > 1000) S.lastStep = t - S.stepMs;     // tab was asleep: no catch-up sprint
+      if (t - S.lastStep > 1000){ S.lastStep = t - S.stepMs; S.stepNow = 0; }   // tab was asleep: no catch-up sprint
       let guard = 0;
-      while (S.phase === "play" && t - S.lastStep >= S.stepMs && guard++ < 4){
-        S.lastStep += S.stepMs;
+      while (S.phase === "play" && t - S.lastStep >= (S.stepNow || S.stepMs) && guard++ < 4){
+        S.lastStep += (S.stepNow || S.stepMs);
+        S.stepNow = 0;                        // the shortening applies to one step only
         step();
       }
     }
