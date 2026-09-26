@@ -84,6 +84,73 @@
     box-shadow:0 4px 0 #8a1f55;border:2px solid #ffc2e0;}
   a.shopBtn:hover,a.shopBtn:focus{transform:translateY(-2px);outline:none;}
   @media (max-width:560px){.brain{flex-basis:100%;}.coinsBox,a.shopBtn{flex:1 1 40%;justify-content:center;}}
+
+  /* ---------- MOVE MY STUFF (transfer) ---------- */
+  .moveRow{text-align:center;margin-top:14px;}
+  .moveBtn{font:inherit;font-size:13px;font-weight:800;letter-spacing:.4px;color:#9fb0d8;cursor:pointer;
+    background:rgba(22,32,74,.7);border:1px solid #2a3668;border-radius:999px;padding:8px 16px;}
+  .moveBtn:hover,.moveBtn:focus{color:#ffd23f;border-color:#5a6bb0;outline:none;}
+  .moveBtn .dot{display:none;width:7px;height:7px;border-radius:50%;background:#ffd23f;margin-left:6px;
+    vertical-align:middle;}
+  .moveBtn.has .dot{display:inline-block;}
+
+  .tvShade{position:fixed;inset:0;z-index:90;display:none;background:rgba(3,5,14,.82);
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:12px;overflow:hidden;}
+  .tvShade.open{display:flex;align-items:center;justify-content:center;}
+  .tvCard{width:100%;max-width:560px;max-height:100%;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,rgba(27,38,80,.98),rgba(12,18,42,.99));border:2px solid #34458f;
+    border-radius:18px;box-shadow:0 10px 0 rgba(0,0,0,.4);overflow:hidden;}
+  .tvHead{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:13px 14px 11px;border-bottom:1px solid #2a3668;}
+  .tvHead h2{margin:0;flex:1;font-size:17px;font-weight:900;letter-spacing:.4px;color:#ffd23f;}
+  .tvX{flex:0 0 auto;font:inherit;font-size:20px;font-weight:900;line-height:1;color:#9fb0d8;cursor:pointer;
+    background:#1b2650;border:1px solid #34458f;border-radius:10px;width:36px;height:36px;}
+  .tvX:hover,.tvX:focus{color:#fff;border-color:#ffd23f;outline:none;}
+  .tvBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;}
+  .tvP{margin:0 0 12px;font-size:14px;line-height:1.45;color:#c3d0ee;}
+  .tvP b{color:#fff;}
+  .tvPick{display:flex;flex-direction:column;gap:10px;}
+  .tvBig{display:flex;align-items:center;gap:12px;text-align:left;width:100%;font:inherit;cursor:pointer;
+    background:rgba(20,29,66,.9);border:2px solid #34458f;border-radius:14px;padding:13px 14px;color:#fff;}
+  .tvBig:hover,.tvBig:focus{border-color:#ffd23f;outline:none;}
+  .tvBig .bi{font-size:26px;line-height:1;flex:0 0 auto;}
+  .tvBig .bx{flex:1;min-width:0;}
+  .tvBig .bt{font-size:15px;font-weight:900;}
+  .tvBig .bs{font-size:12.5px;color:#a9b8de;line-height:1.35;margin-top:2px;}
+  .tvCode{width:100%;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;line-height:1.7;
+    letter-spacing:.6px;color:#ffe9a8;background:#080d22;border:1px solid #34458f;border-radius:12px;
+    padding:10px;resize:none;height:118px;word-break:break-all;-webkit-user-select:all;user-select:all;}
+  .tvPaste{width:100%;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13px;line-height:1.6;
+    color:#fff;background:#080d22;border:1px solid #34458f;border-radius:12px;padding:10px;resize:none;height:96px;}
+  .tvPaste::placeholder{color:#5e6da0;}
+  .tvBtns{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px;}
+  .tvB{flex:1 1 auto;min-width:120px;font:inherit;font-size:15px;font-weight:900;cursor:pointer;
+    border:none;border-radius:12px;padding:12px 16px;background:#ffd23f;color:#2a1f00;box-shadow:0 3px 0 #8a6200;}
+  .tvB.alt{background:#2a3470;color:#e6ecff;box-shadow:0 3px 0 #141a40;}
+  .tvB:hover,.tvB:focus{transform:translateY(-1px);outline:none;}
+  .tvB:disabled{opacity:.45;cursor:default;transform:none;}
+  .tvNote{margin-top:11px;font-size:12.5px;line-height:1.45;color:#8fa0cc;}
+  .tvBad{margin-top:11px;font-size:13.5px;line-height:1.45;font-weight:700;color:#ffb0b0;
+    background:rgba(90,20,32,.5);border:1px solid #8a3346;border-radius:11px;padding:10px 12px;}
+  .tvGood{margin-top:11px;font-size:13.5px;line-height:1.45;font-weight:700;color:#b6f0c6;
+    background:rgba(22,66,38,.5);border:1px solid #3f8a57;border-radius:11px;padding:10px 12px;}
+  .tvVs{display:flex;gap:9px;margin:2px 0 4px;}
+  .tvSide{flex:1 1 0;min-width:0;background:rgba(10,16,40,.75);border:1px solid #2f3d80;border-radius:13px;padding:11px;}
+  .tvSide.hot{border-color:#ffd23f;}
+  .tvSide h3{margin:0 0 7px;font-size:11px;font-weight:900;letter-spacing:1.2px;color:#8fa0cc;}
+  .tvSide.hot h3{color:#ffd23f;}
+  .tvSide ul{margin:0;padding:0;list-style:none;font-size:14px;line-height:1.6;color:#fff;font-weight:700;}
+  .tvSide li span{color:#a9b8de;font-weight:400;font-size:12.5px;}
+  /* landscape phone: shorter everything, side-by-side controls, never a page scroll */
+  @media (max-height:460px){
+    .tvShade{padding:8px;}
+    .tvCard{max-width:700px;}
+    .tvHead{padding:9px 12px 8px;} .tvHead h2{font-size:15px;}
+    .tvBody{padding:11px 12px;}
+    .tvP{margin-bottom:9px;font-size:13px;}
+    .tvCode{height:76px;} .tvPaste{height:62px;}
+    .tvBig{padding:10px 12px;} .tvBig .bi{font-size:22px;}
+    .tvB{padding:10px 14px;font-size:14px;}
+  }
 </style>
 </head>
 <body>
@@ -186,11 +253,28 @@
     <a data-href="subtract-helper.html" href="subtract-helper.html">&#x2796; Big subtracting, step by step</a>
   </div>
 
+  <div class="moveRow">
+    <button class="moveBtn" id="moveBtn" type="button">&#x1F504; Move my stuff to another device<span class="dot"></span></button>
+  </div>
+
   <div class="foot">Your hero and your choice are remembered on this device.</div>
 </div>
 
+<!-- ============ MOVE MY STUFF ============ -->
+<div class="tvShade" id="tvShade" role="dialog" aria-modal="true" aria-labelledby="tvTitle">
+  <div class="tvCard">
+    <div class="tvHead">
+      <h2 id="tvTitle">Move my stuff</h2>
+      <button class="tvX" id="tvClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="tvBody" id="tvBody"></div>
+  </div>
+</div>
+
+
 <script src="brain.js"></script>
 <script src="wallet.js"></script>
+<script src="transfer.js"></script>
 <script>
 (function(){
   "use strict";
@@ -250,6 +334,280 @@
   /* coming BACK to this page from a game (iPad back button / bfcache): repaint from storage */
   window.addEventListener("pageshow", function(){ paintBrain(); paintCoins(); });
 
+})();
+</script>
+
+<script>
+/* ===================== MOVE MY STUFF =====================
+   The whole panel. Everything is wrapped: if transfer.js failed to
+   load, or the browser blocks storage, the button says so plainly and
+   the arcade behind it is untouched.
+   ========================================================= */
+(function(){
+  "use strict";
+  var shade = document.getElementById("tvShade");
+  var body  = document.getElementById("tvBody");
+  var open  = document.getElementById("moveBtn");
+  var close = document.getElementById("tvClose");
+  if (!shade || !body || !open || !close) return;
+
+  var HERO_NAME = { knight:"The Knight", wizard:"The Mage", ninja:"The Shadow",
+                    robot:"BEEP-9", explorer:"The Explorer", dragon:"Lil' Dragon" };
+  var pending = null;        /* the validated code waiting on a yes/no */
+  var lastCode = "";
+
+  function esc(s){
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function T(){ return window.Transfer || null; }
+  function num(n){ return (n === null || n === undefined || !isFinite(n)) ? null : Math.floor(n); }
+
+  /* a kid-plain "what is in here" card */
+  function sideHTML(title, s, hot){
+    var li = [];
+    function row(v, one, many){
+      if (v === null || v === undefined) return;
+      li.push("<li>" + v + " <span>" + (v === 1 ? one : many) + "</span></li>");
+    }
+    s = s || {};
+    row(num(s.pokemon), "Pokemon", "Pokemon");
+    row(num(s.cards), "card", "cards");
+    row(num(s.coins), "coin", "coins");
+    if (num(s.level) !== null) li.push("<li>Level " + num(s.level) + " <span>brain</span></li>");
+    if (num(s.items) !== null && num(s.items) > 0) li.push("<li>" + num(s.items) + " <span>shop things</span></li>");
+    if (s.hero) li.push("<li>" + esc(HERO_NAME[s.hero] || s.hero) + " <span>hero</span></li>");
+    if (!li.length) li.push("<li>Nothing yet <span>a brand new device</span></li>");
+    return '<div class="tvSide' + (hot ? " hot" : "") + '"><h3>' + esc(title) + "</h3><ul>" + li.join("") + "</ul></div>";
+  }
+
+  function show(html){
+    try { body.innerHTML = html; } catch(e){}
+    try { body.scrollTop = 0; } catch(e){}
+  }
+  function on(id, fn){
+    var el = document.getElementById(id);
+    if (el) el.onclick = function(ev){ try { ev.preventDefault(); fn(); } catch(e){ oops(); } };
+    return el;
+  }
+  function oops(){
+    show('<div class="tvBad">Something went wrong opening this. Nothing on this device was changed.</div>'
+       + '<div class="tvBtns"><button class="tvB alt" id="tvMenu2" type="button">Back</button></div>');
+    on("tvMenu2", menu);
+  }
+
+  /* ---------- the menu ---------- */
+  function menu(){
+    pending = null;
+    var t = T();
+    if (!t){
+      show('<div class="tvBad">The move-my-stuff helper did not load. Try refreshing the page.</div>');
+      return;
+    }
+    var blocked = !t.storageWorks();
+    var here = t.summarize();
+    var got  = t.scan();
+    var undoBit = "";
+    if (t.canUndo()){
+      undoBit = '<button class="tvBig" id="tvUndoGo" type="button"><span class="bi">&#x21A9;&#xFE0F;</span>'
+              + '<span class="bx"><span class="bt">Undo the last move</span>'
+              + '<span class="bs">Put back what was on this device before the last code was used.</span></span></button>';
+    }
+    show(
+      '<p class="tvP">Your games are saved <b>on this device only</b>. To play on another one, make a code here and type or paste it over there.</p>'
+      + (blocked ? '<div class="tvBad">This browser is not letting the arcade save anything, so there is nothing to move and a code cannot be used here.</div>' : "")
+      + '<div class="tvVs">' + sideHTML("ON THIS DEVICE", here, false) + '</div>'
+      + '<div class="tvPick" style="margin-top:12px;">'
+      + '<button class="tvBig" id="tvMake" type="button"' + (got.present === 0 ? " disabled" : "") + '><span class="bi">&#x1F4E4;</span>'
+      + '<span class="bx"><span class="bt">Send my stuff to another device</span>'
+      + '<span class="bs">' + (got.present === 0 ? "Nothing is saved here yet, so there is nothing to send." : "Makes the code. Do this on the device that has the good stuff.") + '</span></span></button>'
+      + '<button class="tvBig" id="tvTake" type="button"><span class="bi">&#x1F4E5;</span>'
+      + '<span class="bx"><span class="bt">I have a code from my other device</span>'
+      + '<span class="bs">Paste it in and this device becomes a copy of that one.</span></span></button>'
+      + undoBit
+      + "</div>"
+    );
+    on("tvMake", send); on("tvTake", receive); on("tvUndoGo", undoAsk);
+  }
+
+  /* ---------- make a code ---------- */
+  function send(){
+    var t = T(); if (!t) return oops();
+    var code = "";
+    try { code = t.make(); } catch(e){ code = ""; }
+    if (!code){
+      show('<div class="tvBad">There is nothing saved on this device to send yet. Play a game first.</div>'
+         + '<div class="tvBtns"><button class="tvB alt" id="tvBack1" type="button">Back</button></div>');
+      on("tvBack1", menu); return;
+    }
+    lastCode = code;
+    var groups = code.split("-").length - 1;
+    show(
+      '<p class="tvP">Here is your code. It holds <b>everything</b>: your Pokemon, your cards, your coins, your shop things and your brain level.</p>'
+      + '<textarea class="tvCode" id="tvOut" readonly spellcheck="false">' + esc(code) + "</textarea>"
+      + '<div class="tvBtns">'
+      + '<button class="tvB" id="tvCopy" type="button">&#x1F4CB; Copy the code</button>'
+      + '<button class="tvB alt" id="tvBack2" type="button">Back</button>'
+      + "</div>"
+      + '<div class="tvNote" id="tvNote">It is <b>' + code.replace(/-/g,"").length + '</b> letters long, in ' + groups
+      + ' little groups. That is far too much to type by hand, so tap <b>Copy the code</b> and send it to the other device '
+      + 'with AirDrop, Messages or email. Then open the arcade there and pick <b>I have a code</b>.</div>'
+    );
+    on("tvBack2", menu);
+    on("tvCopy", function(){
+      var out = document.getElementById("tvOut");
+      var note = document.getElementById("tvNote");
+      function done(ok){
+        if (!note) return;
+        note.innerHTML = ok
+          ? '<span style="color:#b6f0c6;font-weight:800;">Copied. Now paste it into Messages, Mail or AirDrop and send it to the other device.</span>'
+          : '<span style="color:#ffd23f;font-weight:800;">This browser would not copy it by itself. The code above is selected, so hold your finger on it and choose Copy.</span>';
+      }
+      try { if (out){ out.focus(); out.setSelectionRange(0, out.value.length); } } catch(e){}
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(code).then(function(){ done(true); }, function(){ legacy(); });
+        } else legacy();
+      } catch(e){ legacy(); }
+      function legacy(){
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch(e){ ok = false; }
+        done(ok);
+      }
+    });
+  }
+
+  /* ---------- take a code ---------- */
+  function receive(){
+    show(
+      '<p class="tvP">Paste the code from your other device here. Nothing changes until you say yes on the next screen.</p>'
+      + '<textarea class="tvPaste" id="tvIn" spellcheck="false" autocapitalize="characters" autocomplete="off" '
+      + 'autocorrect="off" placeholder="MD1-04000-HD6AB-..."></textarea>'
+      + '<div class="tvBtns">'
+      + '<button class="tvB" id="tvCheck" type="button">Check this code</button>'
+      + '<button class="tvB alt" id="tvBack3" type="button">Back</button>'
+      + "</div>"
+      + '<div id="tvMsg"></div>'
+    );
+    on("tvBack3", menu);
+    on("tvCheck", function(){
+      var t = T(); if (!t) return oops();
+      var el = document.getElementById("tvIn");
+      var msg = document.getElementById("tvMsg");
+      var res;
+      try { res = t.inspect(el ? el.value : ""); } catch(e){ res = { ok:false, message:"That code could not be read." }; }
+      if (!res.ok){
+        if (msg) msg.innerHTML = '<div class="tvBad">' + esc(res.message || "That code did not work.") + "</div>";
+        return;
+      }
+      pending = el ? el.value : "";
+      confirm(res.summary);
+    });
+    try { var i = document.getElementById("tvIn"); if (i) i.focus(); } catch(e){}
+  }
+
+  /* ---------- the "are you sure" screen ---------- */
+  function confirm(codeSum){
+    var t = T(); if (!t) return oops();
+    var here = t.summarize();
+    var a = num(here.pokemon), b = num(codeSum && codeSum.pokemon);
+    var line;
+    if (a === null || b === null) line = "This will replace everything saved on this device with what is in the code.";
+    else if (b >= a) line = "This device has <b>" + a + "</b> Pokemon. The code has <b>" + b + "</b>.";
+    else line = "Careful. This device has <b>" + a + "</b> Pokemon and the code only has <b>" + b + "</b>, so this device would <b>lose</b> " + (a - b) + ".";
+
+    show(
+      '<p class="tvP">' + line + " Everything here gets replaced by what is in the code.</p>"
+      + '<div class="tvVs">' + sideHTML("ON THIS DEVICE NOW", here, false) + sideHTML("IN THE CODE", codeSum, true) + "</div>"
+      + '<div class="tvBtns">'
+      + '<button class="tvB" id="tvGo" type="button">Yes, replace what is here</button>'
+      + '<button class="tvB alt" id="tvNo" type="button">Cancel, keep my stuff</button>'
+      + "</div>"
+      + '<div class="tvNote">Nothing has changed yet. If you say yes, what is here now is still tucked away, and <b>Undo the last move</b> puts it straight back.</div>'
+    );
+    on("tvNo", menu);
+    on("tvGo", function(){
+      var res;
+      try { res = t.apply(pending); } catch(e){ res = { ok:false, message:"That did not work. Nothing was changed." }; }
+      if (!res.ok){
+        show('<div class="tvBad">' + esc(res.message || "That code did not work. Nothing was changed.") + "</div>"
+           + '<div class="tvBtns"><button class="tvB alt" id="tvBack4" type="button">Back</button></div>');
+        on("tvBack4", menu); return;
+      }
+      pending = null;
+      show('<div class="tvGood">Done. This device is now a copy of the other one.</div>'
+         + '<div class="tvVs" style="margin-top:12px;">' + sideHTML("ON THIS DEVICE NOW", t.summarize(), true) + "</div>"
+         + '<div class="tvBtns">'
+         + '<button class="tvB" id="tvDone" type="button">Great, play now</button>'
+         + '<button class="tvB alt" id="tvUndo2" type="button">Undo, that was wrong</button>'
+         + "</div>");
+      on("tvDone", function(){ shut(); try { location.reload(); } catch(e){} });
+      on("tvUndo2", undoAsk);
+    });
+  }
+
+  /* ---------- undo ---------- */
+  function undoAsk(){
+    var t = T(); if (!t) return oops();
+    var info = t.undoInfo();
+    if (!info.ok){
+      show('<div class="tvBad">There is nothing to undo on this device.</div>'
+         + '<div class="tvBtns"><button class="tvB alt" id="tvBack5" type="button">Back</button></div>');
+      on("tvBack5", menu); return;
+    }
+    show('<p class="tvP">This puts back exactly what was on this device before the last code was used.</p>'
+       + '<div class="tvVs">' + sideHTML("ON THIS DEVICE NOW", t.summarize(), false)
+                             + sideHTML("WHAT COMES BACK", info.summary, true) + "</div>"
+       + '<div class="tvBtns">'
+       + '<button class="tvB" id="tvUndoYes" type="button">Yes, put it back</button>'
+       + '<button class="tvB alt" id="tvUndoNo" type="button">No, leave it</button>'
+       + "</div>");
+    on("tvUndoNo", menu);
+    on("tvUndoYes", function(){
+      var r;
+      try { r = t.undo(); } catch(e){ r = { ok:false, message:"The undo did not work." }; }
+      if (!r.ok){
+        show('<div class="tvBad">' + esc(r.message || "The undo did not work.") + "</div>"
+           + '<div class="tvBtns"><button class="tvB alt" id="tvBack6" type="button">Back</button></div>');
+        on("tvBack6", menu); return;
+      }
+      show('<div class="tvGood">Put back. This device is exactly how it was before.</div>'
+         + '<div class="tvBtns"><button class="tvB" id="tvDone2" type="button">Great, play now</button></div>');
+      on("tvDone2", function(){ shut(); try { location.reload(); } catch(e){} });
+    });
+  }
+
+  /* ---------- open / shut ---------- */
+  var scrollLock = "";
+  function shut(){
+    try {
+      shade.classList.remove("open");
+      document.body.style.overflow = scrollLock;
+      pending = null;
+      body.innerHTML = "";
+      paintDot();
+    } catch(e){}
+  }
+  function launch(){
+    try {
+      scrollLock = document.body.style.overflow;
+      document.body.style.overflow = "hidden";   /* the page never scrolls behind the panel */
+      shade.classList.add("open");
+      menu();
+      close.focus();
+    } catch(e){ oops(); }
+  }
+  function paintDot(){
+    try { var t = T(); open.classList.toggle("has", !!(t && t.canUndo())); } catch(e){}
+  }
+
+  open.onclick = function(ev){ try { ev.preventDefault(); launch(); } catch(e){} };
+  close.onclick = function(ev){ try { ev.preventDefault(); shut(); } catch(e){} };
+  shade.onclick = function(ev){ if (ev.target === shade) shut(); };
+  document.addEventListener("keydown", function(ev){
+    if (ev.key === "Escape" && shade.classList.contains("open")) shut();
+  });
+  paintDot();
 })();
 </script>
 </body>

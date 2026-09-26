@@ -72,6 +72,13 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 .btn.blue:active{box-shadow:0 1px 0 #1d6f99}
 .btn.gold{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
 .btn.gold:active{box-shadow:0 1px 0 #a3830f}
+/* out of coins: dimmed but still there and still tappable, so a tap can explain */
+.btn.broke{opacity:.42;filter:grayscale(.85);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.btn.broke:active{box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.need{font-size:12px;font-weight:800;color:#ffd23f;background:rgba(0,0,0,.35);border-radius:7px;padding:1px 5px;margin-left:4px}
+.need.hide{display:none}
+.btn.nope{animation:nope .32s ease}
+@keyframes nope{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 #ctlRow{display:flex;gap:8px;justify-content:center;width:100%}
 #ctlRow .btn{flex:1 1 0;padding:8px 6px}
 #hintBtn{width:100%}
@@ -168,7 +175,7 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
         <div id="tNum">?</div>
       </div>
       <div id="runLine">Pick a mode to start</div>
-      <button class="btn blue" id="hintBtn">💡 Hint 🪙3</button>
+      <button class="btn blue" id="hintBtn">💡 Hint 🪙3<span class="need hide"></span></button>
       <canvas id="heroCv" aria-label="your hero"></canvas>
     </div>
 
@@ -181,7 +188,7 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
       <div id="ctlRow">
         <button class="btn" id="pauseBtn" aria-label="Pause">⏸ Pause</button>
         <button class="btn" id="muteBtn" aria-label="Sound on or off">🔊</button>
-        <button class="btn blue" id="hintBtnP">💡 🪙3</button>
+        <button class="btn blue" id="hintBtnP">💡 🪙3<span class="need hide"></span></button>
       </div>
       <div id="pad">
         <button class="u" data-d="up" aria-label="up">▲</button>
@@ -850,6 +857,34 @@ function hud(){
   $("coinBox").textContent = "🪙 " + Coins.get();
   $("scoreBox").textContent = "SCORE " + S.score;
   $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
+  paintHintBtn();
+}
+
+/* HINT GATE (Will, 2026-09-26): "if hes out of hints, hes out of hints."
+   Coins.spend() floors at zero and would happily pay less than asked, so
+   the balance is checked BEFORE the path lights up. With no coins he can
+   still steer the snake, and every gem he eats pays coins back. */
+function canAffordHint(){ return Coins.get() >= COST_HINT; }
+function paintHintBtn(){
+  const ok = canAffordHint(), short = COST_HINT - Coins.get();
+  ["hintBtn","hintBtnP"].forEach(id => {
+    const b = $(id); if (!b) return;
+    b.classList.toggle("broke", !ok);
+    b.setAttribute("aria-disabled", ok ? "false" : "true");
+    const nd = b.querySelector(".need");
+    if (nd){
+      if (ok){ nd.classList.add("hide"); nd.textContent = ""; }
+      else { nd.textContent = "need " + short + " more"; nd.classList.remove("hide"); }
+    }
+  });
+}
+function hintDenied(){
+  ["hintBtn","hintBtnP"].forEach(id => {
+    const b = $(id); if (!b) return;
+    b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope");
+  });
+  toast("You need " + COST_HINT + " coins for a hint. You have " + Coins.get() +
+        ". Eat a gem to earn " + COIN_PER_HIT + " coins!", "hint");
 }
 function bumpCoin(cls){ const b = $("coinBox"); b.classList.remove("spend","earn"); void b.offsetWidth; b.classList.add(cls); hud(); }
 
@@ -885,6 +920,8 @@ function hint(){
   ensureReachable();
   const sol = solution();
   if (!sol) return false;
+  /* out of coins = out of hints: no path lights up, nothing is charged */
+  if (!canAffordHint()){ hintDenied(); return false; }
   Coins.spend(COST_HINT);
   bumpCoin("spend");
   S.hint = sol.map(i => S.gems[i]);

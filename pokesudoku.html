@@ -46,6 +46,13 @@ img{-webkit-user-drag:none;user-drag:none}
 .tool.blue{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
 .tool:disabled{opacity:.35}
 .tool.icon{width:40px;padding:0;font-size:17px}
+/* out of coins: dimmed but still there, still tappable, so tapping can explain why */
+.tool.broke{opacity:.42;filter:grayscale(.85);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.tool.broke:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.need{font-size:12px;font-weight:800;color:#ffd23f;background:rgba(0,0,0,.35);border-radius:7px;padding:1px 5px}
+.need.hide{display:none}
+.tool.nope{animation:nope .32s ease}
+@keyframes nope{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
 /* ---------------- stage ---------------- */
 #stage{flex:1 1 auto;position:relative;min-height:0;display:flex;flex-direction:column;
@@ -436,7 +443,7 @@ body.typed #toast{background:rgba(5,9,14,.94);border-color:var(--tacc44)}
     <div class="chip" id="timeChip"><span class="lbl">TIME</span><span class="val" id="timeN">0:00</span></div>
     <div class="chip" id="sizeChip"><span class="lbl">PUZZLE</span><span class="val" id="sizeN">4x4</span></div>
     <div id="sp"></div>
-    <button class="tool blue" id="hintBtn">&#128161; <span class="txt">Hint</span> &#129689;3</button>
+    <button class="tool blue" id="hintBtn">&#128161; <span class="txt">Hint</span> <span id="hintPrice">&#129689;3</span> <span class="need hide" id="hintNeed"></span></button>
     <button class="tool" id="undoBtn">&#8617; <span class="txt">Undo</span></button>
     <button class="tool" id="againBtn">&#10226; <span class="txt">Start over</span></button>
     <button class="tool icon" id="dexBtn" title="Pokedex">&#128214;</button>
@@ -1509,9 +1516,31 @@ function resolveType(want){
 }
 
 /* ---------------- coins ---------------- */
-function paintCoins(){ $("coinN").textContent = coins; if (!EMBED && window.Wallet) Wallet.syncFrom(coins); }
+/* HINT GATE (Will, 2026-09-26): "if hes out of hints, hes out of hints."
+   Wallet.spend() happily pays less than asked, so it can never be the
+   refusal. Every hint checks the balance FIRST and does nothing at all
+   when he cannot afford it. The button dims and says what he is short. */
+function canAffordHint(){ return coins >= COST_HINT; }
+function paintHintBtn(){
+  var b = $("hintBtn"); if (!b) return;
+  var short = COST_HINT - coins;
+  var ok = short <= 0;
+  b.classList.toggle("broke", !ok);
+  b.setAttribute("aria-disabled", ok ? "false" : "true");
+  var nd = $("hintNeed");
+  if (nd){
+    if (ok){ nd.classList.add("hide"); nd.textContent = ""; }
+    else { nd.textContent = "need " + short + " more"; nd.classList.remove("hide"); }
+  }
+}
+function hintDenied(){
+  var b = $("hintBtn");
+  if (b){ b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope"); }
+  toast("You need " + COST_HINT + " coins for a hint. You have " + coins + ". Solve a puzzle to earn more!", "", 2200);
+}
+function paintCoins(){ $("coinN").textContent = coins; paintHintBtn(); if (!EMBED && window.Wallet) Wallet.syncFrom(coins); }
 function spend(n){
-  /* spending is NEVER blocked: it floors at zero and the action still runs */
+  /* floors at zero; callers must check canAffordHint() BEFORE acting */
   coins = Math.max(0, coins - n);
   paintCoins();
   var ch = $("coinChip");
@@ -1973,6 +2002,8 @@ function closePack(){
 
 function hint(){
   if (S.done) return false;
+  /* out of coins = out of hints: nothing is revealed, nothing is charged */
+  if (!canAffordHint()){ hintDenied(); return true; }
   var N = S.N, i;
   var empties = [], wrong = [];
   for (i = 0; i < N*N; i++){
@@ -1985,7 +2016,7 @@ function hint(){
   var idx = pool[Math.floor(Math.random()*pool.length)];
   pushHistory();
   S.G[idx] = S.solution[idx];
-  spend(COST_HINT);                       /* spending is never blocked */
+  spend(COST_HINT);                       /* affordability was checked above */
   if (!S.running && !S.done){ S.running = true; S.started = Date.now(); }
   S.sel = idx;
   render();
@@ -2101,7 +2132,12 @@ function readWear(){
   WEAR.hat = hat; WEAR.pet = pet;
 }
 readWear();
-try { if (window.Wallet && typeof window.Wallet.onChange === "function") window.Wallet.onChange(function(){ readWear(); heroLast = 0; }); } catch (e) { }
+try { if (window.Wallet && typeof window.Wallet.onChange === "function") window.Wallet.onChange(function(){
+  readWear(); heroLast = 0;
+  /* another tab (or the shop) moved the purse: re-read it so the hint
+     button never promises a hint the wallet can no longer pay for */
+  if (!EMBED){ try { coins = Wallet.coins(); Wallet.resetSync(coins); $("coinN").textContent = coins; paintHintBtn(); } catch (e2) { } }
+}); } catch (e) { }
 function drawWear(g, id, x, y, size){
   if (!id || !g || !(size > 0)) return false;
   try {

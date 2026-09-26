@@ -100,6 +100,13 @@ button{font-family:inherit;cursor:pointer;border:none}
 #hintBtn.glow{animation:glowbtn 1.1s ease-in-out infinite}
 @keyframes glowbtn{50%{box-shadow:0 4px 0 #1d6f99,0 0 22px rgba(79,195,255,.9)}}
 #hintBtn:disabled{opacity:.35}
+/* out of coins: dimmed but still there and still tappable, so a tap can explain */
+#hintBtn.broke{opacity:.42;filter:grayscale(.85);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+#hintBtn.broke:active{box-shadow:0 1px 0 rgba(0,0,0,.35)}
+#hintBtn .need{display:block;font-size:12px;font-weight:800;color:#ffd23f}
+#hintBtn .need.hide{display:none}
+#hintBtn.nope{animation:nope .32s ease}
+@keyframes nope{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 #backBtn{background:#2b3843;color:var(--chalk);font-size:18px;font-weight:800;padding:12px 16px;border-radius:12px;box-shadow:0 4px 0 #111820}
 #backBtn:disabled{opacity:.3}
 #quitBtn{background:#2b3843;color:var(--dim);font-size:15px;font-weight:700;padding:10px;border-radius:10px}
@@ -172,7 +179,7 @@ button{font-family:inherit;cursor:pointer;border:none}
     <div id="pad"></div>
     <div id="side">
       <button id="backBtn">◀ Back</button>
-      <button id="hintBtn">💡 Hint (🪙<span class="costHint">3</span>)</button>
+      <button id="hintBtn">💡 Hint (🪙<span class="costHint">3</span>)<span class="need hide" id="hintNeed"></span></button>
       <button id="quitBtn">✖ Close helper</button>
     </div>
   </div>
@@ -185,6 +192,7 @@ button{font-family:inherit;cursor:pointer;border:none}
 </div>
 <div id="ghost"></div>
 
+<script src="wallet.js"></script>
 <script>
 (function(){
 "use strict";
@@ -199,6 +207,7 @@ const QS = new URLSearchParams(location.search);
 const EMBED = QS.get("embed") === "1";
 const toGame = msg => { try { window.parent.postMessage(Object.assign({mdHelper:true}, msg), "*"); } catch (e) { /* standalone */ } };
 if (EMBED){ const c = parseInt(QS.get("coins"),10); if (isFinite(c) && c >= 0) coins = c; }
+else if (window.Wallet){ try { coins = Wallet.coins(); Wallet.resetSync(coins); } catch (e) { /* keep the local purse */ } }
 
 /* ---------- grid model ----------
    Columns: 0 = ones, 1 = tens, 2 = hundreds, 3 = thousands.
@@ -261,13 +270,42 @@ function popCell(k){ const e = els[k]; if(!e) return; e.classList.remove("pop");
 
 /* ---------- coins ---------- */
 function spend(n){
+  /* charges what it can and floors at zero. COST_OPEN uses exactly that on
+     purpose: the step-by-step helper must open even with an empty purse,
+     because it teaches the method. Only the answer-revealing HINT is gated. */
   coins = Math.max(0, coins - n);
   if (EMBED) toGame({type:"spend", n});
+  else if (window.Wallet){ try { Wallet.syncFrom(coins); } catch (e) { } }
   $("coinN").textContent = coins;
+  paintHintBtn();
   const b = $("coins"); b.classList.remove("spend"); void b.offsetWidth; b.classList.add("spend");
+}
+
+/* HINT GATE (Will, 2026-09-26): "if hes out of hints, hes out of hints."
+   The helper itself stays open and every step is still walkable by hand. */
+function canAffordHint(){ return coins >= COST_HINT; }
+function paintHintBtn(){
+  const b = $("hintBtn"); if (!b) return;
+  const broke = !canAffordHint(), short = COST_HINT - coins;
+  b.classList.toggle("broke", broke);
+  b.setAttribute("aria-disabled", broke ? "true" : "false");
+  const nd = $("hintNeed");
+  if (nd){
+    if (broke){ nd.textContent = "need " + short + " more"; nd.classList.remove("hide"); }
+    else { nd.classList.add("hide"); nd.textContent = ""; }
+  }
+}
+function hintDenied(){
+  const b = $("hintBtn");
+  if (b){ b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope"); }
+  msg("You need " + COST_HINT + " coins for a hint. You have " + coins +
+      ". The helper still works: read the step and try the next box. Earn coins by subtracting in the dungeon!", "hint");
 }
 document.querySelectorAll(".costOpen").forEach(e => e.textContent = COST_OPEN);
 document.querySelectorAll(".costHint").forEach(e => e.textContent = COST_HINT);
+/* paint the real purse straight away: standalone now reads the shared wallet */
+$("coinN").textContent = coins;
+paintHintBtn();
 
 const digitsLow = n => String(n).split("").reverse().map(Number);   // 265 -> [5,6,2]
 const countUp = (from, n) => Array.from({length:n}, (_,i) => from+i+1).join(", ");
@@ -416,6 +454,7 @@ function enterStep(){
     flag(s.boxes[0].r, s.boxes[0].c, "cur");
     $("pad").classList.remove("off");
     hb.disabled = false;
+    paintHintBtn();
   } else {
     flag(s.from[0], s.from[1], "drag");
     flag(s.from[0], s.from[1], "carryout");
@@ -475,6 +514,8 @@ const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 $("hintBtn").onclick = () => {
   const s = steps[si];
   if (!s || s.type !== "input") return;
+  /* out of coins = out of hints: nothing is revealed, nothing is charged */
+  if (!canAffordHint()){ hintDenied(); return; }
   spend(COST_HINT);
   msg("💡 " + s.hint, "hint");
 };

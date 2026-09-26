@@ -35,6 +35,13 @@ button{font-family:inherit;cursor:pointer;border:none}
 #hintBtn{flex:0 0 auto;margin-left:auto;background:var(--blue);color:#06121b;font-size:16px;font-weight:800;
   padding:0 14px;height:44px;border-radius:12px;box-shadow:0 4px 0 #1d6f99;white-space:nowrap}
 #hintBtn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d6f99}
+/* out of coins: dimmed but still there and still tappable, so a tap can explain */
+#hintBtn.broke{opacity:.42;filter:grayscale(.85);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+#hintBtn.broke:active{box-shadow:0 1px 0 rgba(0,0,0,.35)}
+#hintBtn .need{font-size:12px;font-weight:800;color:#ffd23f;background:rgba(0,0,0,.3);border-radius:7px;padding:1px 5px;margin-left:4px}
+#hintBtn .need.hide{display:none}
+#hintBtn.nope{animation:nope .32s ease}
+@keyframes nope{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
 /* ---------- stage ---------- */
 #stage{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
@@ -127,7 +134,7 @@ button{font-family:inherit;cursor:pointer;border:none}
   <div id="coins">🪙 <span id="coinN">55</span></div>
   <div id="checks"></div>
   <div id="caseName">Detective Room</div>
-  <button id="hintBtn">💡 Hint (🪙3)</button>
+  <button id="hintBtn">💡 Hint (🪙3)<span class="need hide" id="hintNeed"></span></button>
 </div>
 
 <div id="stage">
@@ -577,8 +584,32 @@ function drawHearts(){
 }
 function drawCoins(flash){
   $("coinN").textContent = state.coins;
+  paintHintBtn();
   if (!EMBED && window.Wallet) Wallet.syncFrom(state.coins);
   if (flash){ const b = $("coins"); b.classList.remove("spend"); void b.offsetWidth; b.classList.add("spend"); }
+}
+
+/* HINT GATE (Will, 2026-09-26): "if hes out of hints, hes out of hints."
+   spend() floors at zero and would happily pay less than asked, so the
+   balance is checked BEFORE the plaque is re-opened. With no coins he can
+   still walk the room, read every plaque himself and answer the door. */
+function canAffordHint(){ return state.coins >= COST_HINT; }
+function paintHintBtn(){
+  const b = $("hintBtn"); if (!b) return;
+  const ok = canAffordHint(), short = COST_HINT - state.coins;
+  b.classList.toggle("broke", !ok);
+  b.setAttribute("aria-disabled", ok ? "false" : "true");
+  const nd = $("hintNeed");
+  if (nd){
+    if (ok){ nd.classList.add("hide"); nd.textContent = ""; }
+    else { nd.textContent = "need " + short + " more"; nd.classList.remove("hide"); }
+  }
+}
+function hintDenied(){
+  const b = $("hintBtn");
+  if (b){ b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope"); }
+  toast("You need " + COST_HINT + " coins for a hint. You have " + state.coins +
+        ". Crack a case to earn more, and the plaques are always free to read!", "");
 }
 function buildChecks(){
   const box = $("checks"); box.innerHTML = "";
@@ -777,7 +808,9 @@ function answer(i){
 /* hint: re-show the one plaque that matters most */
 function useHint(){
   if (!state.kase || !state.running) return false;
-  spend(COST_HINT);                      /* never blocked, clamps at 0 */
+  /* out of coins = out of hints: no plaque opens, nothing is charged */
+  if (!canAffordHint()){ hintDenied(); return false; }
+  spend(COST_HINT);
   const k = state.kase.key;
   closeQuestion(true);
   openPlaque(k, {forced:true, hint:true});

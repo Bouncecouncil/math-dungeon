@@ -107,6 +107,13 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #111820}
 .btn.blue{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
 .btn.blue:active{box-shadow:0 1px 0 #1d6f99}
+/* out of coins: dimmed but still there and still tappable, so a tap can explain */
+.btn.broke{opacity:.42;filter:grayscale(.85);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.btn.broke:active{box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.need{font-size:12px;font-weight:800;color:#ffd23f;background:rgba(0,0,0,.35);border-radius:7px;padding:1px 5px}
+.need.hide{display:none}
+.btn.nope{animation:nope .32s ease}
+@keyframes nope{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .btn.gold{background:var(--gold);color:#1a1405;box-shadow:0 4px 0 #a3830f}
 .btn.gold:active{box-shadow:0 1px 0 #a3830f}
 .btn.ghost{color:var(--dim);font-size:14px}
@@ -187,7 +194,7 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
   </div>
 
   <div id="btns">
-    <button class="btn blue" id="hintBtn">💡 Hint (🪙3)</button>
+    <button class="btn blue" id="hintBtn">💡 Hint (🪙3) <span class="need hide" id="hintNeed"></span></button>
     <button class="btn" id="clearBtn">↩︎ Take all back</button>
     <button class="btn ghost" id="quitBtn">✖ Leave the door</button>
   </div>
@@ -591,6 +598,30 @@ function hud(){
   $("scoreBox").textContent = "SCORE " + S.score;
   $("doorBox").textContent = "DOOR " + Math.min(S.door+1, DOORS) + "/" + DOORS;
   $("muteBtn").textContent = Snd.isOn() ? "🔊" : "🔇";
+  paintHintBtn();
+}
+
+/* HINT GATE (Will, 2026-09-26): "if hes out of hints, hes out of hints."
+   spend() floors at zero and would happily pay less than asked, so the
+   balance is checked BEFORE a letter is carved. He can still drag every
+   tile himself, take them all back, or leave and go earn coins. */
+function canAffordHint(){ return S.coins >= COST_HINT; }
+function paintHintBtn(){
+  const b = $("hintBtn"); if (!b) return;
+  const ok = canAffordHint(), short = COST_HINT - S.coins;
+  b.classList.toggle("broke", !ok);
+  b.setAttribute("aria-disabled", ok ? "false" : "true");
+  const nd = $("hintNeed");
+  if (nd){
+    if (ok){ nd.classList.add("hide"); nd.textContent = ""; }
+    else { nd.textContent = "need " + short + " more"; nd.classList.remove("hide"); }
+  }
+}
+function hintDenied(){
+  const b = $("hintBtn");
+  if (b){ b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope"); }
+  say("You need " + COST_HINT + " coins for a hint. You have " + S.coins +
+      ". Open a door to earn more, and you can still spell the word yourself!", "hint");
 }
 function say(t, cls){ const m = $("sub"); m.innerHTML = t; m.className = cls || ""; }
 
@@ -788,6 +819,7 @@ function hint(){
     if (!t || t.ch !== S.word[i]) open.push(i);
   }
   if (!open.length){ say("Every letter is already in the right place.", "hint"); return false; }
+  if (!canAffordHint()){ hintDenied(); return false; }
   const slot = open[Math.floor(Math.random()*open.length)];
   const ch = S.word[slot];
   spend(COST_HINT);
