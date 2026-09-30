@@ -56,7 +56,6 @@
     "mdWallet.v1",            /* coins, owned shop items, equipped slots  (wallet.js)      */
     "mdBrain.v1",             /* brain level, history, level-ups          (brain.js)       */
     "mathDungeonChar",        /* chosen hero        (index.html, math-dungeon-3d, shop)    */
-    "mathDungeonSeen.v1",     /* anti-repeat question bag                 (math-bank.js)   */
     "mathDungeonAdapt.v1",    /* adaptive difficulty offset               (math-bank.js)   */
     /* the dungeon adventure */
     "mathDungeonBest",        /* best run                    (math-dungeon-3d.html)        */
@@ -77,11 +76,15 @@
     "potion_coins", "potion_unlocked", "potion_upgrades", "potion_mute",
     "crate_done", "crate_snd",
     "riddle_last", "riddle_mute",
-    "rune_mute"
+    "rune_mute",
+    /* aquarium tycoon: its own money, fish, tanks, rooms and upgrades */
+    "mdAquarium.v1",
+    /* mine cart: best run */
+    "mc_best_v1"
   ];
   /* any future key a game adds under one of these prefixes comes along too */
-  var PREFIXES = ["mdWallet", "mdBrain", "mathDungeon", "poke", "snake_", "mm_",
-                  "potion_", "crate_", "riddle_", "rune_", "det"];
+  var PREFIXES = ["mdWallet", "mdBrain", "mdAquarium", "mathDungeon", "poke", "snake_", "mm_",
+                  "potion_", "crate_", "riddle_", "rune_", "det", "mc_"];
   var BACKUP_KEY = "mdTransferBackup.v1";   /* our own stash: never transferred */
 
   var MAX_KEYS = 200;                 /* a sane ceiling on a pasted code   */
@@ -106,7 +109,15 @@
     catch (e) { return false; }
   }
 
+  /* Never transferred. mathDungeonSeen.v1 is the anti-repeat question bag: a
+     cache, not progress, and it grows without limit as he plays (measured at
+     34,649 characters after one heavy session). Carrying it crowded out the
+     real save and would eventually push the code past what one QR can hold.
+     Losing it costs him nothing except possibly seeing a repeat sooner. */
+  var NEVER = { "mathDungeonSeen.v1": 1 };
+
   function isOurKey(k) {
+    if (NEVER[k]) return false;
     if (k === PK_KEY) return true;
     if (typeof k !== "string" || !k || k.length > MAX_KEY_LEN) return false;
     if (k === BACKUP_KEY) return false;
@@ -445,6 +456,31 @@
       if (v.length > MAX_VALUE_LEN) continue;         /* absurd: skip, never truncate */
       data[ks[i]] = v; present++; bytes += ks[i].length + v.length; hit.push(ks[i]);
     }
+    /* The purse carries a running log of every coin earned and spent. That is
+       history, not progress, and it grows without limit, so only the last few
+       entries travel. Coins, owned items and equipped slots are untouched. */
+    if (data["mdWallet.v1"]) {
+      try {
+        var w = JSON.parse(data["mdWallet.v1"]);
+        if (w && Object.prototype.toString.call(w.log) === "[object Array]" && w.log.length > 10) {
+          w.log = w.log.slice(-10);
+          data["mdWallet.v1"] = JSON.stringify(w);
+        }
+      } catch (e) { /* not the shape we expected: ship it untouched */ }
+    }
+
+    /* Same treatment for the brain's answer history: the level, peak and
+       running totals are the progress, the per-question history is not. */
+    if (data["mdBrain.v1"]) {
+      try {
+        var b = JSON.parse(data["mdBrain.v1"]);
+        if (b && Object.prototype.toString.call(b.hist) === "[object Array]" && b.hist.length > 10) {
+          b.hist = b.hist.slice(-10);
+          data["mdBrain.v1"] = JSON.stringify(b);
+        }
+      } catch (e) { /* unexpected shape: ship it untouched */ }
+    }
+
     var packed = packPoke(data["pokeDex.v1"], data["pokeCards.v1"]);
     if (packed && packed.length < (String(data["pokeDex.v1"] || "").length + String(data["pokeCards.v1"] || "").length)) {
       delete data["pokeDex.v1"]; delete data["pokeCards.v1"];

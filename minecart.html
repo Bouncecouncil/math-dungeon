@@ -51,6 +51,35 @@
   #steer div{flex:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;
     font-size:40px;color:rgba(190,215,255,.5);}
   #steer.hide{display:none}
+  /* run goals ride down the left edge, clear of the question (top) and the answers (bottom) */
+  /* anchored to the BOTTOM, never the top: the question box grows to two lines
+     on a phone in landscape and a top-anchored goal list would sit on it */
+  #missions{position:absolute;left:6px;bottom:92px;width:150px;z-index:6;pointer-events:none;
+    display:flex;flex-direction:column;gap:4px;}
+  #missions.hide{display:none}
+  #missions .ms{background:rgba(6,10,28,.72);border:1px solid rgba(255,255,255,.16);border-left:3px solid #7fe9ff;
+    border-radius:8px;padding:3px 6px;font-size:11px;font-weight:800;color:#dbe6ff;line-height:1.2;
+    text-shadow:0 1px 3px #000;transition:border-color .2s,color .2s}
+  #missions .ms b{display:block;font-size:10px;color:#8fa0d0;font-weight:800;letter-spacing:.4px}
+  #missions .ms.done{border-left-color:#3ddc84;color:#3ddc84}
+  #pups{display:flex;gap:6px;align-items:center}
+  #pups .pu{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:8px;
+    padding:1px 6px;font-size:13px;font-weight:800;color:#fff}
+  #pups .pu.mag{border-color:#b58cff;color:#d7bfff}
+  #pups .pu.shd{border-color:#7fe9ff;color:#bff2ff}
+  #pups .pu.bst{border-color:#ffd23f;color:#ffe89a}
+  /* the run summary grid */
+  .sumGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
+  .sumGrid div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:7px 4px}
+  .sumGrid span{display:block;font-size:10px;color:#8fa0d0;font-weight:800;letter-spacing:.6px}
+  .sumGrid b{display:block;font-size:22px;color:#ffd23f;font-weight:900}
+  .sumMs{text-align:left;margin:8px auto 0;max-width:420px}
+  .sumMs div{font-size:13px;font-weight:800;color:#8fa0d0;padding:2px 0}
+  .sumMs div.done{color:#3ddc84}
+  #bestLine{font-size:13px;color:#8fe9ff;font-weight:800}
+  .tog{background:#1a2450;color:#dbe6ff;border:2px solid #3a4a9a;border-radius:12px;padding:8px 14px;
+    font-size:15px;font-weight:800;cursor:pointer;margin-top:10px}
+  .tog.on{border-color:#3ddc84;background:#14351f;color:#9ff7c4}
   #helpBtn{position:absolute;left:50%;bottom:76px;transform:translateX(-50%);z-index:8;
     background:linear-gradient(180deg,#4fc3ff,#1d7fc0);color:#06121b;border:none;border-radius:12px;
     padding:9px 18px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #0e4f7a;}
@@ -82,9 +111,16 @@
     #msg{font-size:26px}
     .panel h1{font-size:22px} .panel p{font-size:13px}
     .big{font-size:16px;padding:9px 18px}
-    #helpBtn{font-size:14px;padding:6px 14px;bottom:6px}
+    #helpBtn{font-size:13px;padding:5px 12px;bottom:62px}   /* clear of the answer row, which also sits at 6px */
     .ans{font-size:16px;padding:5px 3px}
     #answers{bottom:6px;gap:5px}
+    #missions{bottom:60px;width:118px;gap:3px}
+    #missions .ms{font-size:9px;padding:2px 5px}
+    #missions .ms b{font-size:8px}
+    #pups .pu{font-size:11px;padding:0 4px}
+    .sumGrid b{font-size:17px} .sumGrid div{padding:5px 3px}
+    .sumMs div{font-size:11px}
+    .tog{font-size:13px;padding:6px 12px}
   }
 </style>
 </head>
@@ -96,11 +132,14 @@
     <span id="routeBox" title="The tunnel you are riding">MINE</span>
     <span id="gemBox" title="Gems grabbed this ride">💎 0</span>
     <span id="coinBox">🪙 0</span>
+    <span id="distBox" title="How far you have ridden">0 m</span>
     <span id="scoreBox">SCORE 0</span>
     <span id="speedBox"></span>
+    <span id="pups"></span>
     <span id="muteBtn" style="cursor:pointer;margin-left:8px" title="Sound on / off">🔊</span>
   </div>
 
+  <div id="missions" class="hide"></div>
   <div id="qbox" class="hide"><div id="qkind"></div><div id="qtext"></div><div id="qfork"></div></div>
   <div id="msg"></div>
   <div id="flash"></div>
@@ -112,22 +151,36 @@
     <div class="panel">
       <h1>🛒 MINE CART CHASE</h1>
       <p>The cart never stops. Read the sign, then <b>steer into the lane with the right answer</b>.</p>
-      <p>Steer: tap the left / right half of the screen, or A D / ⬅ ➡ / the stick.</p>
+      <p><b>Steer:</b> tap the left / right half, or A D / ⬅ ➡ &nbsp;·&nbsp;
+         <b>Jump:</b> swipe up, or ⬆ / W &nbsp;·&nbsp; <b>Duck:</b> swipe down, or ⬇ / S</p>
       <p style="color:#ffd23f;font-weight:800;margin-top:10px">Pick what the signs ask you:</p>
       <div class="subj" id="subjRow">
         <button data-s="math" class="on">🔢 Math</button>
         <button data-s="reading">📖 Reading</button>
         <button data-s="other">🧪 Other</button>
       </div>
-      <button class="big gold" id="goBtn" style="margin-top:14px">GO! ▶</button>
-      <p style="font-size:12px;color:#8fa0d0;margin-top:10px">A wrong lane costs a heart, but the cart rolls on. 8 gates to the station.<br>
-        💎 Steer into the glowing gems for coins. 🔀 Every third gate is a FORK: the right answer picks a new tunnel.</p>
+      <button class="tog on" id="endlessBtn">♾️ Endless ride: ON</button>
+      <br><button class="big gold" id="goBtn" style="margin-top:12px">GO! ▶</button>
+      <p style="font-size:12px;color:#8fa0d0;margin-top:10px">
+        🟨 Jump the low barriers. 🟥 Duck the red beams. 🪨 Steer round the rocks. Every one is signposted early.<br>
+        💎 Gems = coins. 🧲 magnet · 🛡️ shield · ⚡ boost. 🔀 Every third gate is a FORK: the right answer picks a new tunnel.<br>
+        A wrong lane or a crash costs a heart, but the cart rolls on.</p>
     </div>
   </div>
 
   <div id="endOv" class="overlay hide">
     <div class="panel">
       <h1 id="endTitle">🏁 STATION!</h1>
+      <div class="sumGrid">
+        <div><span>DISTANCE</span><b id="sumDist">0</b></div>
+        <div><span>GEMS</span><b id="sumGems">0</b></div>
+        <div><span>RIGHT</span><b id="sumRight">0</b></div>
+        <div><span>MISSIONS</span><b id="sumMiss">0</b></div>
+        <div><span>SCORE</span><b id="sumScore">0</b></div>
+        <div><span>COINS</span><b id="sumCoins">0</b></div>
+      </div>
+      <div class="sumMs" id="sumMsList"></div>
+      <p id="bestLine"></p>
       <p id="endLine"></p>
       <button class="big" id="againBtn">RIDE AGAIN ▶</button>
     </div>
@@ -156,8 +209,26 @@ const GATE_GAP = 165;                // distance between gates: long enough to r
 const SIGN_LEAD = 34;                // the question sign stands this far before its gate
 let   GATES = 8;                     // gates to the station (the dungeon asks for fewer)
 const SPEED0 = 9.5, SPEED_MAX = 14, SPEED_STEP = 0.45;   // slow enough to read the sign and choose
+/* HARD SPEED CAP. SPEED_MAX is the fastest the cart can EARN. Hills add gravity and
+   the ⚡ boost adds more, but the number the world actually moves at is clamped to
+   HARD_CAP, so a 7-year-old never meets a speed he has not already ridden at. */
+const HARD_CAP = 18;
+const BOOST_ADD = 4, BOOST_SECS = 3.5, MAGNET_SECS = 7;
 const STEER = 7.5;                   // sideways speed
 const COST_OPEN = 10, COST_HINT = 3;
+/* jump + duck. Airtime 2*JUMP_V/GRAV = 0.73s, peak JUMP_V^2/(2*GRAV) = 1.74 units,
+   which clears a 1.05-high barrier with room to spare even at HARD_CAP. */
+const JUMP_V = 9.5, GRAV = 26;
+const BARRIER_TOP = 1.05;            // jump higher than this to clear a low barrier
+const BEAM_BOTTOM = 2.3;             // duck under this, and do not be airborne
+const DUCK_SECS = 0.55;              // one swipe-down duck lasts this long (keys hold it open)
+const CART_HALF = 1.15;              // cart half-width for obstacle overlap
+/* obstacles */
+const OBST_CLEAR = 0.30;             // no obstacle in the last 30% of a gate gap: the answer lane stays free
+const OBST_AFTER = 20;               // and none right on top of a gate he just smashed
+const OBST_MIN_GAP = 55;             // clear track between two obstacle clusters (3.06s at HARD_CAP)
+const OBST_SEE = 120;                // an obstacle is drawn (and its warning sign lit) from this far back
+const BEST_KEY = "mc_best_v1";
 
 /* ============================ sound ============================
    The rolling cart is synthesised (filtered noise plus wheel clacks that
@@ -243,6 +314,40 @@ const Snd = (function(){
         o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + len + 0.02);
       });
     },
+    /* a short pitched sweep: up for a jump, down for a duck */
+    sweep(f0, f1, len, vol){
+      if (!ctx || !on) return;
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + len + 0.02);
+    },
+    /* crashing into an obstacle: a dull thud with a rattle on top */
+    thud(){
+      if (!ctx || !on) return;
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "square"; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(34, t+0.28);
+      g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.32);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+0.34);
+      for (let i=0;i<4;i++) setTimeout(() => clack(0.22), i*30);
+    },
+    /* picking up a power-up: a rising three-note arpeggio */
+    power(){
+      if (!ctx || !on) return;
+      const t = ctx.currentTime;
+      [0,4,7,12].forEach((st,i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        const s = t + i*0.055;
+        o.type = "square"; o.frequency.setValueAtTime(523.25*Math.pow(2, st/12), s);
+        g.gain.setValueAtTime(0.0001, s);
+        g.gain.exponentialRampToValueAtTime(0.16, s + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, s + 0.16);
+        o.connect(g); g.connect(ctx.destination); o.start(s); o.stop(s + 0.18);
+      });
+    },
     isOn(){ return on; },
     toggle(){ on = !on; if (!on && rollGain) rollGain.gain.value = 0; return on; }
   };
@@ -270,8 +375,13 @@ const HERO_LOOK = {
 const S = {
   running:false, z:0, x:0, speed:SPEED0, hearts:5, coins:55, score:0,
   subject:"math", gate:0, right:0, asked:0, invT:0, shakeT:0, paused:false, ended:false,
-  gems:0, route:"mine", timeScale:1
+  gems:0, route:"mine", timeScale:1,
+  /* runner state */
+  jy:0, vy:0, air:false, duckT:0, duckHeld:false,
+  magT:0, boostT:0, shield:false, pups:0,
+  dodged:0, streak:0, bestStreak:0, hitT:0, endless:true, eff:SPEED0
 };
+const ducking = () => (S.duckT > 0 || S.duckHeld);
 let camShakeSeed = 0;
 /* The track rolls: gentle hills everywhere, plus a DIVE (a deep dip that
    makes the cart pick up speed) or a BANK (the tunnel leans over) carved
@@ -463,21 +573,31 @@ const cart = new THREE.Group();
     color:0xffd39a, transparent:true, opacity:0.13, depthWrite:false
   }));
   lamp.position.set(0,1.6,6); cart.add(lamp);
-  /* the hero the kid picked in the dungeon, riding along */
+  /* the hero the kid picked in the dungeon, riding along.
+     He lives in his own group so a DUCK can drop and squash him without
+     moving the cart body a millimetre off the rails. */
+  const rider = new THREE.Group(); cart.add(rider);
+  cart.userData.rider = rider;
   const look = HERO_LOOK[HERO_ID];
   const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0,0.95,0.7), new THREE.MeshBasicMaterial({color:look.body}));
-  torso.position.set(0,1.9,-0.1); cart.add(torso);
+  torso.position.set(0,1.9,-0.1); rider.add(torso);
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.72,0.7,0.7), new THREE.MeshBasicMaterial({color:look.head}));
-  head.position.set(0,2.72,-0.1); cart.add(head);
+  head.position.set(0,2.72,-0.1); rider.add(head);
   const hat = new THREE.Mesh(new THREE.BoxGeometry(0.86,0.22,0.86), new THREE.MeshBasicMaterial({color:look.trim}));
-  hat.position.set(0,3.14,-0.1); cart.add(hat);
+  hat.position.set(0,3.14,-0.1); rider.add(hat);
   cart.userData.hat = hat;             // the shop hat replaces this built-in one
   if (HERO_ID === "dragon"){
     for (const sx of [-1,1]){
       const w = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.5,0.1), new THREE.MeshBasicMaterial({color:look.trim}));
-      w.position.set(sx*0.78, 2.05, -0.35); w.rotation.z = sx*0.5; cart.add(w);
+      w.position.set(sx*0.78, 2.05, -0.35); w.rotation.z = sx*0.5; rider.add(w);
     }
   }
+  /* the 🛡️ bubble, shown only while a shield is banked */
+  const bub = new THREE.Mesh(new THREE.SphereGeometry(2.3, 14, 10), new THREE.MeshBasicMaterial({
+    color:0x7fe9ff, transparent:true, opacity:0.20, depthWrite:false, wireframe:true
+  }));
+  bub.position.y = 1.5; bub.visible = false; cart.add(bub);
+  cart.userData.bubble = bub;
 })();
 scene.add(cart);
 
@@ -491,7 +611,7 @@ const Look = (function(){
   const PLAIN_CART = 0x8a5a2b, PLAIN_IRON = 0x50607e;
   const hatGroup = new THREE.Group();
   hatGroup.position.set(0, 3.05, -0.1);
-  cart.add(hatGroup);
+  (cart.userData.rider || cart).add(hatGroup);   // rides with the rider, so it ducks too
   const texCache = {};
   function emojiTex(emoji){
     if (texCache[emoji]) return texCache[emoji];
@@ -677,7 +797,7 @@ function nextQuestion(){
 /* ============================ gates ============================ */
 const gateZ = index => 120 + index*GATE_GAP;
 // gates 3, 6, 9 ... are forks, but never the last gate: that one runs into the station
-const isForkGate = index => index % 3 === 2 && index < GATES - 1;
+const isForkGate = index => index % 3 === 2 && (S.endless || index < GATES - 1);
 let gates = [];
 let lastForkRoute = null;
 function pickForkRoute(){
@@ -729,8 +849,12 @@ function spawnGate(index){
   // the stretch AFTER this gate: a dip and a banked curve, both visible long before they arrive
   hills.push({z: z + GATE_GAP*0.34, depth: 4.2});
   banks.push({z: z + GATE_GAP*0.70, dir: (index % 2) ? 1 : -1});
-  // the stretch BEFORE this gate gets its gems (never in the last quarter)
+  // the stretch BEFORE this gate gets its gems, its obstacles and maybe a power-up.
+  // All three stay out of the last OBST_CLEAR/GEM_CLEAR of the gap, so the run-in
+  // to the answer lane is always clean track.
   placeGems(index);
+  placeObstacles(index);
+  placePup(index);
   scene.add(group);
   gates.push({z, qd, group, banners, done:false, index, fork, route});
 }
@@ -830,6 +954,12 @@ function updateGems(dt, prevZ){
     if (g.taken) continue;
     g.t += dt;
     g.core.rotation.y += dt*2.4; g.core.rotation.x = 0.35;
+    // 🧲 the magnet drags nearby gems across into the cart's lane
+    if (S.magT > 0 && g.z > S.z - 3 && g.z < S.z + 22 && Math.abs(g.x - S.x) < 8){
+      const d = S.x - g.x;
+      g.x += Math.max(-14*dt, Math.min(14*dt, d));
+      g.mesh.position.x = g.x;
+    }
     g.mesh.position.y = trackY(g.z) + 1.75 + Math.sin(g.t*3)*0.18;
     g.mesh.visible = g.z < S.z + 150;    // gems ignore fog to glow, so hide the ones past the tunnel's end
     // swept test: the cart may move most of a unit per frame, so check the whole step
@@ -858,6 +988,309 @@ function clearGems(){
   gemLog.length = 0;
 }
 
+/* ============================ obstacles ============================
+   Three kinds, one input each, never two inputs at once:
+     low   🟨 a hazard fence across the track   -> JUMP
+     high  🟥 a beam slung under the roof       -> DUCK
+     wall  🪨 rocks on one or two lanes         -> STEER round
+   RULES THAT MAKE EVERY OBSTACLE PASSABLE, enforced in placeObstacles and
+   proved by CART.auditObstacles():
+     * one cluster per z. A low and a high never share a z, so he is never
+       asked to jump and duck at the same moment.
+     * a wall cluster covers at most 2 ADJACENT lanes, so at least 2 lanes
+       stay open and the longest dodge is 3 units (0.4s of steering).
+     * OBST_MIN_GAP of clear track between clusters.
+     * nothing in the last OBST_CLEAR of a gate gap, so lining up the answer
+       is never a fight with a rock.
+   Every cluster carries a fog-free warning board plus three floor chevrons
+   running back up the track, so it reads long before it arrives.        */
+const hazTex = paint(64,64,(g,w,h)=>{
+  g.fillStyle="#f2c400"; g.fillRect(0,0,w,h);
+  g.fillStyle="#141414";
+  for (let i=-h;i<w;i+=22){ g.beginPath(); g.moveTo(i,h); g.lineTo(i+11,h); g.lineTo(i+11+h,0); g.lineTo(i+h,0); g.closePath(); g.fill(); }
+});
+hazTex.wrapS = hazTex.wrapT = THREE.RepeatWrapping;
+const OB = {
+  low:  {icon:"⬆", word:"JUMP",  col:"#ffd23f", hex:0xffd23f,
+         mat:new THREE.MeshBasicMaterial({map:hazTex, fog:false})},
+  high: {icon:"⬇", word:"DUCK",  col:"#ff5a6e", hex:0xff5a6e,
+         mat:new THREE.MeshBasicMaterial({color:0xff4d5e, fog:false})},
+  wall: {icon:"↔", word:"DODGE", col:"#b9c6de", hex:0xb9c6de,
+         mat:new THREE.MeshBasicMaterial({color:0x7d8ba6, fog:false})}
+};
+/* obstacle ironwork has its OWN material: mat.iron is the cart's paint and the
+   shop can recolour it, which would repaint the hazards with it */
+const obIron = new THREE.MeshBasicMaterial({color:0x3d4864, fog:false});
+const chevMat = {};
+for (const k in OB) chevMat[k] = new THREE.MeshBasicMaterial({
+  color:OB[k].hex, transparent:true, opacity:0.62, depthWrite:false, fog:false, side:THREE.DoubleSide});
+const warnCache = {};
+function warnBoard(kind){
+  const o = OB[kind];
+  if (!warnCache[kind]) warnCache[kind] = signTexture(o.icon + " " + o.word + " " + o.icon,
+    {w:512, h:160, size:104, bg:"#0a0d1c", border:o.col, fg:o.col});
+  const m = new THREE.MeshBasicMaterial({map:warnCache[kind], side:THREE.DoubleSide, fog:false, transparent:true});
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(8.4,2.5), m);
+  mesh.rotation.y = Math.PI;
+  mesh.userData.dispose = () => m.dispose();
+  return mesh;
+}
+let obstacles = [];              // live collision pieces
+let obGroups = [];               // the scene groups, recycled with the track
+const obstacleLog = [];          // every cluster placed this ride, for the audit
+let lastObZ = -999;
+function addCluster(kind, z, lanes, gateIndex){
+  const group = new THREE.Group();
+  group.position.z = z;
+  const baseY = trackY(z);
+  group.position.y = baseY;
+  const pieces = [];
+  if (kind === "low"){
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(13.2, BARRIER_TOP, 0.55), OB.low.mat);
+    bar.position.y = BARRIER_TOP/2; group.add(bar);
+    for (const lx of [-5.6, -1.9, 1.9, 5.6]){
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.3, BARRIER_TOP+0.25, 0.3), obIron);
+      p.position.set(lx, (BARRIER_TOP+0.25)/2, 0); group.add(p);
+    }
+    pieces.push({x:0, halfW:6.6});
+  } else if (kind === "high"){
+    const bm = new THREE.Mesh(new THREE.BoxGeometry(13.2, 0.75, 0.6), OB.high.mat);
+    bm.position.y = BEAM_BOTTOM + 0.375; group.add(bm);
+    for (const sx of [-1,1]){
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.3, CEIL - BEAM_BOTTOM, 0.3), obIron);
+      p.position.set(sx*6.4, BEAM_BOTTOM + (CEIL-BEAM_BOTTOM)/2, 0); group.add(p);
+    }
+    pieces.push({x:0, halfW:6.6});
+  } else {
+    for (const li of lanes){
+      const lx = LANES[li];
+      const rock = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3.1, 1.1), OB.wall.mat);
+      rock.position.set(lx, 1.55, 0); rock.rotation.y = (Math.random()-0.5)*0.4; group.add(rock);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.5, 0.9), obIron);
+      cap.position.set(lx, 3.3, 0); group.add(cap);
+      pieces.push({x:lx, halfW:1.25});
+    }
+  }
+  const sign = warnBoard(kind);
+  sign.position.set(0, 5.1, 0.2); group.add(sign);
+  /* A COLOURED RUNWAY ON THE FLOOR. Colour reads at any distance, long before
+     the word on the board is legible, so this is the real telegraph: 38 units
+     of yellow / red / grey stripes leading up to the thing. */
+  for (const d of [6, 14, 22, 30, 38]){
+    const ch = new THREE.Mesh(new THREE.PlaneGeometry(11, 1.7), chevMat[kind]);
+    ch.rotation.x = -Math.PI/2;
+    ch.position.set(0, trackY(z - d) - baseY + 0.12, -d);
+    group.add(ch);
+  }
+  scene.add(group);
+  obGroups.push({z, group});
+  for (const p of pieces) obstacles.push({z, x:p.x, halfW:p.halfW, kind, group, hit:false, scored:false});
+  obstacleLog.push({gate:gateIndex, kind, z:+z.toFixed(2), lanes:lanes ? lanes.slice() : null,
+                    pieces:pieces.length, gateZ:gateZ(gateIndex),
+                    distBeforeGate:+(gateZ(gateIndex) - z).toFixed(2)});
+  lastObZ = z;
+}
+function placeObstacles(index){
+  const gz = gateZ(index);
+  const prev = index === 0 ? 0 : gateZ(index - 1);
+  const lo = index === 0 ? 45 : prev + OBST_AFTER;
+  const hi = gz - GATE_GAP*OBST_CLEAR;
+  // gate 0's run-in is a single jump, so the very first thing he meets is the easy one
+  const kinds = index === 0 ? ["low"]
+              : index === 1 ? ["low","high"]
+              : ["low","high","wall","low","high","wall","wall"];
+  let z = lo + 8 + Math.random()*10;
+  let guard = 0;
+  while (z <= hi && guard++ < 6){
+    if (z - lastObZ < OBST_MIN_GAP){ z = lastObZ + OBST_MIN_GAP; continue; }
+    const kind = kinds[(Math.random()*kinds.length)|0];
+    let lanes = null;
+    if (kind === "wall"){
+      const two = index >= 4 && Math.random() < 0.45;      // two rocks only once he has had practice
+      const start = (Math.random()*(two ? 3 : 4))|0;
+      lanes = two ? [start, start+1] : [start];
+    }
+    addCluster(kind, z, lanes, index);
+    z += OBST_MIN_GAP + 6 + Math.random()*22;
+  }
+}
+function cullObstacles(){
+  obstacles = obstacles.filter(o => o.z >= S.z - 20);
+  obGroups = obGroups.filter(og => {
+    if (og.z < S.z - 20){
+      scene.remove(og.group);
+      og.group.traverse(o => { if (o.userData.dispose) o.userData.dispose(); });
+      return false;
+    }
+    og.group.position.y = trackY(og.z);          // stay welded to the track, like the gates
+    og.group.visible = og.z < S.z + OBST_SEE;
+    return true;
+  });
+}
+function clearObstacles(){
+  obGroups.forEach(og => { scene.remove(og.group);
+    og.group.traverse(o => { if (o.userData.dispose) o.userData.dispose(); }); });
+  obGroups = []; obstacles = []; obstacleLog.length = 0; lastObZ = -999;
+}
+/* does the cart, as it is right now, get through this piece? */
+function clears(o){
+  if (o.kind === "low")  return S.jy >= BARRIER_TOP;
+  if (o.kind === "high") return ducking() && S.jy <= 0.35;
+  return false;                                   // a wall is only cleared by not being in its lane
+}
+function hitObstacle(o){
+  o.hit = true;
+  if (S.boostT > 0 || S.invT > 0) return;         // ⚡ smashes straight through, and the grace window protects
+  if (S.shield){
+    S.shield = false; S.invT = 1.2;
+    flashMsg("🛡️ Shield took it!", "#7fe9ff", 1.1);
+    Snd.sweep(300, 900, 0.25, 0.22);
+    hud(); return;
+  }
+  S.hearts--; S.invT = 1.6; S.shakeT = 0.45; S.hitT = 0.5;
+  S.streak = 0;
+  S.speed = Math.max(SPEED0, S.speed - SPEED_STEP*2);
+  hurtFlash(); Snd.thud();
+  flashMsg("💥 CRASH!", "#ff6675", 1.0);
+  hud();
+  if (S.hearts <= 0){ setTimeout(() => Snd.file("21-gta-wasted", 0.8), 420); endRun(false); }
+}
+function updateObstacles(prevZ){
+  for (const o of obstacles){
+    if (o.hit || o.scored) continue;
+    if (!(S.z >= o.z - 1.4 && prevZ <= o.z + 1.4)) continue;
+    if (Math.abs(S.x - o.x) >= o.halfW + CART_HALF){ o.scored = true; S.dodged++; continue; }
+    if (clears(o)){ o.scored = true; S.dodged++; continue; }
+    hitObstacle(o);
+  }
+}
+
+/* ============================ power-ups ============================ */
+const PUPS = {
+  magnet: {emoji:"🧲", label:"MAGNET", col:"#b58cff", cls:"mag"},
+  shield: {emoji:"🛡️", label:"SHIELD", col:"#7fe9ff", cls:"shd"},
+  boost:  {emoji:"⚡", label:"BOOST",  col:"#ffd23f", cls:"bst"}
+};
+const PUP_KEYS = Object.keys(PUPS);
+let pups = [];
+const pupTexCache = {};
+function pupTex(emoji){
+  if (pupTexCache[emoji]) return pupTexCache[emoji];
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const g = c.getContext("2d");
+  const r = g.createRadialGradient(64,64,0,64,64,64);
+  r.addColorStop(0,"rgba(255,255,255,.9)"); r.addColorStop(0.55,"rgba(255,255,255,.25)"); r.addColorStop(1,"rgba(255,255,255,0)");
+  g.fillStyle = r; g.fillRect(0,0,128,128);
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = "88px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+  g.fillText(emoji, 64, 70);
+  return (pupTexCache[emoji] = new THREE.CanvasTexture(c));
+}
+function placePup(index){
+  if (index === 0 || Math.random() > 0.62) return;
+  const gz = gateZ(index), prev = gateZ(index - 1);
+  const lo = prev + OBST_AFTER + 10, hi = gz - GATE_GAP*OBST_CLEAR - 8;
+  if (hi <= lo) return;
+  let z = lo + Math.random()*(hi - lo);
+  // never right on top of an obstacle cluster
+  for (const o of obstacleLog) if (Math.abs(o.z - z) < 12) z = o.z + 16;
+  if (z > hi) return;
+  const key = PUP_KEYS[(Math.random()*PUP_KEYS.length)|0];
+  const lane = (Math.random()*4)|0;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:pupTex(PUPS[key].emoji), transparent:true,
+                                                        depthWrite:false, fog:false}));
+  sp.scale.set(2.2, 2.2, 1);
+  sp.position.set(LANES[lane], trackY(z) + 2.0, z);
+  scene.add(sp);
+  pups.push({key, z, x:LANES[lane], sprite:sp, taken:false, t:Math.random()*6});
+}
+function grabPup(p){
+  p.taken = true; scene.remove(p.sprite);
+  S.pups++;
+  const d = PUPS[p.key];
+  if (p.key === "magnet") S.magT = MAGNET_SECS;
+  else if (p.key === "shield") S.shield = true;
+  else { S.boostT = BOOST_SECS; S.invT = Math.max(S.invT, BOOST_SECS); }
+  flashMsg(d.emoji + " " + d.label + "!", d.col, 1.2);
+  Snd.power();
+  burst(p.x, trackY(p.z) + 2.0, p.z, new THREE.Color(d.col).getHex());
+  hud();
+}
+function updatePups(dt, prevZ){
+  for (const p of pups){
+    if (p.taken) continue;
+    p.t += dt;
+    p.sprite.position.y = trackY(p.z) + 2.0 + Math.sin(p.t*2.6)*0.22;
+    p.sprite.material.rotation = Math.sin(p.t*1.6)*0.25;
+    p.sprite.visible = p.z < S.z + OBST_SEE;
+    if (p.z >= prevZ - 1.6 && p.z <= S.z + 1.6 && Math.abs(S.x - p.x) < 1.9) grabPup(p);
+  }
+  pups = pups.filter(p => {
+    if (p.taken) return false;
+    if (p.z < S.z - 12){ scene.remove(p.sprite); return false; }
+    return true;
+  });
+}
+function clearPups(){ pups.forEach(p => scene.remove(p.sprite)); pups = []; }
+
+/* ============================ run goals (missions) ============================
+   Three small jobs per ride. They are the thing that makes a run feel like it
+   went somewhere even when the station is a long way off.                  */
+const MISSION_POOL = [
+  {id:"gems",   label:"Collect {n} gems",       n:[14,20,26], get:()=>S.gems},
+  {id:"streak", label:"{n} right in a row",     n:[3,4,5],    get:()=>S.bestStreak},
+  {id:"dist",   label:"Ride {n} m",             n:[600,1000,1400], get:()=>Math.floor(S.z)},
+  {id:"dodge",  label:"Clear {n} obstacles",    n:[6,9,12],   get:()=>S.dodged},
+  {id:"pups",   label:"Grab {n} power-ups",     n:[1,2,3],    get:()=>S.pups},
+  {id:"right",  label:"Answer {n} correctly",   n:[3,5,7],    get:()=>S.right}
+];
+let missions = [];
+function rollMissions(){
+  const pool = shuffle(MISSION_POOL.slice()).slice(0,3);
+  missions = pool.map(m => {
+    const n = m.n[(Math.random()*m.n.length)|0];
+    return {id:m.id, n, get:m.get, done:false, label:m.label.replace("{n}", n)};
+  });
+  renderMissions();
+}
+function renderMissions(){
+  const box = $("missions");
+  box.classList.toggle("hide", !S.running || !missions.length);
+  box.innerHTML = "";
+  missions.forEach(m => {
+    const d = document.createElement("div");
+    d.className = "ms" + (m.done ? " done" : "");
+    const have = Math.min(m.n, m.get());
+    d.innerHTML = "<b>" + (m.done ? "✅ DONE" : "GOAL") + "</b>" + m.label +
+                  (m.done ? "" : " <span style='color:#ffd23f'>" + have + "/" + m.n + "</span>");
+    box.appendChild(d);
+  });
+}
+function checkMissions(){
+  let changed = false;
+  for (const m of missions){
+    if (m.done) continue;
+    if (m.get() >= m.n){
+      m.done = true; changed = true;
+      S.score += 250; S.coins += 10;
+      flashMsg("🏅 GOAL DONE: " + m.label, "#3ddc84", 1.6);
+      Snd.sweep(520, 1400, 0.3, 0.2);
+    }
+  }
+  if (changed){ hud(); renderMissions(); }
+}
+let missTick = 0;
+
+/* ============================ best ever ============================ */
+function readBest(){
+  try {
+    const raw = localStorage.getItem(BEST_KEY);
+    const b = raw ? JSON.parse(raw) : null;
+    return (b && typeof b === "object") ? {dist:+b.dist||0, gems:+b.gems||0, score:+b.score||0, right:+b.right||0} : {dist:0,gems:0,score:0,right:0};
+  } catch(e){ return {dist:0,gems:0,score:0,right:0}; }
+}
+function writeBest(b){ try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch(e){} }
+
 /* ============================ HUD + messages ============================ */
 function hud(){
   $("hearts").textContent = "❤️".repeat(Math.max(0,S.hearts)) + "🖤".repeat(Math.max(0,5-S.hearts));
@@ -867,7 +1300,13 @@ function hud(){
   const th = THEMES[S.route] || THEMES.mine;
   const rb = $("routeBox"); rb.textContent = th.icon + " " + th.name; rb.style.color = th.ui; rb.style.borderColor = th.ui;
   $("scoreBox").textContent = "SCORE " + S.score;
-  $("speedBox").textContent = "⛏ " + Math.round(S.speed*3) + " mph";
+  $("distBox").textContent = Math.floor(Math.max(0,S.z)) + " m";
+  $("speedBox").textContent = "⛏ " + Math.round(S.eff*3) + " mph";
+  const pb = $("pups"); pb.innerHTML = "";
+  const add = (cls, txt) => { const s = document.createElement("span"); s.className = "pu " + cls; s.textContent = txt; pb.appendChild(s); };
+  if (S.magT > 0)   add("mag", "🧲 " + Math.ceil(S.magT) + "s");
+  if (S.shield)     add("shd", "🛡️");
+  if (S.boostT > 0) add("bst", "⚡ " + Math.ceil(S.boostT) + "s");
 }
 let msgT = 0;
 function flashMsg(text, color, secs){
@@ -936,7 +1375,7 @@ function updateQuestionUI(){
     shownGate = g;
     box.classList.remove("hide"); row.classList.remove("hide");
     $("qkind").textContent = ({reading:"📖 READING", other:"🧪 OTHER"}[S.subject] || "🔢 MATH")
-      + "  ·  GATE " + (g.index+1) + " / " + GATES;
+      + "  ·  GATE " + (g.index+1) + (S.endless ? "" : " / " + GATES);
     $("qtext").textContent = g.qd.q;
     // a fork is announced the moment its question comes up, long before the gate
     const qf = $("qfork");
@@ -963,21 +1402,81 @@ function updateQuestionUI(){
   [...row.children].forEach((d,i) => d.classList.toggle("in", i === lane));
 }
 
-/* ============================ input ============================ */
+/* ============================ input ============================
+   Steer   : tap / hold the left or right half, or A D / ⬅ ➡ / a stick
+   Jump    : swipe UP anywhere, or ⬆ / W / Space while riding
+   Duck    : swipe DOWN anywhere, or hold ⬇ / S
+   A swipe wins over a tap: if the finger travels far enough up or down before
+   it lifts, the steer it started is cancelled so a swipe never yanks a lane. */
+const JUMP_KEYS = ["arrowup","w"], DUCK_KEYS = ["arrowdown","s"];
+const inputLog = {jumpKey:0, jumpTouch:0, duckKey:0, duckTouch:0};
+function doJump(src){
+  if (!S.running || S.paused || S.ended) return false;
+  if (S.air || S.duckT > 0) return false;
+  S.vy = JUMP_V; S.air = true; S.jy = Math.max(S.jy, 0.001);
+  Snd.sweep(380, 900, 0.18, 0.14);
+  if (src === "key") inputLog.jumpKey++; else if (src === "touch") inputLog.jumpTouch++;
+  return true;
+}
+function doDuck(src, held){
+  if (!S.running || S.paused || S.ended) return false;
+  if (S.air){ S.vy = Math.min(S.vy, -GRAV*0.22); }     // a duck in mid-air slams you back down
+  S.duckT = Math.max(S.duckT, DUCK_SECS);
+  if (held) S.duckHeld = true;
+  Snd.sweep(700, 220, 0.16, 0.12);
+  if (src === "key") inputLog.duckKey++; else if (src === "touch") inputLog.duckTouch++;
+  return true;
+}
 const keys = {};
 addEventListener("keydown", e => {
-  keys[e.key.toLowerCase()] = true;
+  const k = e.key.toLowerCase();
+  const wasDown = keys[k];
+  keys[k] = true;
   if (e.key === " " || e.key === "Enter"){
-    if (!S.running && !$("startOv").classList.contains("hide")) start();
-    else if (S.ended) restart();
+    if (!S.running && !$("startOv").classList.contains("hide")){ start(); return; }
+    if (S.ended){ restart(); return; }
+    if (S.running){ e.preventDefault(); doJump("key"); return; }   // space = jump while riding
   }
+  if (JUMP_KEYS.indexOf(k) >= 0 && !wasDown){ e.preventDefault(); doJump("key"); }
+  if (DUCK_KEYS.indexOf(k) >= 0){ e.preventDefault(); if (!wasDown) doDuck("key", true); else S.duckHeld = true; }
 });
-addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+addEventListener("keyup", e => {
+  const k = e.key.toLowerCase();
+  keys[k] = false;
+  if (DUCK_KEYS.indexOf(k) >= 0 && !DUCK_KEYS.some(d => keys[d])) S.duckHeld = false;
+});
 let touchDir = 0;
 const steerBox = $("steer");
-steerBox.addEventListener("pointerdown", e => { touchDir = (e.clientX < innerWidth/2) ? -1 : 1; e.preventDefault(); });
-addEventListener("pointerup", () => touchDir = 0);
-addEventListener("pointercancel", () => touchDir = 0);
+const SWIPE = 26;                       // pixels of travel before a drag counts as a swipe
+let gest = null;
+function gestStart(e, steer){
+  gest = {id:e.pointerId, x:e.clientX, y:e.clientY, fired:false, steer:!!steer};
+  if (steer) touchDir = (e.clientX < innerWidth/2) ? -1 : 1;
+}
+function gestMove(e){
+  if (!gest || e.pointerId !== gest.id || gest.fired) return;
+  const dx = e.clientX - gest.x, dy = e.clientY - gest.y;
+  if (Math.abs(dy) < SWIPE || Math.abs(dy) <= Math.abs(dx)) return;
+  gest.fired = true; touchDir = 0;                        // the swipe cancels the tap-steer
+  if (dy < 0) doJump("touch"); else doDuck("touch", false);
+}
+function gestEnd(){ gest = null; touchDir = 0; }
+steerBox.addEventListener("pointerdown", e => { gestStart(e, true); e.preventDefault(); });
+$("wrap").addEventListener("pointerdown", e => {                 // swipes above the steer strip work too
+  if (gest || e.target.closest("button")) return;
+  if (steerBox.contains(e.target)) return;
+  gestStart(e, false);
+});
+addEventListener("pointermove", gestMove);
+addEventListener("pointerup", gestEnd);
+addEventListener("pointercancel", gestEnd);
+/* real touch events too: some mobile browsers do not raise pointer events on a canvas */
+addEventListener("touchmove", e => {
+  if (!gest || gest.fired || !e.changedTouches.length) return;
+  const t = e.changedTouches[0];
+  gestMove({pointerId:gest.id, clientX:t.clientX, clientY:t.clientY});
+  if (S.running) e.preventDefault();
+}, {passive:false});
 function readSteer(){
   let s = 0;
   if (keys["a"] || keys["arrowleft"]) s -= 1;
@@ -1000,24 +1499,41 @@ function start(){
   const subj = document.querySelector("#subjRow button.on");
   S.subject = subj ? subj.dataset.s : "math";
   $("startOv").classList.add("hide");
+  $("endOv").classList.add("hide");        // a ride started straight from the summary clears it
   $("steer").classList.remove("hide");
-  S.running = true; S.ended = false; S.z = 0; S.x = 0; S.speed = SPEED0;
+  S.running = true; S.ended = false; S.z = 0; S.x = 0; S.speed = SPEED0; S.eff = SPEED0;
   S.hearts = 5; S.score = 0; S.gate = 0; S.right = 0; S.asked = 0; S.steerTo = null;
   S.gems = 0; S.route = "mine"; lastForkRoute = null; routeLog.length = 0;
+  S.jy = 0; S.vy = 0; S.air = false; S.duckT = 0; S.duckHeld = false;
+  S.magT = 0; S.boostT = 0; S.shield = false; S.pups = 0; S.invT = 0; S.hitT = 0;
+  S.dodged = 0; S.streak = 0; S.bestStreak = 0;
   Snd.start();
   gates.forEach(clearGate); gates = []; hills.length = 0; banks.length = 0; shownGate = null;
-  clearGems(); Theme.to("mine", 0);                   // a second ride starts back in the plain mine
+  clearGems(); clearObstacles(); clearPups(); rollMissions();
+  Theme.to("mine", 0);                                // a second ride starts back in the plain mine
   // put the tunnel back under the cart: on a second ride the segments were
   // still parked far down the track, so the whole ride rendered black
   segments.forEach((sg,i) => { sg.position.z = i*SEG; });
   for (let i=0;i<3;i++) spawnGate(S.gate++);
   hud(); last = performance.now();
 }
-function restart(){ $("endOv").classList.add("hide"); $("startOv").classList.remove("hide"); S.running = false; S.ended = false; }
+function restart(){
+  $("endOv").classList.add("hide"); $("startOv").classList.remove("hide");
+  $("missions").classList.add("hide");
+  S.running = false; S.ended = false;
+}
 $("goBtn").onclick = start;
+$("endlessBtn").onclick = () => {
+  S.endless = !S.endless;
+  const b = $("endlessBtn");
+  b.classList.toggle("on", S.endless);
+  b.textContent = "♾️ Endless ride: " + (S.endless ? "ON" : "OFF");
+};
 if (EMBED){
   const c = parseInt(QS.get("coins"),10); if (isFinite(c) && c >= 0) S.coins = c;
   const g = parseInt(QS.get("gates"),10); if (isFinite(g) && g >= 1 && g <= 20) GATES = g;
+  S.endless = false;                    // the dungeon asked for a fixed number of gates
+  $("endlessBtn").style.display = "none";
   addEventListener("keydown", e => { if (e.key === "Escape") toGame({type:"close"}); });
   setTimeout(() => { $("startOv").classList.add("hide"); start(); }, 250);
 } else if (window.Wallet){ S.coins = Wallet.coins(); Wallet.resetSync(S.coins); }   // shared arcade wallet
@@ -1031,12 +1547,33 @@ $("subjRow").onclick = e => {
 };
 
 function endRun(won){
+  if (S.ended) return;
   S.running = false; S.ended = true;
   $("steer").classList.add("hide"); $("qbox").classList.add("hide"); $("helpBtn").classList.add("hide");
-  $("answers").classList.add("hide"); shownGate = null;
+  $("answers").classList.add("hide"); $("missions").classList.add("hide"); shownGate = null;
+  const dist = Math.floor(Math.max(0, S.z));
+  const doneMs = missions.filter(m => m.done).length;
   $("endTitle").textContent = won ? "🏁 STATION!" : "💥 THE CART STOPPED";
-  $("endLine").innerHTML = `You got <b>${S.right}</b> of <b>${S.asked}</b> right`
-    + ` · <b>${S.score}</b> points · <b>💎 ${S.gems}</b> gems · <b>🪙 ${S.coins}</b> coins`
+  $("sumDist").textContent = dist + "m";
+  $("sumGems").textContent = S.gems;
+  $("sumRight").textContent = S.right + "/" + S.asked;
+  $("sumMiss").textContent = doneMs + "/" + missions.length;
+  $("sumScore").textContent = S.score;
+  $("sumCoins").textContent = S.coins;
+  $("sumMsList").innerHTML = missions.map(m =>
+    `<div class="${m.done ? "done" : ""}">${m.done ? "✅" : "▫️"} ${m.label}` +
+    (m.done ? "" : ` &middot; got to ${Math.min(m.n, m.get())}`) + `</div>`).join("");
+  // best ever, per stat, kept on this device only
+  const best = readBest();
+  const beat = [];
+  if (dist > best.dist){ best.dist = dist; beat.push("distance"); }
+  if (S.gems > best.gems){ best.gems = S.gems; beat.push("gems"); }
+  if (S.score > best.score){ best.score = S.score; beat.push("score"); }
+  if (S.right > best.right){ best.right = S.right; beat.push("right answers"); }
+  writeBest(best);
+  $("bestLine").innerHTML = (beat.length ? "🏆 NEW BEST: " + beat.join(", ") + "!<br>" : "")
+    + `Best ever: ${best.dist}m · 💎 ${best.gems} · ${best.score} pts · ${best.right} right`;
+  $("endLine").innerHTML = `You cleared <b>${S.dodged}</b> obstacles and your best answer streak was <b>${S.bestStreak}</b>.`
     + (won ? "" : "<br>Out of hearts! Jump back on.");
   $("endOv").classList.remove("hide");
   if (EMBED){
@@ -1067,6 +1604,7 @@ function judge(g){
   const picked = g.qd.choices[lane];
   if (picked === g.qd.a){
     S.right++;
+    S.streak++; S.bestStreak = Math.max(S.bestStreak, S.streak);
     S.score += 100 + Math.round(S.speed*2);
     S.coins += 5;
     S.speed = Math.min(SPEED_MAX, S.speed + SPEED_STEP);
@@ -1076,7 +1614,7 @@ function judge(g){
     setTimeout(() => Snd.pick(SFX_WIN, 0.8), 260);   // a funny win sound every single time
     if (hasBank()) MathBank.record(true, g.qd.kind);
   } else {
-    S.hearts--;
+    S.hearts--; S.streak = 0;
     S.speed = Math.max(SPEED0, S.speed - SPEED_STEP*2);
     flashMsg("❌ It was " + g.qd.a, "#ff6675");
     if (g.fork) takeRoute("dusty", false);
@@ -1084,9 +1622,10 @@ function judge(g){
     Snd.pick(SFX_MISS, 0.8);
     if (hasBank()) MathBank.record(false, g.qd.kind);
   }
-  hud();
+  hud(); checkMissions();
   if (S.hearts <= 0){ setTimeout(() => Snd.file("21-gta-wasted", 0.8), 420); endRun(false); return; }
-  if (S.gate < GATES) spawnGate(S.gate++);
+  // endless: the track never runs out, so there is always another gate ahead
+  if (S.endless || S.gate < GATES) spawnGate(S.gate++);
   else if (gates.every(x => x.done)) setTimeout(() => { Snd.file("50-ta-daaa", 0.8); endRun(true); }, 900);
 }
 
@@ -1101,10 +1640,24 @@ function frame(now){
 function step(dt, now){
   Theme.tick(dt);
 
-  Snd.roll(dt, S.speed + boostAt(S.z), S.running && !S.paused && !S.ended);
+  /* the speed the world actually moves at, hard-clamped so a 7-year-old never
+     meets a pace he has not already ridden at */
+  S.eff = Math.min(HARD_CAP, S.speed + boostAt(S.z) + (S.boostT > 0 ? BOOST_ADD : 0));
+  Snd.roll(dt, S.eff, S.running && !S.paused && !S.ended);
   if (S.running && !S.paused){
     const prevZ = S.z;
-    S.z += (S.speed + boostAt(S.z)) * dt;
+    S.z += S.eff * dt;
+    // jump arc + duck timer
+    if (S.air){
+      S.vy -= GRAV*dt; S.jy += S.vy*dt;
+      if (S.jy <= 0){ S.jy = 0; S.vy = 0; S.air = false; Snd.sweep(240, 120, 0.09, 0.10); }
+    } else S.jy = 0;                      // grounded means EXACTLY on the rails, no drift
+    if (S.duckT > 0) S.duckT = Math.max(0, S.duckT - dt);
+    if (S.duckHeld) S.duckT = Math.max(S.duckT, 0.08);
+    if (S.invT > 0) S.invT -= dt;
+    if (S.hitT > 0) S.hitT -= dt;
+    if (S.boostT > 0) S.boostT = Math.max(0, S.boostT - dt);
+    if (S.magT > 0)   S.magT   = Math.max(0, S.magT - dt);
     for (const g of gates) g.group.position.y = trackY(g.z);
     while (hills.length && hills[0].z < S.z - 80) hills.shift();
     while (banks.length && banks[0].z < S.z - 80) banks.shift();
@@ -1119,12 +1672,17 @@ function step(dt, now){
     S.x = Math.max(LANES[3]-0.8, Math.min(LANES[0]+0.8, S.x));
 
     updateGems(dt, prevZ);
+    updatePups(dt, prevZ);
+    updateObstacles(prevZ);
+    cullObstacles();
     for (const g of gates) if (!g.done && S.z >= g.z) judge(g);
     gates = gates.filter(g => {
       if (g.z < S.z - 30){ clearGate(g); return false; }
       return true;
     });
     updateQuestionUI();
+    missTick -= dt;
+    if (missTick <= 0){ missTick = 0.25; checkMissions(); renderMissions(); hud(); }
   }
 
   // recycle tunnel segments so the tunnel never ends, and sit each one on the hill
@@ -1137,11 +1695,28 @@ function step(dt, now){
 
   // camera rides just behind and above the cart
   const roll = bankRoll(S.z);
-  cart.position.set(S.x, trackY(S.z) + 0.05, S.z);   // ride on top of the sleepers, never through them
+  /* THE CART SITS ON THE RAILS. Its y is the track height plus the 0.05 that
+     keeps the wheels above the sleepers, plus the jump arc and nothing else.
+     S.jy is exactly 0 whenever the cart is grounded, so there is no drift and
+     no clipping: CART.railCheck() samples this against trackY across a run. */
+  cart.position.set(S.x, trackY(S.z) + 0.05 + S.jy, S.z);
+  // the rider squashes down for a duck, the cart body never moves
+  const rider = cart.userData.rider;
+  if (rider){
+    const d = ducking() ? 1 : 0;
+    rider.userData.k = (rider.userData.k === undefined ? 0 : rider.userData.k);
+    rider.userData.k += (d - rider.userData.k) * Math.min(1, dt*16);
+    const k = rider.userData.k;
+    rider.position.y = -1.25*k;
+    rider.scale.set(1 + 0.25*k, 1 - 0.45*k, 1);
+  }
+  if (cart.userData.bubble) cart.userData.bubble.visible = !!S.shield;
+  // a hit makes the cart flicker so the grace window is obvious
+  cart.visible = !(S.invT > 0 && !S.shield && S.boostT <= 0 && (Math.floor(now/70) % 2 === 0) && S.hitT > 0);
   const sway = Math.sin(now/90) * 0.04 + (S.shakeT>0 ? (Math.random()-0.5)*0.25 : 0);
   cart.rotation.z = readSteer()*0.07 + sway*0.3 + roll*0.6;
-  cart.rotation.x = -Math.atan(slope(S.z));
-  camera.position.set(S.x*0.8, trackY(S.z-11) + 4.4 + sway, S.z - 11);
+  cart.rotation.x = -Math.atan(slope(S.z)) + (S.air ? -S.vy*0.02 : 0);
+  camera.position.set(S.x*0.8, trackY(S.z-11) + 4.4 + sway + S.jy*0.45, S.z - 11);
   camera.up.set(Math.sin(roll), Math.cos(roll), 0);           // the view leans through a banked curve
   camera.lookAt(S.x*0.9, trackY(S.z+16) + 2.4, S.z + 16);
   if (S.shakeT > 0){
@@ -1168,7 +1743,59 @@ window.CART = {
   theme:()=>({name:Theme.name, t:Theme.t, wall:mat.wall.color.getHexString(), fog:scene.fog.color.getHexString(),
               fogD:+scene.fog.density.toFixed(4), glow:mat.glow.color.getHexString()}),
   soundOn:()=>Snd.isOn(), mute:()=>{ if (Snd.isOn()){ Snd.toggle(); $("muteBtn").textContent = "🔇"; } return Snd.isOn(); },
-  segmentsZ:()=>segments.map(s=>s.position.z)
+  segmentsZ:()=>segments.map(s=>s.position.z),
+
+  /* ---------- runner test surface ---------- */
+  jump:(src)=>doJump(src||"key"), duck:(src,h)=>doDuck(src||"key", !!h), unduck:()=>{ S.duckHeld = false; },
+  inputLog, ducking, missions:()=>missions, obstacles:()=>obstacles, obstacleLog, pups:()=>pups,
+  OB_CONST:{JUMP_V, GRAV, BARRIER_TOP, BEAM_BOTTOM, CART_HALF, OBST_CLEAR, OBST_AFTER,
+            OBST_MIN_GAP, OBST_SEE, HARD_CAP, SPEED0, SPEED_MAX, BOOST_ADD, STEER, LANES, GATE_GAP},
+  best:readBest,
+  /* the cart's vertical offset from the rails, right now. Grounded = exactly 0.05. */
+  railOffset:()=> +(cart.position.y - trackY(S.z)).toFixed(6),
+  /* every rule that makes an obstacle passable, checked over the whole log */
+  auditObstacles(){
+    const log = obstacleLog.slice().sort((a,b) => a.z - b.z);
+    const bad = [];
+    const clusters = {};
+    for (const o of log){ (clusters[o.z] = clusters[o.z] || []).push(o); }
+    for (const z in clusters){
+      const set = clusters[z];
+      const kinds = [...new Set(set.map(s => s.kind))];
+      if (kinds.length > 1) bad.push({z:+z, why:"two kinds share a z: " + kinds.join("+")});
+      if (set[0].kind === "wall"){
+        const lanes = [...new Set([].concat(...set.map(s => s.lanes || [])))];
+        if (lanes.length >= LANES.length) bad.push({z:+z, why:"a wall covers every lane"});
+        if (lanes.length > 2) bad.push({z:+z, why:"a wall covers " + lanes.length + " lanes"});
+        lanes.sort((a,b)=>a-b);
+        for (let i=1;i<lanes.length;i++) if (lanes[i] - lanes[i-1] !== 1) bad.push({z:+z, why:"wall lanes not adjacent"});
+      }
+    }
+    const zs = Object.keys(clusters).map(Number).sort((a,b)=>a-b);
+    let minGap = Infinity;
+    for (let i=1;i<zs.length;i++) minGap = Math.min(minGap, zs[i] - zs[i-1]);
+    if (zs.length > 1 && minGap < OBST_MIN_GAP - 0.001) bad.push({why:"clusters only " + minGap.toFixed(2) + " apart"});
+    let minBeforeGate = Infinity;
+    for (const o of log) minBeforeGate = Math.min(minBeforeGate, o.distBeforeGate);
+    if (minBeforeGate < GATE_GAP*OBST_CLEAR - 0.001) bad.push({why:"an obstacle sits " + minBeforeGate.toFixed(2) + " before a gate"});
+    const byKind = {};
+    for (const z of zs) byKind[clusters[z][0].kind] = (byKind[clusters[z][0].kind]||0) + 1;
+    const pieces = log.reduce((n,o) => n + o.pieces, 0);
+    const twoLane = log.filter(o => o.lanes && o.lanes.length > 1).length;
+    return {clusters:zs.length, pieces, twoLaneWalls:twoLane, byKind, minGap:zs.length>1?+minGap.toFixed(2):null,
+            minBeforeGate:+minBeforeGate.toFixed(2), unavoidable:bad.length, problems:bad};
+  },
+  /* reaction window in ms for each kind, at a given world speed */
+  reactionWindow(speed){
+    const out = {};
+    for (const k of ["low","high","wall"]) out[k] = {
+      seeMs: Math.round(OBST_SEE/speed*1000),
+      chevronMs: Math.round(20/speed*1000),
+      actMs: k === "wall" ? Math.round((3/STEER)*1000) : (k === "low" ? Math.round((JUMP_V/GRAV)*1000) : 120)
+    };
+    return {speed, window:out};
+  },
+  setBest:(v)=>writeBest(v), BEST_KEY
 };
 })();
 </script>
