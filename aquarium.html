@@ -20,18 +20,17 @@ html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk)
 button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 a{color:var(--blue)}
 
-#app{display:flex;flex-direction:column;height:100%;width:100%}
+#app{display:flex;flex-direction:column;height:100%;width:100%;position:relative;overflow:hidden}
 
-/* ---------- HUD ---------- */
+/* ---------- HUD: money, the fish counter, arcade coins. Nothing else. ---------- */
 #hud{display:flex;align-items:center;gap:9px;padding:6px 12px;font-weight:800;font-size:15px;
-  text-shadow:0 2px 4px #000;background:linear-gradient(180deg,rgba(4,9,20,.92),rgba(4,9,20,0));flex:0 0 auto;z-index:6}
+  text-shadow:0 2px 4px #000;background:linear-gradient(180deg,rgba(4,9,20,.92),rgba(4,9,20,0));flex:0 0 auto;z-index:8}
 #hud .sp{flex:1}
 #hud span{white-space:nowrap}
-#dayBox{color:var(--chalk)}
-#visBox{color:var(--blue)}
-#lvlBox{color:var(--dim);font-size:13px}
 #moneyBox{color:var(--good)}
+#fishBox{color:var(--blue)}
 #coinBox{color:var(--gold);font-size:13px}
+#lvlBox{color:var(--dim);font-size:12px}
 #moneyBox.spend{animation:spend .5s}
 @keyframes spend{30%{transform:scale(1.18);color:var(--bad)}}
 #moneyBox.earn{animation:earn .6s}
@@ -40,52 +39,60 @@ a{color:var(--blue)}
   min-width:44px;height:36px;display:flex;align-items:center;justify-content:center}
 #quitBtn{color:var(--dim);font-size:14px}
 @media (max-width:620px){ #lvlBox{display:none} #hud{gap:6px;font-size:14px} }
-/* a narrow phone: the whole bar has to fit, buttons included */
 @media (max-width:430px){
   #hud{gap:5px;padding:5px 8px;font-size:13px}
-  #visBox,#coinBox{font-size:11px}
+  #fishBox,#coinBox{font-size:11px}
   #muteBtn,#quitBtn{min-width:38px;height:32px;font-size:14px}
 }
 
-/* ---------- main split ---------- */
-#main{flex:1 1 auto;min-height:0;display:flex;gap:10px;padding:0 10px 10px;width:100%;max-width:1220px;margin:0 auto}
-#scene{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px;min-height:0}
-#panel{flex:0 0 322px;display:flex;flex-direction:column;gap:6px;background:linear-gradient(180deg,#132340,#0a1528);
-  border:2px solid var(--edge);border-radius:16px;padding:8px 10px;min-height:0}
-
-/* ---------- room bar (the real estate) ---------- */
-#roomBar{flex:0 0 auto;display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 3px;scrollbar-width:none}
-#roomBar::-webkit-scrollbar{display:none}
-.rchip{flex:0 0 auto;background:#132340;border:2px solid var(--edge);border-radius:12px;padding:5px 10px;
-  font-weight:800;font-size:13px;min-height:40px;display:flex;flex-direction:column;justify-content:center;line-height:1.15;text-align:left}
-.rchip small{display:block;font-size:10px;color:var(--dim);font-weight:700}
-.rchip.on{background:linear-gradient(180deg,#1d3d6e,#12294d);border-color:var(--blue);color:#fff}
-.rchip.on small{color:#bfe6ff}
-.rchip.lock{opacity:.85;border-style:dashed;border-color:#6a5a1f}
-.rchip.lock small{color:var(--gold)}
-.rchip.buy{border-color:var(--gold);background:#2b2410}
-.rchip.buy small{color:var(--gold)}
-
-/* ---------- the aquarium canvas ---------- */
-#tankWrap{flex:1 1 auto;min-height:0;position:relative;border-radius:16px;overflow:hidden;
-  box-shadow:0 0 0 3px #1b3054,0 10px 22px rgba(0,0,0,.55);background:#06101f}
-#tankCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+/* ---------- THE PARK. The whole screen is the park, and he walks it. ---------- */
+#world{flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:#06101f}
+#parkCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #bubble{position:absolute;left:8px;right:8px;top:6px;z-index:3;background:#f4f7fb;color:#0e1a2c;border-radius:14px;
   padding:6px 10px;font-weight:800;font-size:clamp(13px,2.2vw,17px);line-height:1.3;text-align:center;
-  box-shadow:0 5px 12px rgba(0,0,0,.5);transition:opacity .25s;pointer-events:none}
+  box-shadow:0 5px 12px rgba(0,0,0,.5);transition:opacity .25s;pointer-events:none;max-width:560px;margin:0 auto}
 #bubble.hide{opacity:0}
 #bubble .who{display:block;font-size:.74em;color:#4a5f7d;font-weight:700}
 #bubble .amt{color:#116b3a}
 #sceneTag{position:absolute;left:8px;bottom:6px;z-index:3;font-size:12px;font-weight:800;color:#bfe6ff;
   background:rgba(4,12,24,.72);border-radius:8px;padding:2px 8px;pointer-events:none}
+#starBadge{position:absolute;right:8px;top:6px;z-index:3;font-size:13px;font-weight:900;color:#1a1405;
+  background:var(--gold);border-radius:999px;padding:3px 10px;pointer-events:none;box-shadow:0 3px 8px rgba(0,0,0,.45)}
+@media (max-height:440px){ #sceneTag{font-size:10px} #starBadge{font-size:11px;padding:2px 8px} }
 
-/* ---------- panel tabs ---------- */
-#tabs{display:flex;gap:5px;flex:0 0 auto}
-.tab{flex:1;background:#0d1a30;border:2px solid var(--edge);border-radius:10px;min-height:38px;font-weight:800;font-size:13px;
-  display:flex;align-items:center;justify-content:center;gap:4px}
-.tab.on{background:var(--blue);color:#06121b;border-color:var(--blue)}
-.tab .bdg{background:var(--bad);color:#fff;border-radius:999px;font-size:10px;padding:0 5px;line-height:15px}
-.tab.on .bdg{background:#06121b;color:var(--blue)}
+/* ---------- the bottom bar: COLLECTION, PLAY, SECRET ---------- */
+#dock{flex:0 0 auto;display:flex;gap:6px;padding:5px 8px 7px;z-index:8;
+  background:linear-gradient(0deg,rgba(4,9,20,.96),rgba(4,9,20,.4))}
+#dock button{flex:1;min-height:46px;border-radius:13px;background:#132340;border:2px solid var(--edge);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:19px;line-height:1}
+#dock button small{font-size:9px;font-weight:900;letter-spacing:1px;color:var(--dim)}
+#dock button.on{background:linear-gradient(180deg,#1d3d6e,#12294d);border-color:var(--blue)}
+#dock button.on small{color:#bfe6ff}
+#dock button.lock{opacity:.7;border-style:dashed;border-color:#6a5a1f}
+#dock button.lock small{color:var(--gold)}
+#dock button.ready{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,210,63,.35)}
+#dock button:active{transform:translateY(2px)}
+@media (max-height:440px){
+  #dock{padding:3px 6px 4px;gap:5px}
+  #dock button{min-height:36px;font-size:15px;border-radius:10px}
+  #dock button small{font-size:8px}
+}
+
+/* ---------- THE SHEET. Every maths panel and every buy list opens in here. ---------- */
+#sheet{position:absolute;left:0;right:0;bottom:0;max-height:100%;z-index:12;display:none;flex-direction:column;
+  padding:0 8px 8px;pointer-events:none}
+#sheet.on{display:flex}
+#sheetCard{pointer-events:auto;width:100%;max-width:560px;margin:0 auto;max-height:100%;overflow:hidden;
+  background:linear-gradient(180deg,#132340,#0a1528);border:2px solid var(--edge);
+  border-radius:16px;padding:7px 10px 9px;display:flex;flex-direction:column;gap:6px;min-height:0;
+  box-shadow:0 -8px 26px rgba(0,0,0,.6);animation:rise .22s ease}
+@keyframes rise{from{transform:translateY(24px);opacity:.3}}
+#sheetHead{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+#sheetTitle{font-weight:900;font-size:15px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sheetHead .sp{flex:1}
+#sheetClose{background:#08101f;border:2px solid var(--edge);border-radius:999px;min-width:38px;height:32px;
+  font-size:14px;color:var(--dim);display:flex;align-items:center;justify-content:center}
+#sheetBody{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;overflow:hidden}
 
 .pane{display:none;flex-direction:column;gap:6px;min-height:0;flex:1 1 auto;overflow:hidden}
 .pane.on{display:flex}
@@ -124,11 +131,8 @@ a{color:var(--blue)}
 #pad button.ok{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
 #pad.off{opacity:.35;pointer-events:none}
 
-/* making change */
-/* The change step has to survive a 375px-tall phone held sideways: the till
-   is the only part allowed to shrink and scroll, so "Give change" is pinned
-   at the bottom and can never be pushed off the panel. Measured before this
-   was added: the button sat at y=415 in a panel that ended at y=362. */
+/* making change: the till is the only part allowed to shrink and scroll, so
+   "Give change" is pinned at the bottom and can never be pushed off. */
 #changeBox{display:none;flex-direction:column;gap:5px;min-height:0;flex:1 1 auto;overflow:hidden}
 #changeBox.on{display:flex}
 #paidLine{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:800;font-size:14px;
@@ -157,7 +161,7 @@ a{color:var(--blue)}
   box-shadow:0 3px 0 rgba(0,0,0,.45);font-family:"Trebuchet MS",sans-serif;
   background:linear-gradient(180deg,#cfe8c4,#8fbf7a);color:#1c3a14;border:2px solid #4f7a3f}
 
-/* ---------- market + build panes ---------- */
+/* ---------- the buy lists ---------- */
 .list{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px;-webkit-overflow-scrolling:touch}
 .row{display:flex;align-items:center;gap:8px;background:#0d1a30;border:2px solid var(--edge);border-radius:12px;
   padding:6px 8px;min-height:52px;flex:0 0 auto}
@@ -198,25 +202,82 @@ a{color:var(--blue)}
 .stat small{display:block;font-size:11px;color:var(--dim);font-weight:700}
 .stat b{color:var(--good)}
 
-/* ---------- portrait phone ---------- */
-@media (max-aspect-ratio:4/5){
-  #main{flex-direction:column;gap:7px}
-  #panel{flex:0 0 auto;max-height:61%}
-  #scene{flex:1 1 auto;min-height:150px}
-  #tankWrap{min-height:120px}
-  .list{max-height:38vh}
+/* =====================================================================
+   COLLECTION CARDS. The grade ladder is the one already shipped in
+   pokesudoku.html and the vocabulary is the same: Normal, Shiny, Full
+   Art, Gold, and three copies of one grade become one of the next. A
+   duplicate is never a disappointment, it is fuel.
+   ===================================================================== */
+.g1{border-color:#6be7ff !important;
+    box-shadow:0 0 0 2px rgba(107,231,255,.45),0 0 16px rgba(107,231,255,.45) !important}
+.g2{border-width:5px !important;border-color:#c86bff !important;
+    box-shadow:0 0 0 3px rgba(200,107,255,.3),0 0 20px rgba(200,107,255,.45) !important}
+.g3{border-color:var(--gold) !important;
+    box-shadow:0 0 0 3px rgba(255,210,63,.5),0 0 26px rgba(255,210,63,.6) !important;
+    background-image:linear-gradient(135deg,rgba(255,210,63,.26),rgba(255,210,63,0) 46%,rgba(255,210,63,.3))}
+.g1::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background-image:radial-gradient(rgba(255,255,255,.9) 1px,transparent 1.5px);
+  background-size:20px 20px;opacity:.55;animation:sparkle 2.4s linear infinite}
+@keyframes sparkle{to{background-position:20px 20px}}
+@media (prefers-reduced-motion:reduce){ .g1::before{animation:none} }
+
+/* the level-up card, tap to flip */
+#upOv .card{position:relative;width:150px;height:208px;margin:8px auto 0;perspective:900px}
+#upOv .flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transition:transform .7s cubic-bezier(.3,1.3,.5,1)}
+#upOv .card.open .flip{transform:rotateY(180deg)}
+#upOv .face{position:absolute;inset:0;border-radius:13px;overflow:hidden;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border:3px solid #3c4c5a;background:#243039}
+#upOv .face.bk{background:radial-gradient(circle at 50% 36%,#2e6a8a 0%,#0d1a26 74%);border-color:#4f7d99}
+#upOv .card:not(.open):active .flip{transform:scale(.96)}
+#upOv .face.fr{transform:rotateY(180deg)}
+#upOv .face .e{font-size:58px;line-height:1;position:relative;z-index:1}
+#upOv .face .n{font-size:15px;font-weight:900;color:#eef3f8;position:relative;z-index:1}
+#upOv .face .gd{font-size:11px;font-weight:900;letter-spacing:.8px;color:#aebcc9;position:relative;z-index:1}
+#upOv .face .vl{font-size:13px;font-weight:900;color:var(--gold);position:relative;z-index:1}
+#upOv .face .newtag{position:absolute;top:6px;left:6px;z-index:3;background:var(--good);color:#06121b;
+  font-size:10px;font-weight:900;letter-spacing:1px;border-radius:6px;padding:2px 6px}
+#upOv .face .uptag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;
+  background:var(--gold);color:#1a1405;font-size:10px;font-weight:900;letter-spacing:.6px;border-radius:6px;padding:2px 7px}
+#upOv .tap{font-size:11px;font-weight:800;color:#aebcc9;letter-spacing:1.5px;margin-top:8px}
+#upMsg{font-size:15px;font-weight:800;color:#cfd8e0;min-height:20px;margin-top:6px}
+#upMsg .up{color:var(--gold)} #upMsg .nw{color:var(--good)}
+
+/* the binder grid */
+#binder{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:660px;margin:6px auto 0}
+.bc{position:relative;overflow:hidden;width:92px;background:#243039;border:2px solid #33424f;border-radius:12px;
+  padding:5px 3px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 3px 0 #111820}
+.bc .e{font-size:30px;line-height:1;position:relative;z-index:1}
+.bc .n{font-size:11px;font-weight:800;color:#dfe7ee;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;z-index:1}
+.bc .gd{font-size:9px;font-weight:900;letter-spacing:.5px;color:#9fb0c0;position:relative;z-index:1}
+.bc.g1 .gd{color:#6be7ff} .bc.g2 .gd{color:#c86bff} .bc.g3 .gd{color:var(--gold)}
+.bc .nx{font-size:9px;font-weight:800;color:var(--dim);position:relative;z-index:1}
+.bc .cnt{position:absolute;top:2px;right:3px;z-index:3;font-size:11px;font-weight:900;line-height:1;
+  color:#0c1117;background:var(--gold);border-radius:6px;padding:2px 5px}
+.bc.un{background:#161e25;border-color:#26313a}
+.bc.un .e{filter:brightness(0);opacity:.75}
+.bc.un .n{color:#56636e;letter-spacing:2px}
+@media (max-height:440px){
+  .bc{width:74px;padding:3px 2px 4px}
+  .bc .e{font-size:22px}
+  .bc .n{font-size:10px}
+  #upOv .card{width:104px;height:148px;margin-top:4px}
+  #upOv .face .e{font-size:38px}
+  #upOv .face .n{font-size:12px}
+  #upMsg{font-size:13px;min-height:16px;margin-top:3px}
 }
 
 /* ---------- phone held sideways ---------- */
 @media (max-height:440px){
   #hud{font-size:12px;padding:3px 10px;gap:7px}
-  #lvlBox{font-size:11px} #coinBox{font-size:11px}
+  #coinBox{font-size:11px}
   #muteBtn,#quitBtn{height:30px;min-width:44px;font-size:13px}
-  #main{gap:8px;padding:0 8px 6px}
-  #panel{flex-basis:306px;padding:5px 7px;gap:4px;border-radius:12px}
-  .tab{min-height:32px;font-size:12px;border-radius:9px}
+  #sheet{padding:0 6px 5px}
+  #sheetCard{padding:5px 7px 6px;gap:4px;border-radius:12px;max-width:520px}
+  #sheetTitle{font-size:13px}
+  #sheetClose{height:28px;min-width:34px}
   #hintBtn{font-size:11px;padding:4px 6px;min-height:30px}
-  .tab{min-height:30px}
   .pane{gap:4px}
   #ask{font-size:12px;padding:4px 6px;line-height:1.25;max-height:54px;min-height:38px}
   #msg{font-size:11px;min-height:0;max-height:28px;line-height:1.22}
@@ -242,11 +303,8 @@ a{color:var(--blue)}
   .row .nm{font-size:12px} .row .sub{font-size:10px}
   .buy{min-height:38px;font-size:12px;min-width:58px}
   .qty button{height:34px;width:29px;font-size:17px}
-  .rchip{font-size:11px;min-height:34px;padding:3px 8px}
-  .rchip small{font-size:9px}
   #bubble{font-size:12px;padding:4px 8px}
-  #sceneTag{font-size:10px}
-  .big{font-size:34px}
+  .big{font-size:30px}
   .bigbtn{font-size:16px;padding:9px 16px;min-height:44px;margin-top:8px}
   .screen{padding:8px}
   .screen h1{font-size:22px;margin-bottom:2px}
@@ -260,77 +318,80 @@ a{color:var(--blue)}
 
 <div id="app">
   <div id="hud">
-    <span id="dayBox">DAY 1</span>
-    <span id="visBox">VISITOR 1/8</span>
-    <span id="lvlBox"></span>
-    <span class="sp"></span>
-    <span id="moneyBox">&#x1F4B5; $30</span>
+    <span id="moneyBox">&#x1F4B5; $45</span>
+    <span id="fishBox">&#x1F41F; 0/0</span>
     <span id="coinBox">&#x1FA99; 0</span>
+    <span class="sp"></span>
+    <span id="lvlBox"></span>
     <button id="quitBtn" title="Start over" aria-label="Start over">&#x2716;</button>
     <button id="muteBtn" title="Sound on or off" aria-label="Sound on or off">&#x1F50A;</button>
   </div>
 
-  <div id="main">
-    <div id="scene">
-      <div id="roomBar"></div>
-      <div id="tankWrap">
-        <canvas id="tankCanvas"></canvas>
-        <div id="bubble" class="hide"></div>
-        <div id="sceneTag"></div>
-      </div>
-    </div>
+  <div id="world">
+    <canvas id="parkCanvas"></canvas>
+    <div id="bubble" class="hide"></div>
+    <div id="sceneTag"></div>
+    <div id="starBadge">&#x2B50; 1</div>
 
-    <div id="panel">
-      <div id="tabs">
-        <button class="tab on" id="tabServe">&#x1F39F;&#xFE0F; Serve<span class="bdg" id="serveBdg" style="display:none">1</span></button>
-        <button class="tab" id="tabMarket">&#x1F41F; Market</button>
-        <button class="tab" id="tabBuild">&#x1F528; Build</button>
+  <!-- THE SHEET: every maths panel and every buy list opens in here, and it
+       only opens because he walked somewhere. -->
+  <div id="sheet">
+    <div id="sheetCard">
+      <div id="sheetHead">
+        <span id="sheetTitle">&#x2026;</span><span class="sp"></span>
+        <button id="sheetClose" type="button" title="Close" aria-label="Close">&#x2716;</button>
       </div>
+      <div id="sheetBody">
 
-      <!-- SERVE -->
-      <div class="pane on" id="paneServe">
-        <div id="stepTitle"><span id="stepName">A visitor is coming</span><span class="sp"></span><button id="hintBtn">&#x1F4A1; Hint <span id="hintPrice">&#x1FA99;2</span><span class="need hide" id="hintNeed"></span></button></div>
-        <div id="ask">Tap "Open the gates" to begin.</div>
-        <div id="msg"></div>
-        <a id="helpLink" href="subtract-helper.html" target="_blank" rel="noopener">&#x2796; Stuck taking away? Open the subtracting helper</a>
-        <div id="numBox">
-          <div id="display" class="wait">Waiting for a visitor</div>
-          <div id="pad" class="off"></div>
-        </div>
-        <div id="changeBox">
-          <div id="paidLine"><span>Tickets <b id="plTotal">$0</b></span><span>Paid <b id="plPaid">$0</b></span></div>
-          <div id="till"></div>
-          <div id="handLine">In your hand: <b id="handAmt">$0</b></div>
-          <div id="tray" class="empty"></div>
-          <div id="chBtns">
-            <button class="buy no" id="clearBtn" style="flex:1">&#x21A9;&#xFE0E; Take back</button>
-            <button class="buy" id="giveBtn" style="flex:1">Give change &#x2713;</button>
+        <!-- SERVE / BUY / GOAL: the maths -->
+        <div class="pane on" id="paneServe">
+          <div id="stepTitle"><span id="stepName">A visitor is coming</span><span class="sp"></span><button id="hintBtn">&#x1F4A1; Hint <span id="hintPrice">&#x1FA99;2</span><span class="need hide" id="hintNeed"></span></button></div>
+          <div id="ask">Walk to the ticket desk.</div>
+          <div id="msg"></div>
+          <a id="helpLink" href="subtract-helper.html" target="_blank" rel="noopener">&#x2796; Stuck taking away? Open the subtracting helper</a>
+          <div id="numBox">
+            <div id="display" class="wait">Waiting for a visitor</div>
+            <div id="pad" class="off"></div>
+          </div>
+          <div id="changeBox">
+            <div id="paidLine"><span>Tickets <b id="plTotal">$0</b></span><span>Paid <b id="plPaid">$0</b></span></div>
+            <div id="till"></div>
+            <div id="handLine">In your hand: <b id="handAmt">$0</b></div>
+            <div id="tray" class="empty"></div>
+            <div id="chBtns">
+              <button class="buy no" id="clearBtn" style="flex:1">&#x21A9;&#xFE0E; Take back</button>
+              <button class="buy" id="giveBtn" style="flex:1">Give change &#x2713;</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- MARKET -->
-      <div class="pane" id="paneMarket">
-        <div class="head" id="marketHead">BUY FISH &#x2014; they cost money, then they earn it back</div>
-        <div class="list" id="fishList"></div>
-      </div>
+        <!-- a plot, the podium or a locked door: what can go here and what it costs -->
+        <div class="pane" id="paneList">
+          <div class="head" id="listHead"></div>
+          <div class="list" id="listBody"></div>
+        </div>
 
-      <!-- BUILD -->
-      <div class="pane" id="paneBuild">
-        <div class="head" id="buildHead">TANKS, UPGRADES AND NEW ROOMS</div>
-        <div class="list" id="buildList"></div>
       </div>
     </div>
   </div>
+  </div><!-- /#world -->
+
+  <div id="dock">
+    <button id="dockCards" type="button">&#x1F5C2;&#xFE0F;<small>COLLECTION</small></button>
+    <button id="dockPlay" class="on" type="button">&#x25B6;&#xFE0F;<small>PLAY</small></button>
+    <button id="dockSecret" class="lock" type="button">&#x1F512;<small>SECRET</small></button>
+  </div>
+
 </div>
 
 <!-- START -->
 <div class="screen on" id="startScreen">
   <div class="big">&#x1F41F;</div>
   <h1>AQUARIUM TYCOON</h1>
-  <p>You own the aquarium. <b>Buy fish</b> at the market, <b>serve the visitors</b> who come to see them,
-     <b>collect the money</b>, then <b>build bigger tanks and whole new rooms</b>.</p>
-  <p>Every dollar comes from maths you got right. Nothing is earned by waiting.</p>
+  <p>You own the aquarium. <b>Walk</b> around it. Stand on an empty plot to build,
+     stand at the desk to serve the visitors, stand on the podium to upgrade.</p>
+  <p>Every dollar comes from maths you got right. Nothing is earned by waiting or by walking.</p>
+  <p style="color:#bfe6ff;font-weight:800">Move: <b>drag</b> or <b>tap where you want to go</b> &#xB7; arrow keys &#xB7; WASD</p>
   <p id="heroLine" class="accent" style="font-weight:800;color:#ffd23f"></p>
   <div class="stats" id="startStats"></div>
   <button class="bigbtn gold" id="startBtn">Open the gates</button>
@@ -345,6 +406,29 @@ a{color:var(--blue)}
   <button class="bigbtn gold" id="nextDayBtn">Open day 2</button>
 </div>
 
+<!-- LEVEL UP: one collection card, earned by playing -->
+<div class="screen" id="upOv">
+  <h1 id="upTitle">LEVEL UP!</h1>
+  <p id="upWhy"></p>
+  <div class="card" id="upCard">
+    <div class="flip">
+      <div class="face bk"><div class="e">&#x1F41A;</div><div class="tap">TAP TO TURN OVER</div></div>
+      <div class="face fr" id="upFront"></div>
+    </div>
+  </div>
+  <div id="upMsg"></div>
+  <button class="bigbtn gold" id="upDone">Back to the aquarium</button>
+</div>
+
+<!-- COLLECTION -->
+<div class="screen" id="dexOv">
+  <h1>YOUR COLLECTION</h1>
+  <p id="dexLine"></p>
+  <div id="binder"></div>
+  <p id="dexHow" style="font-size:12px">Three of one grade become one of the next: 3 Normal &#x2192; 1 Shiny, 3 Shiny &#x2192; 1 Full Art, 3 Full Art &#x2192; 1 Gold. A double is never wasted.</p>
+  <button class="bigbtn" id="dexDone">Back to the aquarium</button>
+</div>
+
 <script src="brain.js"></script>
 <script src="wallet.js"></script>
 <script>
@@ -354,25 +438,37 @@ a{color:var(--blue)}
 /* =====================================================================
    AQUARIUM TYCOON
    ---------------------------------------------------------------------
+   THE PARK (rebuilt 2026-09-30: the three tabs are gone)
+     He WALKS the park as his chosen hero. Buying is not a menu any more:
+     he stands on the thing he wants. An empty plot shows a dark
+     silhouette of what could go there and a floating price tag. A
+     chevron trail on the floor always points at the single most useful
+     thing he can actually afford to do next, so there is no tutorial
+     text anywhere. Levelling up hands him a collection card.
+
    THE LOOP
-     1. BUY STOCK   fish cost money at the market (and the bill is a
-                    multiplication he has to work out).
-     2. VISITORS    groups arrive and buy tickets. Working out what they
-                    owe, and the change from their note, is the maths.
-     3. COLLECT     ticket money + souvenir money lands in the till, and
-                    the receipt shows what each fish has earned back
-                    against what it cost.
-     4. UPGRADE     bigger tanks, better food, coral, lights, a gift shop
-                    and a feeding show. Each one has a price to reach.
-     5. EXPAND      five rooms of real estate. Each new room adds tank
-                    slots, which hold more fish, which draw bigger crowds.
+     1. BUY STOCK   fish cost money at the plot they will live in (and the
+                    bill is a multiplication he has to work out).
+     2. VISITORS    groups arrive at the ticket desk and buy tickets.
+                    Working out what they owe, and the change from their
+                    note, is the maths.
+     3. COLLECT     ticket money + souvenir money lands in the till.
+     4. UPGRADE     the podium with the green ring: bigger crowd pullers.
+     5. EXPAND      five rooms of real estate, each behind a door with a
+                    price on it. Each new room adds tank plots.
+     6. COLLECT CARDS  every park level hands out one fish card, and three
+                    of a grade become one of the next.
 
    MONEY RULES (hard, from the brief)
      * Aquarium dollars come ONLY from a correct answer. There is no idle
-       income, no offline timer, no come-back-later bonus and nothing at
-       all is paid for opening the game. Search this file for setInterval
-       / setTimeout / Date.now: every one of them is animation, a short
-       "nice one" pause, or the brain's own session clock. None add money.
+       income, no offline timer, no come-back-later bonus, nothing at all
+       is paid for opening the game, and WALKING EARNS NOTHING. Search
+       this file for setInterval and Date.now: there are none. Every
+       setTimeout is animation or a short "nice one" pause; none add
+       money. requestAnimationFrame moves the hero and nothing else.
+     * A collection card is a PICTURE, not a payslip. Its value is a
+       collection score shown on the card and in the binder; it is never
+       added to S.money, so the balance can only ever move on maths.
      * Aquarium dollars live in their OWN store: localStorage key
        "mdAquarium.v1", field `money`. The shared arcade purse
        ("mdWallet.v1", wallet.js) is NEVER credited or debited by
@@ -384,16 +480,16 @@ a{color:var(--blue)}
        power can never fall. Serving a visitor costs nothing and always
        pays more than zero. Every purchase is optional and is checked for
        affordability BEFORE it happens, so the balance can never go
-       negative. From any state at all, "serve the next visitor" is an
-       affordable move that earns money.
+       negative. The chevron trail is held to the same rule: it may only
+       ever point at something he can do right now, and the ticket desk
+       is always one of those things.
 
    STORAGE KEYS TOUCHED BY THIS FILE
-     mdAquarium.v1   (new, written here)  the whole aquarium + mute flag
+     mdAquarium.v1   (new, written here)  the aquarium, the cards, mute
      mdWallet.v1     (via wallet.js)      READ for the balance, SPEND for hints
      mdBrain.v1      (via brain.js)       READ for the level, RECORD answers
      mathDungeonChar (via home-button.js) READ only, to carry the hero
    ===================================================================== */
-
 const QS = new URLSearchParams(location.search);
 const KEY = "mdAquarium.v1";
 const COST_HINT = 2;             /* ARCADE coins, never aquarium dollars */
@@ -618,14 +714,72 @@ function rateQuestion(st, L){
 }
 
 /* =====================================================================
+   PARK LEVEL. It is a count of visitors served and NOTHING else: not a
+   clock, not money, not how long the tab was open. Each new level hands
+   out exactly one collection card. The gaps grow, so level 12 is real
+   work: 0, 4, 9, 15, 22, 30, 39, 49, 60, 72, 85, 99 ... served.
+   ===================================================================== */
+function parkNeed(L){ return ((L + 2) * (L + 3)) / 2 - 6; }      /* served needed for level L */
+function parkLevelFor(served){
+  served = Math.max(0, Math.floor(served) || 0);
+  let L = 1;
+  while (L < 99 && parkNeed(L + 1) <= served) L++;
+  return L;
+}
+const SECRET_AT = 3;                 /* the park level that opens the grotto */
+
+/* =====================================================================
+   COLLECTION CARDS. Same ladder and same words as pokesudoku.html:
+     3 Normal -> 1 Shiny, 3 Shiny -> 1 Full Art, 3 Full Art -> 1 Gold.
+   A duplicate is never a disappointment, it is fuel for the next grade.
+   Gold is 0% on every row on purpose: a Gold is EARNED on the ladder,
+   never handed out. Effort drives luck, and the only thing that moves
+   the odds is his BRAIN LEVEL, which only his maths can move.
+   ===================================================================== */
+const CARD = {
+  UPGRADE_AT: 3,        /* copies at one grade that become one of the next */
+  GUARANTEE_NEW: true,  /* a species he has never collected comes first */
+  /* brain level -> [Normal, Shiny, Full Art, Gold]; each row adds up to 1 */
+  ODDS: { 1:[0.94,0.06,0.00,0], 2:[0.94,0.06,0.00,0],
+          3:[0.88,0.11,0.01,0], 4:[0.88,0.11,0.01,0],
+          5:[0.82,0.16,0.02,0], 6:[0.82,0.16,0.02,0],
+          7:[0.75,0.22,0.03,0], 8:[0.75,0.22,0.03,0] }
+};
+const GRADES = [
+  { key:"normal", nm:"Normal",   cls:"g0", tag:"",  mult:1 },
+  { key:"shiny",  nm:"Shiny",    cls:"g1", tag:"✨", mult:2 },
+  { key:"full",   nm:"Full Art", cls:"g2", tag:"\u{1F5BC}️", mult:4 },
+  { key:"gold",   nm:"Gold",     cls:"g3", tag:"\u{1F3C6}", mult:8 }
+];
+const MAX_GRADE = GRADES.length - 1;
+/* a row that is missing, the wrong length, or does not add up to 1 falls
+   back to all-Normal, so a bad edit above can never invent a Gold. */
+function cardOdds(L){
+  const flat = [1, 0, 0, 0];
+  try {
+    const row = CARD.ODDS[L];
+    if (Object.prototype.toString.call(row) !== "[object Array]") return flat;
+    if (row.length !== GRADES.length) return flat;
+    let sum = 0; const out = [];
+    for (let i = 0; i < row.length; i++){
+      const v = Number(row[i]);
+      if (!isFinite(v) || v < 0) return flat;
+      sum += v; out.push(v);
+    }
+    return Math.abs(sum - 1) > 0.0005 ? flat : out;
+  } catch (e) { return flat; }
+}
+function blankCard(){ return { c:0, b:[0,0,0,0] }; }
+
+/* =====================================================================
    SAVE STATE
    ===================================================================== */
 function freshState(){
   return {
-    v: 1,
+    v: 2,
     money: Math.round(START_MONEY * PRICE_SCALE[Math.max(1, Math.min(8, brainLevel()))]),
     rooms: 1,                                   /* how many rooms are unlocked */
-    tanks: [{ t:"small", r:0 }],                /* one tank, in room index 0 */
+    tanks: [{ t:"small", r:0, s:0 }],           /* one tank, on plot 0 of room 0 */
     fish: [{ k:"guppy", cost:18, earned:0, t:0 }, { k:"guppy", cost:18, earned:0, t:0 }],
     up: {},                                     /* upgrade id -> 1 */
     day: 1, servedDay: 0, servedAll: 0,
@@ -633,7 +787,9 @@ function freshState(){
     goalsDone: {},                              /* item key -> 1, the once-ever planning bonus */
     mute: 0,
     lvl: Math.max(1, Math.min(8, brainLevel())),   /* the price rung this save is on */
-    room: 0                                     /* which room is on screen */
+    room: 0,                                    /* which room he is standing in */
+    plevel: 1,                                  /* park level already awarded */
+    cards: {}                                   /* fish id -> { c, b[4] } */
   };
 }
 function loadState(){
@@ -654,26 +810,162 @@ function loadState(){
   d.lvl      = (isFinite(lv) && lv >= 1 && lv <= 8) ? lv : Math.max(1, Math.min(8, brainLevel()));
   d.room     = num(raw.room, 0, d.rooms - 1, 0);
   if (Array.isArray(raw.tanks)){
-    d.tanks = raw.tanks.filter(t => t && TANK_BY[t.t]).map(t => ({ t: t.t, r: num(t.r, 0, ROOMS.length - 1, 0) }))
-                       .filter(t => t.r < d.rooms).slice(0, TOTAL_SLOTS);
-    if (!d.tanks.length) d.tanks = [{ t:"small", r:0 }];
+    const perRoom = {};
+    d.tanks = raw.tanks.filter(t => t && TANK_BY[t.t])
+                       .map(t => ({ t: t.t, r: num(t.r, 0, ROOMS.length - 1, 0), s: num(t.s, -1, 9, -1) }))
+                       .filter(t => t.r < d.rooms)
+                       /* a room can never hold more tanks than it has plots */
+                       .filter(t => { perRoom[t.r] = (perRoom[t.r] || 0) + 1; return perRoom[t.r] <= ROOMS[t.r].slots; })
+                       .slice(0, TOTAL_SLOTS);
+    if (!d.tanks.length) d.tanks = [{ t:"small", r:0, s:0 }];
   }
+  /* every tank stands on one named plot. A save written before plots existed
+     has no `s`, so the tanks in each room are laid out left to right into the
+     first free plots. Nothing is lost and nothing moves twice. */
+  normalizeSlots(d);
   if (Array.isArray(raw.fish)){
     d.fish = raw.fish.filter(f => f && FISH_BY[f.k])
-                     .map(f => ({ k: f.k, cost: num(f.cost, 0, 1e7, FISH_BY[f.k].cost), earned: num(f.earned, 0, 1e9, 0), t: num(f.t, 0, 63, 0) }));
+                     .map(f => ({ k: f.k, cost: num(f.cost, 0, 1e7, FISH_BY[f.k].cost), earned: num(f.earned, 0, 1e9, 0),
+                                  t: num(f.t, 0, Math.max(0, d.tanks.length - 1), 0) }));
   }
   if (raw.up && typeof raw.up === "object") UPGRADES.forEach(u => { if (raw.up[u.id]) d.up[u.id] = 1; });
   if (raw.goalsDone && typeof raw.goalsDone === "object"){
     Object.keys(raw.goalsDone).forEach(k => { if (typeof k === "string" && k.length < 40) d.goalsDone[k] = 1; });
   }
-  /* a save that somehow holds more fish than tank space keeps the fish and
-     is simply over-full: it can never block earning. */
+  /* the card binder: every copy count is clamped and the grade row is
+     re-cascaded, so a hand-edited save can never show a grade it did not
+     earn and can never hold more copies than it says it holds. */
+  if (raw.cards && typeof raw.cards === "object"){
+    FISH.forEach(f => {
+      const src = raw.cards[f.id];
+      if (!src || typeof src !== "object") return;
+      const e = blankCard();
+      let tot = 0;
+      if (Array.isArray(src.b)){
+        for (let g = 0; g < GRADES.length; g++){ const n = num(src.b[g], 0, 99999, 0); e.b[g] = n; tot += n * Math.pow(CARD.UPGRADE_AT, g); }
+      }
+      e.c = Math.max(tot, num(src.c, 0, 1e6, tot));
+      cardCascade(e);
+      if (e.c > 0) d.cards[f.id] = e;
+    });
+  }
+  /* An old save from before cards existed keeps its history but does NOT
+     get a shower of back-dated cards: its park level is taken as already
+     awarded. Nothing is ever handed out for time passing. */
+  const pl = Math.floor(Number(raw.plevel));
+  d.plevel = (isFinite(pl) && pl >= 1) ? Math.min(99, pl) : parkLevelFor(d.servedAll);
+  d.plevel = Math.max(d.plevel, 1);
   return d;
+}
+/* give every tank a plot of its own, keeping any plot it already claimed */
+function normalizeSlots(st){
+  const taken = {};
+  st.tanks.forEach(t => {
+    const n = ROOMS[t.r] ? ROOMS[t.r].slots : 0;
+    const key = t.r + ":" + t.s;
+    if (typeof t.s === "number" && t.s >= 0 && t.s < n && !taken[key]) taken[key] = 1;
+    else t.s = -1;
+  });
+  st.tanks.forEach(t => {
+    if (t.s >= 0) return;
+    const n = ROOMS[t.r] ? ROOMS[t.r].slots : 1;
+    for (let k = 0; k < n; k++){ if (!taken[t.r + ":" + k]){ t.s = k; taken[t.r + ":" + k] = 1; break; } }
+    if (t.s < 0) t.s = 0;
+  });
+  return st;
+}
+/* roll CARD.UPGRADE_AT copies at one grade up into the next, repeatedly */
+function cardCascade(e){
+  for (let g = 0; g < MAX_GRADE; g++){
+    while (e.b[g] >= CARD.UPGRADE_AT){ e.b[g] -= CARD.UPGRADE_AT; e.b[g + 1] += 1; }
+  }
+  return e;
 }
 const S = loadState();
 syncScale(S);                     /* the level may have moved in another game since the last visit */
 let SAVE_OFF = false;                 /* the automated test turns saving off */
 function save(){ if (SAVE_OFF) return; lsSet(KEY, JSON.stringify(S)); }
+/* =====================================================================
+   THE PARK MAP. World units, not pixels: the camera scales them to fit
+   whatever phone he is holding. Rooms sit side by side in a line with a
+   wall between each pair and a door gap through it, so "the next room"
+   is a real door he walks to and not a menu item.
+   ===================================================================== */
+const MAP = {
+  ROOM_W: 640, ROOM_H: 430,
+  WALL: 90,                 /* the gap between two rooms: wall + doorway */
+  DOOR_H: 150,              /* how tall the doorway is */
+  MARGIN: 26,               /* how close to a wall he can stand */
+  PLOT_TOP: 44, PLOT_H: 160, PLOT_GAP: 22,
+  DESK: { x: 44, y: 296, w: 158, h: 96 },       /* room 0 only, in room-local units */
+  PODIUM: { x: 398, y: 344, r: 56 },            /* room 0 only */
+  SECRET: { w: 640, h: 470 }
+};
+const DOOR_MID = MAP.ROOM_H * 0.62;
+const DOOR_LO = DOOR_MID - MAP.DOOR_H / 2, DOOR_HI = DOOR_MID + MAP.DOOR_H / 2;
+const PITCH = MAP.ROOM_W + MAP.WALL;
+function rx0(i){ return i * PITCH; }
+function rx1(i){ return i * PITCH + MAP.ROOM_W; }
+const clampN = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
+
+/* the tank plots in one room, in room-local coordinates */
+function plotsOf(i){
+  const rm = ROOMS[i], n = rm.slots, g = MAP.PLOT_GAP;
+  const w = (MAP.ROOM_W - g * (n + 1)) / n;
+  const out = [];
+  for (let s = 0; s < n; s++) out.push({ x: g + s * (w + g), y: MAP.PLOT_TOP, w: w, h: MAP.PLOT_H, slot: s, room: i });
+  return out;
+}
+/* which tank (index into S.tanks) is standing in room i slot s, or -1 */
+function tankAt(room, slot){
+  let k = -1;
+  for (let i = 0; i < S.tanks.length; i++){ if (S.tanks[i].r === room){ k++; if (k === slot) return i; } }
+  return -1;
+}
+function tanksInRoom(i){ return S.tanks.filter(t => t.r === i).length; }
+/* how many fish are in tank index ti, and how much room is left in it */
+function fishInTank(ti){ let n = 0; for (let i = 0; i < S.fish.length; i++) if (S.fish[i].t === ti) n++; return n; }
+function tankFree(ti){
+  const tk = S.tanks[ti]; if (!tk) return 0;
+  const t = TANK_BY[tk.t]; if (!t) return 0;
+  return Math.max(0, t.hold - fishInTank(ti));
+}
+/* is there a bigger tank than the one on this plot? A full tank is not a dead
+   end: it can always be traded up for one that holds more, on the same plot,
+   and the fish that are already in it stay put. */
+function biggerThan(ti){
+  const tk = S.tanks[ti]; if (!tk) return [];
+  const cur = TANK_BY[tk.t]; if (!cur) return [];
+  return TANKS.filter(t => t.hold > cur.hold);
+}
+function canTradeUp(ti){ return ti >= 0 && biggerThan(ti).length > 0; }
+/* how far right he is allowed to walk: to the far wall of the last room he
+   owns, or into the doorway of the next room so he can read its price */
+function worldRight(){
+  const last = S.rooms - 1;
+  return S.rooms < ROOMS.length ? (rx1(last) + MAP.WALL - 4) : (rx1(last) - MAP.MARGIN);
+}
+function worldLeft(){ return rx0(0) + MAP.MARGIN; }
+/* the wall gap he is standing in (returns the room index on its left), or -1 */
+function inGap(x){
+  for (let i = 0; i < ROOMS.length - 1; i++){ if (x > rx1(i) && x < rx0(i + 1)) return i; }
+  return -1;
+}
+function roomAtX(x){
+  for (let i = 0; i < ROOMS.length; i++){ if (x >= rx0(i) - 1 && x <= rx1(i) + 1) return i; }
+  return clampN(Math.floor(x / PITCH), 0, ROOMS.length - 1);
+}
+/* can he stand here? Walls are solid; the only way between rooms is the door. */
+function standable(x, y){
+  if (V.where === "secret"){
+    return x >= MAP.MARGIN && x <= MAP.SECRET.w - MAP.MARGIN &&
+           y >= MAP.MARGIN && y <= MAP.SECRET.h - MAP.MARGIN;
+  }
+  if (x < worldLeft() || x > worldRight()) return false;
+  const g = inGap(x);
+  if (g >= 0) return y >= DOOR_LO && y <= DOOR_HI;
+  return y >= MAP.MARGIN && y <= MAP.ROOM_H - MAP.MARGIN;
+}
 
 /* ---------- live (not saved) ---------- */
 const V = {
@@ -684,17 +976,21 @@ const V = {
   wrong: 0,             /* wrong tries on the current question */
   pend: null,           /* the pending "buy" or "goal" question */
   resume: null,         /* the serve step a purchase interrupted */
-  tab: "serve",
   cheerUntil: 0,
   timer: null,
-  running: false
+  running: false,
+  where: "park",        /* park | secret */
+  sheet: null,          /* what the open sheet is about, or null */
+  keys: {},             /* arrow keys and WASD held down right now */
+  gest: null,           /* the finger or mouse currently dragging */
+  moveTo: null,         /* a tap-to-move destination in world units */
+  firedZone: null,      /* the zone that already opened its sheet */
+  cardQ: [],            /* level-up cards waiting to be shown */
+  showing: null         /* the card on screen in the LEVEL UP overlay */
 };
+/* the hero, in world units. Nothing here is money and nothing here is time. */
+const P = { x: rx0(0) + 534, y: MAP.ROOM_H - 44, face: 1, walk: 0, sx: 0, sy: 0 };
 function later(fn, ms){ clearTimeout(V.timer); V.timer = setTimeout(() => { V.timer = null; fn(); }, ms); }
-
-/* =====================================================================
-   SOUND (same shape as the other games: a small synth plus the shared
-   sfx clips). Never a source of money, only feedback.
-   ===================================================================== */
 const GOOD_SFX = ["13-got-em","40-noice","48-ez","62-toasty","12-sheesh","33-hey-thats-pretty-good"];
 const BAD_SFX  = ["01-oof","10-bruh","61-say-what","67-ba-dun-dun"];
 const Snd = (function(){
@@ -783,25 +1079,36 @@ function coinsNow(){ if (!hasWallet()) return 0; try { return Wallet.coins(); } 
 function spendCoins(n){ if (!hasWallet()) return 0; try { return Wallet.spend(n, "aquarium hint"); } catch (e) { return 0; } }
 
 /* =====================================================================
-   HUD
+   HUD. Three things, the way the park reads best: what he has, how many
+   fish he is showing, and his arcade coins (because that is what a hint
+   costs and he must always be able to see whether he can pay for one).
+   Everything else moved into the park itself.
    ===================================================================== */
+function secretOpen(){ return S.plevel >= SECRET_AT; }
+function paintDock(){
+  const play = $("dockPlay"), sec = $("dockSecret"), cards = $("dockCards");
+  if (play) play.classList.toggle("on", V.where === "park");
+  if (cards) cards.classList.toggle("ready", V.cardQ.length > 0);
+  if (!sec) return;
+  const open = secretOpen();
+  sec.classList.toggle("lock", !open);
+  sec.classList.toggle("on", V.where === "secret");
+  sec.innerHTML = open
+    ? "\u{1F311}<small>GROTTO</small>"
+    : "\u{1F512}<small>⭐" + SECRET_AT + "</small>";
+  sec.title = open ? "The Midnight Grotto" : "Opens at park level " + SECRET_AT;
+}
 function paintHud(){
-  $("dayBox").textContent = "DAY " + S.day;
-  $("visBox").textContent = "VISITOR " + Math.min(PER_DAY, S.servedDay + 1) + "/" + PER_DAY;
   $("moneyBox").innerHTML = "\u{1F4B5} " + money(S.money);
+  $("fishBox").innerHTML = "\u{1F41F} " + S.fish.length + "/" + capacityOf(S);
   $("coinBox").innerHTML = "\u{1FA99} " + coinsNow();
+  const sb = $("starBadge"); if (sb) sb.innerHTML = "⭐ " + S.plevel;
   const lb = $("lvlBox");
   if (hasBrain()){ try { const p = Brain.progress(); lb.textContent = "\u{1F9E0} L" + p.level + " " + p.name; } catch (e) { lb.textContent = ""; } }
   else lb.textContent = "";
+  paintDock();
   paintHintBtn();
 }
-
-/* =====================================================================
-   HINTS. Will's arcade rule: "if hes out of hints, hes out of hints."
-   The balance is checked BEFORE anything happens, the button is dimmed
-   and says exactly what it costs. Hints are bought with ARCADE COINS.
-   There is no free infinite hint anywhere in this file.
-   ===================================================================== */
 function canAffordHint(){ return coinsNow() >= COST_HINT; }
 function paintHintBtn(){
   const b = $("hintBtn"); if (!b) return;
@@ -874,21 +1181,213 @@ function currentQuestion(){
 }
 
 /* =====================================================================
-   PANEL: tabs
+   THE SHEET. There is no tab bar any more. A panel only ever opens
+   because he WALKED somewhere: onto a plot, onto the podium, up to the
+   ticket desk, or into a locked doorway. The maths panels are exactly the
+   ones that were already here; only the way in changed.
    ===================================================================== */
-function setTab(name){
-  V.tab = name;
-  if (name === "serve"){ const bd = $("serveBdg"); if (bd) bd.style.display = "none"; }
-  ["serve","market","build"].forEach(k => {
-    $("tab" + k[0].toUpperCase() + k.slice(1)).classList.toggle("on", k === name);
-    $("pane" + k[0].toUpperCase() + k.slice(1)).classList.toggle("on", k === name);
+function showPane(name){
+  $("paneServe").classList.toggle("on", name === "serve");
+  $("paneList").classList.toggle("on", name === "list");
+}
+function sheetOn(){ return !!V.sheet; }
+function openSheet(spec){
+  V.sheet = spec;
+  $("sheet").classList.add("on");
+  repaintSheet();
+}
+function closeSheet(){
+  V.sheet = null;
+  $("sheet").classList.remove("on");
+  say("");
+}
+function isServeStep(){ return V.step === "bill" || V.step === "rate" || V.step === "change"; }
+function isMathsStep(){ return isServeStep() || V.step === "buy" || V.step === "goal"; }
+
+function repaintSheet(){
+  const sp = V.sheet;
+  if (!sp) return;
+  if (sp.kind === "serve" || sp.kind === "maths"){
+    $("sheetTitle").textContent = sp.kind === "serve"
+      ? "\u{1F39F}️ Ticket desk"
+      : (V.step === "goal" ? "\u{1F3AF} Saving goal" : "\u{1F4B3} Pay the supplier");
+    showPane("serve"); paintServe(); return;
+  }
+  showPane("list");
+  if (sp.kind === "plot") paintPlotSheet(sp);
+  else if (sp.kind === "podium") paintPodiumSheet();
+  else if (sp.kind === "gate") paintGateSheet(sp);
+}
+/* the maths panels open inside the same sheet, so a purchase question never
+   throws him out of the park */
+function openMaths(){
+  if (!V.sheet) { V.sheet = { kind:"maths" }; $("sheet").classList.add("on"); }
+  else V.sheet = { kind:"maths" };
+  $("sheetTitle").textContent = V.step === "goal" ? "\u{1F3AF} Saving goal" : "\u{1F4B3} Pay the supplier";
+  showPane("serve");
+}
+function refreshPanes(){ repaintSheet(); }
+function paintRooms(){ paintSceneTag(); }
+
+/* ---------------------------------------------------------------------
+   A PLOT. An empty one builds a tank. One with space buys fish for THAT
+   tank, so the fish he bought are in the tank he was standing at.
+   --------------------------------------------------------------------- */
+const mktQty = {};
+function paintPlotSheet(sp){
+  const list = $("listBody");
+  list.innerHTML = "";
+  const ti = tankAt(sp.room, sp.slot);
+  const rm = ROOMS[sp.room];
+
+  if (ti < 0){
+    $("sheetTitle").textContent = "\u{1F6A7} Empty plot · " + rm.name;
+    $("listHead").textContent = "BUILD A TANK HERE — a bigger tank holds more fish";
+    TANKS.forEach(t => {
+      const tc = priceOf(t.cost, S);
+      const afford = tc <= S.money;
+      const have = S.tanks.filter(x => x.t === t.id).length;
+      const r = document.createElement("div");
+      r.className = "row" + (afford ? "" : " poor");
+      r.innerHTML = '<div class="ic">' + t.e + '</div><div class="txt"><div class="nm">' + t.n +
+        '</div><div class="sub">holds ' + t.hold + " fish · " + money(tc) + (have ? " · you have " + have : "") + "</div></div>";
+      const b = document.createElement("button");
+      if (afford){ b.className = "buy"; b.innerHTML = "Build<br>" + money(tc); b.onclick = () => buyTankAt(t, sp.room, sp.slot); }
+      else { b.className = "buy short"; b.innerHTML = "Need<br>" + money(tc - S.money) + " more"; b.onclick = () => startGoal("tank:" + t.id, t.n, tc); }
+      r.appendChild(b);
+      list.appendChild(r);
+    });
+    return;
+  }
+
+  const tk = S.tanks[ti], td = TANK_BY[tk.t];
+  const free = tankFree(ti);
+  $("sheetTitle").textContent = (td ? td.e + " " + td.n : "Tank") + " · " + rm.name;
+  $("listHead").textContent = "BUY FISH FOR THIS TANK — " + free + " space" + (free === 1 ? "" : "s") + " left in it";
+  if (free <= 0){
+    const bigger = biggerThan(ti);
+    $("listHead").textContent = bigger.length
+      ? "THIS TANK IS FULL — trade it up for one that holds more"
+      : "THIS TANK IS FULL — and it is already the biggest there is";
+    const r = document.createElement("div");
+    r.className = "row own";
+    r.innerHTML = '<div class="ic">✅</div><div class="txt"><div class="nm">' + (td ? td.n : "Tank") +
+                  ', ' + (td ? td.hold : 0) + ' fish, full</div>' +
+                  '<div class="sub">' + (bigger.length
+                    ? "A bigger tank goes on this same plot and the fish already in here stay put."
+                    : "Build on an empty plot, or open the next room.") + "</div></div>";
+    list.appendChild(r);
+    bigger.forEach(t => {
+      const tc = priceOf(t.cost, S);
+      const afford = tc <= S.money;
+      const rr = document.createElement("div");
+      rr.className = "row" + (afford ? "" : " poor");
+      rr.innerHTML = '<div class="ic">' + t.e + '</div><div class="txt"><div class="nm">' + t.n +
+        '</div><div class="sub">holds ' + t.hold + " fish, " + (t.hold - (td ? td.hold : 0)) +
+        " more than now · " + money(tc) + "</div></div>";
+      const b = document.createElement("button");
+      if (afford){ b.className = "buy"; b.innerHTML = "Trade up<br>" + money(tc); b.onclick = () => tradeUpTank(t, sp.room, sp.slot); }
+      else { b.className = "buy short"; b.innerHTML = "Need<br>" + money(tc - S.money) + " more"; b.onclick = () => startGoal("tank:" + t.id, t.n, tc); }
+      rr.appendChild(b);
+      list.appendChild(rr);
+    });
+    return;
+  }
+  FISH.forEach(f => {
+    if (!fishUnlocked(S, f)){
+      list.appendChild(row(f.e, f.n, "Opens with " + ROOMS[f.room - 1].name, null, "locked", true));
+      return;
+    }
+    const have = S.fish.filter(x => x.k === f.id).length;
+    const back = S.fish.filter(x => x.k === f.id).reduce((a, x) => a + x.earned, 0);
+    const q = Math.max(1, Math.min(6, free, mktQty[f.id] || 1));
+    mktQty[f.id] = q;
+    const unit = priceOf(f.cost, S);
+    const total = q * unit;
+    const sub = money(unit) + " each · pull " + f.attract +
+                (have ? "<br>" + have + " here, earned back " + money(back) : "");
+    const r = document.createElement("div");
+    r.className = "row" + (total > S.money ? " poor" : "");
+    r.innerHTML = '<div class="ic">' + f.e + '</div><div class="txt"><div class="nm">' + f.n +
+                  '</div><div class="sub">' + sub + "</div></div>";
+    const qw = document.createElement("div");
+    qw.className = "qty";
+    const minus = document.createElement("button"); minus.textContent = "−"; minus.type = "button";
+    const nn = document.createElement("span"); nn.className = "n"; nn.textContent = q;
+    const plus = document.createElement("button"); plus.textContent = "+"; plus.type = "button";
+    minus.onclick = () => { mktQty[f.id] = Math.max(1, q - 1); Snd.tick(); repaintSheet(); };
+    plus.onclick  = () => { mktQty[f.id] = Math.min(6, free, q + 1); Snd.tick(); repaintSheet(); };
+    qw.appendChild(minus); qw.appendChild(nn); qw.appendChild(plus);
+    r.appendChild(qw);
+    const b = document.createElement("button");
+    const afford = total <= S.money;
+    b.className = "buy" + (afford ? "" : " short");
+    b.innerHTML = afford ? "Buy<br>" + money(total) : "Need<br>" + money(total - S.money) + " more";
+    b.onclick = () => afford ? startBuyFish(f, q, total, unit, ti) : startGoal("fish:" + f.id, f.n + " × " + q, total);
+    r.appendChild(b);
+    list.appendChild(r);
   });
-  if (name === "market") paintMarket();
-  if (name === "build") paintBuild();
+}
+
+/* ---------------------------------------------------------------------
+   THE PODIUM. The green ring on the floor of the Splash Pool.
+   --------------------------------------------------------------------- */
+function paintPodiumSheet(){
+  const list = $("listBody");
+  list.innerHTML = "";
+  const owned = UPGRADES.filter(u => S.up[u.id]).length;
+  $("sheetTitle").textContent = "\u{1F6E0}️ Upgrade podium";
+  $("listHead").textContent = "UPGRADES — " + owned + " of " + UPGRADES.length + " built";
+  UPGRADES.forEach(u => {
+    const own = !!S.up[u.id];
+    const uc = priceOf(u.cost, S);
+    const afford = uc <= S.money;
+    const r = document.createElement("div");
+    r.className = "row" + (own ? " own" : (afford ? "" : " poor"));
+    const eff = u.mult ? ("crowd pull ×" + u.mult.toFixed(2).replace(/0$/, "")) : ("+" + money(headOf(u.perHead, S)) + " per visitor");
+    r.innerHTML = '<div class="ic">' + u.e + '</div><div class="txt"><div class="nm">' + u.n +
+      '</div><div class="sub">' + (own ? "Built ✓ · " + eff : u.what + " · " + eff) + "</div></div>";
+    const b = document.createElement("button");
+    if (own){ b.className = "buy no"; b.innerHTML = "Built<br>✓"; b.onclick = () => Snd.tick(); }
+    else if (afford){ b.className = "buy"; b.innerHTML = "Build<br>" + money(uc); b.onclick = () => buyUpgrade(u); }
+    else { b.className = "buy short"; b.innerHTML = "Need<br>" + money(uc - S.money) + " more"; b.onclick = () => startGoal("up:" + u.id, u.n, uc); }
+    r.appendChild(b);
+    list.appendChild(r);
+  });
+}
+
+/* ---------------------------------------------------------------------
+   A LOCKED DOOR. The price is painted on the door in the park; this is
+   where he pays it.
+   --------------------------------------------------------------------- */
+function paintGateSheet(sp){
+  const list = $("listBody");
+  list.innerHTML = "";
+  const i = sp.room;
+  const rm = ROOMS[i];
+  if (!rm || i !== S.rooms){ closeSheet(); return; }
+  const rc = priceOf(rm.cost, S);
+  const afford = rc <= S.money;
+  $("sheetTitle").textContent = "\u{1F6AA} Locked door";
+  $("listHead").textContent = "A WHOLE NEW ROOM — more plots, and new fish at the market";
+  const r = document.createElement("div");
+  r.className = "row" + (afford ? "" : " poor");
+  r.innerHTML = '<div class="ic">' + rm.e + '</div><div class="txt"><div class="nm">' + rm.name +
+    '</div><div class="sub">' + rm.slots + " tank plots · " + money(rc) + "</div></div>";
+  const b = document.createElement("button");
+  if (afford){ b.className = "buy"; b.innerHTML = "Unlock<br>" + money(rc); b.onclick = () => buyRoom(i); }
+  else { b.className = "buy short"; b.innerHTML = "Need<br>" + money(rc - S.money) + " more"; b.onclick = () => startGoal("room:" + rm.id, rm.name, rc); }
+  r.appendChild(b);
+  list.appendChild(r);
+  const fresh = FISH.filter(f => f.room === i + 1);
+  if (fresh.length){
+    list.appendChild(row("\u{1F195}", "New fish in here",
+      fresh.map(f => f.e + " " + f.n).join(", "), null, "", false));
+  }
 }
 
 /* =====================================================================
-   SERVE: a visitor group arrives, buys tickets, maybe needs change.
+   SERVE: a visitor group walks in and waits at the ticket desk.
    ===================================================================== */
 const VISITORS = [
   { e:"\u{1F468}\u{200D}\u{1F3EB}", n:"A school class" }, { e:"\u{1F46A}", n:"The Patel family" },
@@ -926,18 +1425,18 @@ function nextVisitor(){
   }
   V.cust = c; V.wrong = 0; V.typed = ""; V.tray = [];
   V.step = isRate ? "rate" : "bill";
-  /* never yank him out of the market or the build list mid-shop: the Serve
-     tab just lights up to say somebody is waiting at the gate */
-  if (V.tab === "serve") setTab("serve");
-  else { const bd = $("serveBdg"); if (bd) bd.style.display = ""; }
   showChange(false);
+  /* they queue at the desk. If he is already standing there the till opens
+     by itself; if he is off building, they wait and the chevron trail turns
+     round and points back at the desk. He is never yanked out of a shop. */
+  if (V.where === "park" && zoneId() === "desk" && !sheetOn()) openSheet({ kind:"serve" });
+  else if (V.sheet && (V.sheet.kind === "serve")) repaintSheet();
   paintServe();
   bubble(c.n + " walks in", isRate
     ? "“How many fish will we see today?”"
     : "“" + c.group + " tickets, please.”");
   Snd.splash();
 }
-
 function paintServe(){
   const c = V.cust;
   const sn = $("stepName"), ask = $("ask"), d = $("display"), pad = $("pad");
@@ -1174,6 +1673,7 @@ function collect(){
     });
   }
   S.servedAll++; S.servedDay++;
+  checkParkLevel();                 /* a card, if this serve crossed a level */
   V.cheerUntil = performance.now() + 1400;
   Snd.kaching();
   const bits = ["Tickets " + money(r.bill)];
@@ -1186,8 +1686,11 @@ function collect(){
   $("pad").classList.add("off");
   save(); paintHud(); paintRooms(); refreshPanes();
 
-  if (S.servedDay >= PER_DAY) later(endDay, 1100);
-  else later(() => { $("stepName").textContent = "Next visitor is here"; nextVisitor(); }, 1100);
+  const cont = (S.servedDay >= PER_DAY)
+    ? endDay
+    : function(){ $("stepName").textContent = "Next visitor is here"; nextVisitor(); };
+  if (V.cardQ.length){ V.afterCard = cont; later(showNextCard, 950); }
+  else later(cont, 1100);
 }
 
 /* ---------- end of a "day" (a counter of 8 visitors, never a clock) ---------- */
@@ -1205,6 +1708,8 @@ function endDay(){
     stat(S.fish.length + "", "fish") +
     stat(S.tanks.length + " / " + slotsOf(S), "tanks") +
     stat(S.rooms + " / " + ROOMS.length, "rooms") +
+    stat("⭐ " + S.plevel, "park level") +
+    stat(cardsHeld() + " / " + FISH.length, "card species") +
     stat(drawOf(S) + "", "crowd pull");
   const nr = nextRoom(S);
   $("dayUnlock").textContent = nr
@@ -1215,58 +1720,6 @@ function endDay(){
 }
 function stat(big, small){ return '<div class="stat">' + big + "<small>" + small + "</small></div>"; }
 $("nextDayBtn").onclick = () => { $("dayScreen").classList.remove("on"); Snd.start(); nextVisitor(); };
-
-/* =====================================================================
-   MARKET: buy fish. Cost price now, earns back over time.
-   ===================================================================== */
-const mktQty = {};
-function paintMarket(){
-  const list = $("fishList");
-  const free = freeCapacity(S);
-  $("marketHead").textContent = "BUY FISH — " + free + " space" + (free === 1 ? "" : "s") + " left in your tanks";
-  list.innerHTML = "";
-  FISH.forEach(f => {
-    if (!fishUnlocked(S, f)){
-      list.appendChild(row(f.e, f.n, "Opens with " + ROOMS[f.room - 1].name, null, "locked", true));
-      return;
-    }
-    const have = S.fish.filter(x => x.k === f.id).length;
-    const back = S.fish.filter(x => x.k === f.id).reduce((a, x) => a + x.earned, 0);
-    const q = Math.max(1, Math.min(6, free, mktQty[f.id] || 1));
-    mktQty[f.id] = q;
-    const unit = priceOf(f.cost, S);
-    const total = q * unit;
-    const sub = money(unit) + " each · pull " + f.attract +
-                (have ? "<br>" + have + " here, earned back " + money(back) : "");
-    const r = document.createElement("div");
-    r.className = "row" + (free <= 0 || total > S.money ? " poor" : "");
-    r.innerHTML = '<div class="ic">' + f.e + '</div><div class="txt"><div class="nm">' + f.n +
-                  '</div><div class="sub">' + sub + "</div></div>";
-    if (free <= 0){
-      const b = document.createElement("button");
-      b.className = "buy no"; b.innerHTML = "Tanks<br>full";
-      b.onclick = () => { Snd.nope(); say("Every tank is full. Build another tank in the Build tab.", "bad"); setTab("build"); };
-      r.appendChild(b);
-    } else {
-      const qw = document.createElement("div");
-      qw.className = "qty";
-      const minus = document.createElement("button"); minus.textContent = "−"; minus.type = "button";
-      const nn = document.createElement("span"); nn.className = "n"; nn.textContent = q;
-      const plus = document.createElement("button"); plus.textContent = "+"; plus.type = "button";
-      minus.onclick = () => { mktQty[f.id] = Math.max(1, q - 1); Snd.tick(); paintMarket(); };
-      plus.onclick  = () => { mktQty[f.id] = Math.min(6, free, q + 1); Snd.tick(); paintMarket(); };
-      qw.appendChild(minus); qw.appendChild(nn); qw.appendChild(plus);
-      r.appendChild(qw);
-      const b = document.createElement("button");
-      const afford = total <= S.money;
-      b.className = "buy" + (afford ? "" : " short");
-      b.innerHTML = afford ? "Buy<br>" + money(total) : "Need<br>" + money(total - S.money) + " more";
-      b.onclick = () => afford ? startBuyFish(f, q, total, unit) : startGoal("fish:" + f.id, f.n + " × " + q, total);
-      r.appendChild(b);
-    }
-    list.appendChild(r);
-  });
-}
 function row(ic, nm, sub, btn, cls, dim){
   const r = document.createElement("div");
   r.className = "row" + (dim ? " poor" : "") + (cls === "own" ? " own" : "");
@@ -1275,146 +1728,70 @@ function row(ic, nm, sub, btn, cls, dim){
   return r;
 }
 
-/* buying more than one is a multiplication he has to work out first */
-function startBuyFish(f, qty, total, unit){
+/* =====================================================================
+   BUYING. Every price is checked against the balance BEFORE anything
+   happens, so the till can never go negative, and buying more than one
+   fish is a multiplication he has to work out first.
+   ===================================================================== */
+function startBuyFish(f, qty, total, unit, ti){
   unit = unit || priceOf(f.cost, S);
   if (total > S.money){ Snd.nope(); return; }        /* affordability checked BEFORE anything */
-  if (freeCapacity(S) < qty){ Snd.nope(); say("Not enough tank space for that many.", "bad"); return; }
-  if (qty < 2){ doBuyFish(f, qty, total, unit); return; }
+  if (tankFree(ti) < qty){ Snd.nope(); say("Not enough space in this tank.", "bad"); return; }
+  if (qty < 2){ doBuyFish(f, qty, total, unit, ti); return; }
   holdServe();
   V.pend = {
-    kind: "fish", f: f, qty: qty, total: total, unit: unit,
+    kind: "fish", f: f, qty: qty, total: total, unit: unit, tank: ti,
     title: "Pay the fish supplier",
     text: "Buying <b>" + qty + " " + f.n + "</b> at <b>" + money(unit) + "</b> each.<br>" +
           qty + " × " + unit + " = ?",
     q: { answer: total, skill: "mulTable", hint: mulHint(qty, unit) }
   };
   V.step = "buy"; V.typed = ""; V.wrong = 0;
-  setTab("serve"); showChange(false); paintServe(); say("Work out the bill, then the fish are yours.", "hint");
+  openMaths(); showChange(false); paintServe(); say("Work out the bill, then the fish are yours.", "hint");
 }
 function finishBuy(){
   const p = V.pend;
   if (!p){ V.step = "idle"; return; }
-  if (p.kind === "fish") doBuyFish(p.f, p.qty, p.total, p.unit);
+  if (p.kind === "fish") doBuyFish(p.f, p.qty, p.total, p.unit, p.tank);
   V.pend = null;
   backToServe();
 }
-function doBuyFish(f, qty, total, unit){
+function doBuyFish(f, qty, total, unit, ti){
   unit = unit || priceOf(f.cost, S);
   if (total > S.money){ Snd.nope(); say("Not enough money for that.", "bad"); return; }
-  if (freeCapacity(S) < qty){ Snd.nope(); say("Not enough tank space.", "bad"); return; }
+  if (tankFree(ti) < qty){ Snd.nope(); say("Not enough space in this tank.", "bad"); return; }
   if (!pay(total, "fish")) { Snd.nope(); return; }
-  for (let i = 0; i < qty; i++){
-    const slot = firstTankWithRoom();
-    S.fish.push({ k: f.id, cost: unit, earned: 0, t: slot });
-  }
+  for (let i = 0; i < qty; i++) S.fish.push({ k: f.id, cost: unit, earned: 0, t: ti });
   save(); Snd.splash(); Snd.build();
   say("Bought " + qty + " " + f.n + " for " + money(total) + ". They start pulling a crowd right away.", "good");
   paintHud(); paintRooms(); refreshPanes();
 }
-function firstTankWithRoom(){
-  const used = {};
-  S.fish.forEach(f => used[f.t] = (used[f.t] || 0) + 1);
-  for (let i = 0; i < S.tanks.length; i++){
-    const t = TANK_BY[S.tanks[i].t];
-    if (t && (used[i] || 0) < t.hold) return i;
-  }
-  return 0;
-}
 
-/* =====================================================================
-   BUILD: tanks, upgrades, rooms.
-   ===================================================================== */
-function paintBuild(){
-  const list = $("buildList");
-  list.innerHTML = "";
-  const slotsFree = freeSlots(S);
-  $("buildHead").textContent = "BUILD — " + S.tanks.length + " of " + slotsOf(S) + " tank slots used";
-
-  /* --- tanks --- */
-  const h1 = document.createElement("div"); h1.className = "head"; h1.textContent = "TANKS (more space for fish)";
-  list.appendChild(h1);
-  TANKS.forEach(t => {
-    const r = document.createElement("div");
-    const tc = priceOf(t.cost, S);
-    const afford = tc <= S.money;
-    const have = S.tanks.filter(x => x.t === t.id).length;
-    r.className = "row" + (afford && slotsFree > 0 ? "" : " poor");
-    r.innerHTML = '<div class="ic">' + t.e + '</div><div class="txt"><div class="nm">' + t.n +
-      '</div><div class="sub">holds ' + t.hold + " fish · " + money(tc) + (have ? " · you have " + have : "") + "</div></div>";
-    const b = document.createElement("button");
-    if (slotsFree <= 0){
-      b.className = "buy no"; b.innerHTML = "No<br>space";
-      b.onclick = () => { Snd.nope(); say("Every slot in every room you own is taken. Unlock a new room for more space.", "bad"); };
-    } else if (afford){
-      b.className = "buy"; b.innerHTML = "Build<br>" + money(tc);
-      b.onclick = () => buyTank(t);
-    } else {
-      b.className = "buy short"; b.innerHTML = "Need<br>" + money(tc - S.money) + " more";
-      b.onclick = () => startGoal("tank:" + t.id, t.n, tc);
-    }
-    r.appendChild(b);
-    list.appendChild(r);
-  });
-
-  /* --- upgrades --- */
-  const h2 = document.createElement("div"); h2.className = "head"; h2.textContent = "UPGRADES (pull a bigger crowd)";
-  list.appendChild(h2);
-  UPGRADES.forEach(u => {
-    const owned = !!S.up[u.id];
-    const uc = priceOf(u.cost, S);
-    const afford = uc <= S.money;
-    const r = document.createElement("div");
-    r.className = "row" + (owned ? " own" : (afford ? "" : " poor"));
-    const eff = u.mult ? ("crowd pull ×" + u.mult.toFixed(2).replace(/0$/, "")) : ("+" + money(headOf(u.perHead, S)) + " per visitor");
-    r.innerHTML = '<div class="ic">' + u.e + '</div><div class="txt"><div class="nm">' + u.n +
-      '</div><div class="sub">' + (owned ? "Built ✓ · " + eff : u.what + " · " + eff) + "</div></div>";
-    const b = document.createElement("button");
-    if (owned){ b.className = "buy no"; b.innerHTML = "Built<br>✓"; b.onclick = () => Snd.tick(); }
-    else if (afford){ b.className = "buy"; b.innerHTML = "Build<br>" + money(uc); b.onclick = () => buyUpgrade(u); }
-    else { b.className = "buy short"; b.innerHTML = "Need<br>" + money(uc - S.money) + " more"; b.onclick = () => startGoal("up:" + u.id, u.n, uc); }
-    r.appendChild(b);
-    list.appendChild(r);
-  });
-
-  /* --- rooms --- */
-  const h3 = document.createElement("div"); h3.className = "head"; h3.textContent = "NEW ROOMS (more real estate)";
-  list.appendChild(h3);
-  ROOMS.forEach((rm, i) => {
-    const owned = i < S.rooms;
-    const isNext = i === S.rooms;
-    if (!owned && !isNext){
-      list.appendChild(row(rm.e, rm.name, "Opens after " + ROOMS[i - 1].name, null, "", true));
-      return;
-    }
-    const rc = priceOf(rm.cost, S);
-    const afford = rc <= S.money;
-    const r = document.createElement("div");
-    r.className = "row" + (owned ? " own" : (afford ? "" : " poor"));
-    r.innerHTML = '<div class="ic">' + rm.e + '</div><div class="txt"><div class="nm">' + rm.name +
-      '</div><div class="sub">' + rm.slots + " tank slots" + (owned ? " · yours ✓" : " · " + money(rc)) + "</div></div>";
-    const b = document.createElement("button");
-    if (owned){ b.className = "buy no"; b.innerHTML = "Open<br>✓"; b.onclick = () => { S.room = i; save(); paintRooms(); }; }
-    else if (afford){ b.className = "buy"; b.innerHTML = "Unlock<br>" + money(rc); b.onclick = () => buyRoom(i); }
-    else { b.className = "buy short"; b.innerHTML = "Need<br>" + money(rc - S.money) + " more"; b.onclick = () => startGoal("room:" + rm.id, rm.name, rc); }
-    r.appendChild(b);
-    list.appendChild(r);
-  });
-}
-
-function buyTank(t){
-  if (freeSlots(S) <= 0){ Snd.nope(); return; }
+function buyTankAt(t, room, slot){
+  if (room < 0 || room >= S.rooms) { Snd.nope(); return; }
+  if (tankAt(room, slot) >= 0){ Snd.nope(); return; }
+  if (slot < 0 || slot >= ROOMS[room].slots){ Snd.nope(); return; }
   const tc = priceOf(t.cost, S);
   if (tc > S.money){ Snd.nope(); return; }
   if (!pay(tc, "tank")) return;
-  /* fill the current room first, then the next room with space */
-  let r = S.room;
-  const inRoom = i => S.tanks.filter(x => x.r === i).length;
-  if (inRoom(r) >= ROOMS[r].slots){ r = -1; for (let i = 0; i < S.rooms; i++){ if (inRoom(i) < ROOMS[i].slots){ r = i; break; } } }
-  if (r < 0) r = 0;
-  S.tanks.push({ t: t.id, r: r });
-  S.room = r; save(); Snd.build();
-  say("A " + t.n + " goes into " + ROOMS[r].name + ". Room for " + t.hold + " more fish.", "good");
+  S.tanks.push({ t: t.id, r: room, s: slot });
+  S.room = room; save(); Snd.build();
+  say("A " + t.n + " goes into " + ROOMS[room].name + ". Room for " + t.hold + " fish.", "good");
+  paintHud(); paintRooms(); refreshPanes();
+}
+/* trade the tank on this plot up for a bigger one. The fish already swimming
+   in it are indexed by the plot's tank, so they simply stay where they are. */
+function tradeUpTank(t, room, slot){
+  const ti = tankAt(room, slot);
+  if (ti < 0){ Snd.nope(); return; }
+  const cur = TANK_BY[S.tanks[ti].t];
+  if (!cur || t.hold <= cur.hold){ Snd.nope(); return; }
+  const tc = priceOf(t.cost, S);
+  if (tc > S.money){ Snd.nope(); return; }
+  if (!pay(tc, "tank")) return;
+  S.tanks[ti].t = t.id;
+  save(); Snd.build();
+  say("Traded up to a " + t.n + ". Room for " + (t.hold - cur.hold) + " more fish, and nobody had to move.", "good");
   paintHud(); paintRooms(); refreshPanes();
 }
 function buyUpgrade(u){
@@ -1435,13 +1812,14 @@ function buyRoom(i){
   S.rooms = i + 1; S.room = i; save();
   Snd.build(); Snd.kaching(); Snd.splash();
   V.cheerUntil = performance.now() + 2000;
-  say("\u{1F511} " + rm.name + " is OPEN! " + rm.slots + " more tank slots, and new fish at the market.", "good");
-  bubble("NEW ROOM", rm.e + " <b>" + rm.name.toUpperCase() + "</b> is open!");
-  paintHud(); paintRooms(); refreshPanes();
+  say("\u{1F511} " + rm.name + " is OPEN! " + rm.slots + " more tank plots, and new fish at the market.", "good");
+  bubble("NEW ROOM", rm.e + " <b>" + rm.name.toUpperCase() + "</b> is open! Walk on through.");
+  paintHud(); paintRooms();
+  closeSheet();
 }
 
 /* =====================================================================
-   GOAL SUBTRACTION: tapping something he cannot afford asks how much
+   GOAL SUBTRACTION: standing at something he cannot afford asks how much
    more he needs. A right answer pays a small planning bonus, ONCE PER
    ITEM EVER, so it can never be farmed and it is never time-based.
    ===================================================================== */
@@ -1460,7 +1838,7 @@ function startGoal(key, name, price){
          hint: "Count up from " + money(S.money) + " to " + money(price) + ", or take " + S.money + " away from " + price + "." }
   };
   V.step = "goal"; V.typed = ""; V.wrong = 0;
-  setTab("serve"); showChange(false); paintServe();
+  openMaths(); showChange(false); paintServe();
   say("How much more do you need? Work it out.", "hint");
 }
 function finishGoal(){
@@ -1474,12 +1852,13 @@ function finishGoal(){
                        "</b>. You need <b>" + money(p.short) + "</b> more. Serve more visitors!";
   Snd.kaching();
   V.pend = null;
-  paintHud(); refreshPanes();
+  paintHud();
   later(backToServe, 1600);
 }
 
-/* a market or build purchase interrupts whatever the visitor was waiting
-   for. V.resume remembers that exact step so he is handed straight back. */
+/* a purchase interrupts whatever the visitor at the desk was waiting for.
+   V.resume remembers that exact step, so the till picks up where it left
+   off the moment he walks back to the desk. */
 function holdServe(){
   if (V.step === "buy" || V.step === "goal") return;      /* already held */
   V.resume = { step: V.step, wrong: V.wrong };
@@ -1490,44 +1869,19 @@ function backToServe(){
   V.step = (r && r.step && r.step !== "buy" && r.step !== "goal") ? r.step : (V.cust ? "bill" : "idle");
   if (V.step === "collect") V.step = V.cust ? "collect" : "idle";
   V.typed = ""; V.wrong = (r && r.wrong) || 0;
-  showChange(V.step === "change");
-  paintServe();
-  if (V.step === "change"){ buildTill(); paintChange(); }
+  /* if he is standing at the desk, the till re-opens on the visitor's step.
+     If he is out in the park, the sheet gets out of his way and the chevrons
+     point him back at whoever is still waiting. */
+  if (V.where === "park" && zoneId() === "desk" && V.cust && isServeStep()){
+    openSheet({ kind: "serve" });
+    showChange(V.step === "change");
+    paintServe();
+    if (V.step === "change"){ buildTill(); paintChange(); }
+  } else {
+    showChange(false);
+    closeSheet();
+  }
 }
-
-function refreshPanes(){
-  if (V.tab === "market") paintMarket();
-  if (V.tab === "build") paintBuild();
-}
-
-/* =====================================================================
-   THE AQUARIUM ITSELF (canvas). Rooms across the top, the selected room
-   drawn with its tanks, fish, decor and the keeper down at the front.
-   ===================================================================== */
-function paintRooms(){
-  const bar = $("roomBar");
-  bar.innerHTML = "";
-  ROOMS.forEach((rm, i) => {
-    const owned = i < S.rooms, isNext = i === S.rooms;
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "rchip" + (owned && i === S.room ? " on" : "") + (owned ? "" : (isNext ? " buy" : " lock"));
-    const tanksHere = S.tanks.filter(t => t.r === i).length;
-    b.innerHTML = rm.e + " " + rm.name + "<small>" +
-      (owned ? (tanksHere + "/" + rm.slots + " tanks") : (isNext ? ("\u{1F513} " + money(priceOf(rm.cost, S))) : "\u{1F512} locked")) + "</small>";
-    b.onclick = () => {
-      if (owned){ S.room = i; save(); paintRooms(); Snd.tick(); return; }
-      if (isNext){ setTab("build"); if (priceOf(rm.cost, S) <= S.money) buyRoom(i); else startGoal("room:" + rm.id, rm.name, priceOf(rm.cost, S)); return; }
-      Snd.nope(); say("Open " + ROOMS[i - 1].name + " first.", "bad");
-    };
-    bar.appendChild(b);
-  });
-  const rm = ROOMS[S.room] || ROOMS[0];
-  const here = S.tanks.filter(t => t.r === S.room).length;
-  $("sceneTag").textContent = rm.name + " · " + here + "/" + rm.slots + " tanks · crowd pull " + drawOf(S);
-}
-
-/* ---------- hero art (same sprite the other arcade games draw) ---------- */
 const HERO_ART = {
   knight:   {body:"#b9c6d4", trim:"#8795a5", skin:"#f0c9a0", accent:"#ffd23f", name:"The Knight"},
   wizard:   {body:"#7b5cd6", trim:"#4a35a0", skin:"#f0c9a0", accent:"#ffd23f", name:"The Mage"},
@@ -1703,8 +2057,339 @@ function drawHeroSprite(g, X, Y, u, id, o){
   }
 }
 
-/* ---------- the scene ---------- */
-const CV = { hit: [] };     /* clickable boxes from the last paint */
+/* =====================================================================
+   THE PARK
+   ---------------------------------------------------------------------
+   One canvas, drawn in WORLD units with the camera as a transform, so
+   every number below is a place in the aquarium and not a pixel on a
+   particular phone.
+
+   THE THREE RULES THIS BLOCK IS HELD TO
+     1. Walking earns nothing. Nothing in here touches S.money.
+     2. A plot always says what could go on it and what that costs, as a
+        silhouette and a floating price tag. No tooltip, no tutorial.
+     3. The chevron trail may ONLY point at something he can do RIGHT NOW.
+        nextAction() is the single gate for that, and the ticket desk is
+        always a legal answer because serving is free and always pays.
+   ===================================================================== */
+const SPEED = 268;                /* world units per second */
+const PLOT_BODY = 0.70;           /* the top 70% of a plot is the tank, and solid */
+const APRON = 62;                 /* the standing pad in front of a plot */
+const CAM = { x: 0, y: 0, z: 1, vw: 1, vh: 1 };
+
+function plotBodyBottom(){ return MAP.PLOT_TOP + MAP.PLOT_H * PLOT_BODY; }
+/* the solid footprint of every plot in every room he owns */
+function solidHit(x, y){
+  const top = MAP.PLOT_TOP, bot = plotBodyBottom();
+  if (y < top - 1 || y > bot) return false;
+  const i = roomAtX(x);
+  if (i < 0 || i >= S.rooms) return false;
+  const ps = plotsOf(i), ox = rx0(i);
+  for (let k = 0; k < ps.length; k++){
+    const p = ps[k];
+    if (x >= ox + p.x && x <= ox + p.x + p.w) return true;
+  }
+  return false;
+}
+
+/* ---------------------------------------------------------------------
+   ZONES. What he can stand on, and what standing there does.
+   --------------------------------------------------------------------- */
+function zones(){
+  const out = [];
+  const bot = plotBodyBottom();
+  for (let i = 0; i < S.rooms; i++){
+    const ox = rx0(i);
+    plotsOf(i).forEach(p => {
+      const ti = tankAt(i, p.slot);
+      const live = (ti < 0) || tankFree(ti) > 0 || canTradeUp(ti);
+      out.push({ id: "plot:" + i + ":" + p.slot, kind: "plot", room: i, slot: p.slot, tank: ti, live: live,
+                 x: ox + p.x, y: bot, w: p.w, h: APRON });
+    });
+  }
+  out.push({ id: "desk", kind: "desk", live: true,
+             x: rx0(0) + MAP.DESK.x, y: MAP.DESK.y, w: MAP.DESK.w, h: MAP.DESK.h });
+  out.push({ id: "podium", kind: "podium", live: true,
+             x: rx0(0) + MAP.PODIUM.x - MAP.PODIUM.r, y: MAP.PODIUM.y - MAP.PODIUM.r,
+             w: MAP.PODIUM.r * 2, h: MAP.PODIUM.r * 2 });
+  if (S.rooms < ROOMS.length){
+    const i = S.rooms - 1;
+    out.push({ id: "gate:" + S.rooms, kind: "gate", room: S.rooms, live: true,
+               x: rx1(i), y: DOOR_LO, w: MAP.WALL, h: MAP.DOOR_H });
+  }
+  return out;
+}
+function zoneNow(){
+  if (V.where !== "park") return null;
+  const zs = zones();
+  /* the desk, the podium and a door beat a plot if they ever overlapped */
+  const order = { desk: 0, podium: 1, gate: 2, plot: 3 };
+  let best = null;
+  for (let i = 0; i < zs.length; i++){
+    const z = zs[i];
+    if (P.x >= z.x && P.x <= z.x + z.w && P.y >= z.y && P.y <= z.y + z.h){
+      if (!best || order[z.kind] < order[best.kind]) best = z;
+    }
+  }
+  return best;
+}
+function zoneId(){ const z = zoneNow(); return z ? z.id : null; }
+
+/* ---------------------------------------------------------------------
+   THE ONE MOST USEFUL NEXT THING. Every branch returns something he can
+   do with the money he is holding right now, and cost is never above the
+   balance. The desk costs nothing, so the list can never come up empty.
+   --------------------------------------------------------------------- */
+function nextAction(){
+  /* 1. somebody is standing at the till */
+  if (V.cust && isServeStep())
+    return { kind: "desk", id: "desk", cost: 0, what: "Serve " + V.cust.n };
+
+  /* 2. a fish he can afford, for a tank that has space */
+  let bestFish = null;
+  for (let i = FISH.length - 1; i >= 0; i--){
+    const f = FISH[i];
+    if (fishUnlocked(S, f) && priceOf(f.cost, S) <= S.money){ bestFish = f; break; }
+  }
+  if (bestFish){
+    for (let i = 0; i < S.tanks.length; i++){
+      const tk = S.tanks[i];
+      if (tk.r < S.rooms && tankFree(i) > 0)
+        return { kind: "plot", id: "plot:" + tk.r + ":" + tk.s, room: tk.r, slot: tk.s,
+                 cost: priceOf(bestFish.cost, S), what: "Buy a " + bestFish.n };
+    }
+  }
+
+  /* 3. a tank he can afford, for an empty plot */
+  let bestTank = null;
+  for (let i = TANKS.length - 1; i >= 0; i--){
+    if (priceOf(TANKS[i].cost, S) <= S.money){ bestTank = TANKS[i]; break; }
+  }
+  if (bestTank){
+    for (let r = 0; r < S.rooms; r++){
+      for (let s = 0; s < ROOMS[r].slots; s++){
+        if (tankAt(r, s) < 0)
+          return { kind: "plot", id: "plot:" + r + ":" + s, room: r, slot: s,
+                   cost: priceOf(bestTank.cost, S), what: "Build a " + bestTank.n };
+      }
+    }
+  }
+
+  /* 3b. every plot is taken and every tank is full: trade a small tank up for
+         a bigger one on the plot it already stands on. This is the same move
+         the balance simulator has always made, so the growth curve is the one
+         that was measured. */
+  if (bestTank && freeCapacity(S) <= 0 && freeSlots(S) <= 0){
+    for (let i = 0; i < S.tanks.length; i++){
+      const tk = S.tanks[i], cur = TANK_BY[tk.t];
+      if (tk.r < S.rooms && cur && bestTank.hold > cur.hold)
+        return { kind: "plot", id: "plot:" + tk.r + ":" + tk.s, room: tk.r, slot: tk.s,
+                 cost: priceOf(bestTank.cost, S), what: "Trade up to a " + bestTank.n };
+    }
+  }
+
+  /* 4. an upgrade he can afford */
+  for (let i = 0; i < UPGRADES.length; i++){
+    const u = UPGRADES[i];
+    if (!S.up[u.id] && priceOf(u.cost, S) <= S.money)
+      return { kind: "podium", id: "podium", cost: priceOf(u.cost, S), what: "Build the " + u.n };
+  }
+
+  /* 5. the next room, if the door price is already in the till */
+  const nr = nextRoom(S);
+  if (nr && priceOf(nr.cost, S) <= S.money)
+    return { kind: "gate", id: "gate:" + S.rooms, room: S.rooms,
+             cost: priceOf(nr.cost, S), what: "Open " + nr.name };
+
+  /* 6. nothing is affordable, so go and earn: the till is always open and
+        serving a visitor costs nothing at all. */
+  return { kind: "desk", id: "desk", cost: 0,
+           what: V.cust ? ("Serve " + V.cust.n) : "The next visitor" };
+}
+function targetPoint(a){
+  if (a.kind === "desk") return { x: rx0(0) + MAP.DESK.x + MAP.DESK.w * 0.5, y: MAP.DESK.y + MAP.DESK.h * 0.6 };
+  if (a.kind === "podium") return { x: rx0(0) + MAP.PODIUM.x, y: MAP.PODIUM.y };
+  if (a.kind === "gate") return { x: rx1(a.room - 1) + MAP.WALL * 0.45, y: DOOR_MID };
+  const ps = plotsOf(a.room)[a.slot] || plotsOf(a.room)[0];
+  return { x: rx0(a.room) + ps.x + ps.w * 0.5, y: plotBodyBottom() + APRON * 0.5 };
+}
+function trailPts(a){
+  const tp = targetPoint(a);
+  const g0 = inGap(P.x);
+  const rFrom = g0 >= 0 ? g0 : roomAtX(P.x);
+  const rTo = (a.kind === "gate") ? (a.room - 1) : (a.kind === "plot" ? a.room : 0);
+  const raw = [{ x: P.x, y: P.y }];
+  if (rTo > rFrom){ for (let r = rFrom; r < rTo; r++) raw.push({ x: rx1(r) + MAP.WALL * 0.5, y: DOOR_MID }); }
+  else if (rTo < rFrom){ for (let r = rFrom - 1; r >= rTo; r--) raw.push({ x: rx1(r) + MAP.WALL * 0.5, y: DOOR_MID }); }
+  raw.push(tp);
+  const out = [raw[0]];
+  for (let i = 1; i < raw.length; i++){
+    const p = out[out.length - 1], q = raw[i];
+    if (Math.abs(p.x - q.x) > 14 || Math.abs(p.y - q.y) > 14) out.push(q);
+  }
+  return out.length > 1 ? out : raw;
+}
+function alongPath(pts, d){
+  for (let i = 0; i < pts.length - 1; i++){
+    const p = pts[i], q = pts[i + 1];
+    const dx = q.x - p.x, dy = q.y - p.y, len = Math.sqrt(dx*dx + dy*dy);
+    if (len < 0.001) continue;
+    if (d <= len) return { x: p.x + dx * (d/len), y: p.y + dy * (d/len), ux: dx/len, uy: dy/len };
+    d -= len;
+  }
+  return null;
+}
+function pathLen(pts){
+  let t = 0;
+  for (let i = 0; i < pts.length - 1; i++){
+    const dx = pts[i+1].x - pts[i].x, dy = pts[i+1].y - pts[i].y;
+    t += Math.sqrt(dx*dx + dy*dy);
+  }
+  return t;
+}
+
+/* =====================================================================
+   INPUT. Arrow keys and WASD on a keyboard; drag or tap-to-move with a
+   finger or a mouse. All four, all the time.
+   ===================================================================== */
+const KEYDIR = { ArrowUp:"u", ArrowDown:"d", ArrowLeft:"l", ArrowRight:"r",
+                 KeyW:"u", KeyS:"d", KeyA:"l", KeyD:"r",
+                 w:"u", s:"d", a:"l", d:"r", W:"u", S:"d", A:"l", D:"r" };
+function keyDir(e){ return KEYDIR[e.code] || KEYDIR[e.key] || null; }
+window.addEventListener("keydown", function(e){
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = keyDir(e); if (!k) return;
+  V.keys[k] = 1; V.moveTo = null;
+  if (e.preventDefault) e.preventDefault();
+}, false);
+window.addEventListener("keyup", function(e){
+  const k = keyDir(e); if (!k) return;
+  V.keys[k] = 0;
+  if (e.preventDefault) e.preventDefault();
+}, false);
+window.addEventListener("blur", function(){ V.keys = {}; V.gest = null; });
+
+function screenToWorld(x, y){
+  return { x: (x - CAM.vw / 2) / CAM.z + CAM.x, y: (y - CAM.vh / 2) / CAM.z + CAM.y };
+}
+(function bindGestures(){
+  const cv = $("parkCanvas");
+  function local(cx, cy){ const r = cv.getBoundingClientRect(); return { x: cx - r.left, y: cy - r.top }; }
+  function gStart(x, y){
+    Snd.start();
+    /* a tap on the park while a panel is open just puts the panel away */
+    if (sheetOn()){ V.gest = null; Snd.tick(); sheetDismiss(); return; }
+    V.gest = { sx: x, sy: y, cx: x, cy: y, moved: false };
+    V.moveTo = null;
+  }
+  function gMove(x, y){
+    if (!V.gest) return;
+    V.gest.cx = x; V.gest.cy = y;
+    if (Math.abs(x - V.gest.sx) > 9 || Math.abs(y - V.gest.sy) > 9) V.gest.moved = true;
+  }
+  function gEnd(){
+    const g = V.gest; V.gest = null;
+    if (!g || g.moved) return;
+    const w = screenToWorld(g.sx, g.sy);
+    V.moveTo = { x: w.x, y: w.y };
+  }
+  cv.addEventListener("pointerdown", function(e){
+    if (e.pointerType === "touch") return;              /* the touch listeners own fingers */
+    const p = local(e.clientX, e.clientY); gStart(p.x, p.y);
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { }
+    if (e.preventDefault) e.preventDefault();
+  });
+  window.addEventListener("pointermove", function(e){
+    if (e.pointerType === "touch") return;
+    if (!V.gest) return;
+    const p = local(e.clientX, e.clientY); gMove(p.x, p.y);
+  });
+  window.addEventListener("pointerup", function(e){ if (e.pointerType === "touch") return; gEnd(); });
+  window.addEventListener("pointercancel", function(e){ if (e.pointerType === "touch") return; V.gest = null; });
+  cv.addEventListener("touchstart", function(e){
+    const t = e.changedTouches[0]; if (!t) return;
+    const p = local(t.clientX, t.clientY); gStart(p.x, p.y);
+    if (e.preventDefault) e.preventDefault();
+  }, { passive: false });
+  cv.addEventListener("touchmove", function(e){
+    const t = e.changedTouches[0]; if (!t) return;
+    const p = local(t.clientX, t.clientY); gMove(p.x, p.y);
+    if (e.preventDefault) e.preventDefault();
+  }, { passive: false });
+  cv.addEventListener("touchend", function(e){
+    gEnd();
+    if (e.preventDefault) e.preventDefault();
+  }, { passive: false });
+  cv.addEventListener("touchcancel", function(){ V.gest = null; });
+})();
+
+/* =====================================================================
+   THE STEP. Movement, then the zone he just walked into.
+   ===================================================================== */
+function anyScreen(){
+  return ["startScreen","dayScreen","upOv","dexOv"].some(id => { const e = $(id); return e && e.classList.contains("on"); });
+}
+function frozen(){ return anyScreen() || sheetOn(); }
+function sheetDismiss(){
+  if (V.step === "buy" || V.step === "goal"){ V.pend = null; backToServe(); return; }
+  showChange(false);
+  closeSheet();
+}
+function step(dt){
+  let dx = 0, dy = 0;
+  if (V.keys.l) dx -= 1;
+  if (V.keys.r) dx += 1;
+  if (V.keys.u) dy -= 1;
+  if (V.keys.d) dy += 1;
+  if (!dx && !dy && V.gest && V.gest.moved){
+    const ax = V.gest.cx - V.gest.sx, ay = V.gest.cy - V.gest.sy;
+    const m = Math.sqrt(ax*ax + ay*ay);
+    if (m > 8){ const k = Math.min(1, m / 58); dx = ax / m * k; dy = ay / m * k; }
+  }
+  if (!dx && !dy && V.moveTo){
+    const ax = V.moveTo.x - P.x, ay = V.moveTo.y - P.y;
+    const m = Math.sqrt(ax*ax + ay*ay);
+    if (m < 9){ V.moveTo = null; }
+    else { dx = ax / m; dy = ay / m; }
+  }
+  if (V.where === "park") S.room = clampN(roomAtX(P.x), 0, S.rooms - 1);
+  const mag = Math.sqrt(dx*dx + dy*dy);
+  if (mag <= 0.001){ P.walk = 0; return; }
+  if (mag > 1){ dx /= mag; dy /= mag; }
+  const sp = SPEED * dt;
+  const nx = P.x + dx * sp, ny = P.y + dy * sp;
+  if (standable(nx, P.y)) P.x = nx;
+  if (standable(P.x, ny)) P.y = ny;
+  if (Math.abs(dx) > 0.02) P.face = dx > 0 ? 1 : -1;
+  P.walk += mag * dt * 8;
+  if (V.where === "park") S.room = clampN(roomAtX(P.x), 0, S.rooms - 1);
+}
+function fireZone(z){
+  if (z.kind === "desk"){
+    if (V.cust && isServeStep()){ Snd.tick(); openSheet({ kind: "serve" }); return; }
+    if (!V.cust && V.step === "idle" && V.running){ nextVisitor(); return; }
+    return;
+  }
+  Snd.tick();
+  if (z.kind === "plot") openSheet({ kind: "plot", room: z.room, slot: z.slot });
+  else if (z.kind === "podium") openSheet({ kind: "podium" });
+  else if (z.kind === "gate") openSheet({ kind: "gate", room: z.room });
+}
+function triggers(){
+  if (V.where !== "park"){ V.firedZone = null; return; }
+  const z = zoneNow();
+  const id = z ? z.id : null;
+  if (id === V.firedZone) return;
+  V.firedZone = id;
+  if (!z || !z.live) return;
+  if (anyScreen() || sheetOn()) return;
+  fireZone(z);
+}
+
+/* =====================================================================
+   DRAWING. Everything below is decoration: it reads state and never
+   writes it, and it never touches money.
+   ===================================================================== */
 function roundRect(g, x, y, w, h, r){
   r = Math.min(r, w/2, h/2);
   g.beginPath();
@@ -1714,237 +2399,714 @@ function roundRect(g, x, y, w, h, r){
   g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y);
   g.closePath();
 }
-
-function paintScene(t){
-  const c = $("tankCanvas"); if (!c) return;
-  const wrap = $("tankWrap"); if (!wrap) return;
-  const r = wrap.getBoundingClientRect();
-  const w = Math.max(60, Math.round(r.width)), h = Math.max(60, Math.round(r.height));
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  if (c.width !== Math.round(w*dpr) || c.height !== Math.round(h*dpr)){ c.width = Math.round(w*dpr); c.height = Math.round(h*dpr); }
-  const g = c.getContext("2d"); if (!g) return;
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, w, h);
-  CV.hit = [];
-
-  const rm = ROOMS[S.room] || ROOMS[0];
-  /* room walls */
-  const sky = g.createLinearGradient(0, 0, 0, h);
-  sky.addColorStop(0, "#0a1830"); sky.addColorStop(1, "#050d1c");
-  g.fillStyle = sky; g.fillRect(0, 0, w, h);
-
-  /* night lights upgrade: a glow wash */
-  if (S.up.lights){
-    const gl = g.createRadialGradient(w*0.5, h*0.15, 4, w*0.5, h*0.15, Math.max(w, h)*0.8);
-    gl.addColorStop(0, "rgba(79,195,255,.22)"); gl.addColorStop(1, "rgba(79,195,255,0)");
-    g.fillStyle = gl; g.fillRect(0, 0, w, h);
-  }
-
-  /* the sign upgrade */
-  const topPad = S.up.sign ? Math.min(26, h*0.13) : 4;
-  if (S.up.sign){
-    const sw = Math.min(w - 16, 260), sx = (w - sw)/2, sy = 3, sh = Math.max(15, topPad - 7);
-    g.fillStyle = "#7a5a1a"; roundRect(g, sx, sy, sw, sh, 6); g.fill();
-    g.strokeStyle = "#ffd23f"; g.lineWidth = 2; g.stroke();
-    g.fillStyle = "#ffd23f"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "900 " + Math.round(sh*0.62) + "px 'Trebuchet MS',sans-serif";
-    const A = HERO_ART[HERO] || HERO_ART.knight;
-    g.fillText((A.name.replace(/^The /, "") + "'S AQUARIUM").toUpperCase(), w/2, sy + sh/2 + 1);
-  }
-
-  /* floor band for the keeper and the visitor */
-  const floorTop = Math.round(h * 0.70);
-  const tankTop = topPad + 4, tankBot = floorTop - 6;
-  const tankH = Math.max(28, tankBot - tankTop);
-
-  /* the tanks in THIS room */
-  const slots = rm.slots;
-  const here = [];
-  S.tanks.forEach((tk, i) => { if (tk.r === S.room) here.push({ i: i, t: TANK_BY[tk.t] }); });
-  const perRow = slots <= 2 ? slots : 2;
-  const rows = Math.ceil(slots / perRow);
-  const gap = 7;
-  const bw = (w - gap*(perRow + 1)) / perRow;
-  const bh = (tankH - gap*(rows - 1)) / rows;
-
-  const fishBySlot = {};
-  S.fish.forEach(f => { (fishBySlot[f.t] = fishBySlot[f.t] || []).push(f); });
-
-  for (let s = 0; s < slots; s++){
-    const col = s % perRow, rw = Math.floor(s / perRow);
-    const x = gap + col*(bw + gap), y = tankTop + rw*(bh + gap);
-    const filled = here[s];
-    if (filled) drawTank(g, x, y, bw, bh, rm, filled, fishBySlot[filled.i] || [], t);
-    else drawEmptySlot(g, x, y, bw, bh);
-    CV.hit.push({ x: x, y: y, w: bw, h: bh, kind: filled ? "tank" : "slot" });
-  }
-
-  /* coral decor along the floor line */
-  if (S.up.coral){
-    g.textAlign = "center"; g.textBaseline = "bottom";
-    const cs = Math.max(12, Math.min(22, w/22));
-    g.font = cs + "px serif";
-    for (let i = 0; i < Math.max(3, Math.floor(w/70)); i++){
-      g.fillText(i % 2 ? "\u{1FAB8}" : "\u{1F33F}", (i + 0.5) * (w / Math.max(3, Math.floor(w/70))), floorTop + 2);
-    }
-  }
-
-  /* the front-of-house floor */
-  const fg = g.createLinearGradient(0, floorTop, 0, h);
-  fg.addColorStop(0, "#15243d"); fg.addColorStop(1, "#0a1424");
-  g.fillStyle = fg; g.fillRect(0, floorTop, w, h - floorTop);
-  g.strokeStyle = "rgba(79,195,255,.35)"; g.lineWidth = 2;
-  g.beginPath(); g.moveTo(0, floorTop + 1); g.lineTo(w, floorTop + 1); g.stroke();
-
-  /* gift shop stall */
-  if (S.up.gift){
-    g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = Math.round((h - floorTop) * 0.42) + "px serif";
-    g.fillText("\u{1F381}", w * 0.5, floorTop + (h - floorTop) * 0.5);
-  }
-  /* feeding show bubbles */
-  if (S.up.show){
-    g.fillStyle = "rgba(255,255,255,.22)";
-    for (let i = 0; i < 9; i++){
-      const bx = ((i * 97) % Math.max(1, w - 10)) + 5;
-      const by = h - ((t/9 + i*70) % (h - floorTop + 40));
-      if (by > floorTop - 30) { g.beginPath(); g.arc(bx, by, 2 + (i % 3), 0, 7); g.fill(); }
-    }
-  }
-
-  /* the keeper (the chosen hero) */
-  const fh = h - floorTop;
-  const u = Math.max(18, Math.min(fh * 0.88, w * 0.20));
-  const cheer = performance.now() < V.cheerUntil;
-  const bob = cheer ? -Math.abs(Math.sin(t/130)) * u * 0.16 : Math.sin(t/620) * u * 0.02;
-  drawHeroSprite(g, Math.max(u*0.45, w*0.13), h - fh*0.22, u, HERO, { bob: bob, fx: 0.6, fy: 0.3, cheer: cheer });
-
-  /* the visitor group waiting at the desk */
-  if (V.cust && V.step !== "idle"){
-    g.textAlign = "center"; g.textBaseline = "alphabetic";
-    const vs = Math.max(20, Math.min(fh * 0.62, w * 0.16));
-    g.font = vs + "px serif";
-    const hop = cheer ? Math.abs(Math.sin(t/130)) * vs * 0.18 : Math.sin(t/700) * vs * 0.04;
-    g.fillText(V.cust.e, w - vs*0.75, h - fh*0.16 - hop);
-    g.font = "900 " + Math.max(9, Math.round(vs*0.20)) + "px 'Trebuchet MS',sans-serif";
-    g.fillStyle = "#bfe6ff";
-    g.fillText("×" + V.cust.group, w - vs*0.75, h - 3);
-  }
+/* a floating price tag: the number, and whether he can pay it today */
+function priceTag(g, x, y, amount, afford, icon){
+  const label = (icon ? icon + " " : "") + money(amount);
+  g.font = "900 20px 'Trebuchet MS',sans-serif";
+  const w = Math.max(56, g.measureText(label).width + 20), h = 27;
+  const bx = x - w/2, by = y - h;
+  g.fillStyle = "rgba(6,12,26,.88)";
+  roundRect(g, bx, by, w, h, 9); g.fill();
+  g.lineWidth = 2.5;
+  g.strokeStyle = afford ? "#ffd23f" : "#5a6b85";
+  roundRect(g, bx, by, w, h, 9); g.stroke();
+  g.beginPath(); g.moveTo(x - 6, by + h); g.lineTo(x + 6, by + h); g.lineTo(x, by + h + 8); g.closePath();
+  g.fillStyle = "rgba(6,12,26,.88)"; g.fill();
+  g.fillStyle = afford ? "#ffd23f" : "#8ba0bd";
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText(label, x, by + h/2 + 1);
 }
-
-function drawTank(g, x, y, w, h, rm, filled, fish, t){
-  const wat = g.createLinearGradient(0, y, 0, y + h);
-  wat.addColorStop(0, rm.water[0]); wat.addColorStop(1, rm.water[1]);
-  roundRect(g, x, y, w, h, 8); g.fillStyle = wat; g.fill();
-  /* sand */
-  g.save(); roundRect(g, x, y, w, h, 8); g.clip();
-  g.fillStyle = rm.sand; g.fillRect(x, y + h - Math.max(4, h*0.10), w, Math.max(4, h*0.10));
-  /* the fish, swimming */
-  const cap = filled.t ? filled.t.hold : 3;
-  const size = Math.max(11, Math.min(h * 0.30, w / Math.max(2.4, Math.min(cap, 5)) ));
+/* an emoji drawn as a dark shadow of itself: what COULD go here */
+function ghostGlyph(g, ch, x, y, size, alpha){
+  g.save();
   g.textAlign = "center"; g.textBaseline = "middle";
   g.font = size + "px serif";
-  fish.forEach((f, i) => {
+  g.globalAlpha = alpha;
+  try { g.filter = "brightness(0) saturate(0)"; } catch (e) { }
+  g.fillText(ch, x, y);
+  try { g.filter = "none"; } catch (e) { }
+  g.restore();
+}
+/* the fish a plot could hold next: the dearest he can afford, else the
+   cheapest that is unlocked, so the silhouette is never a fish he has no
+   route to at all */
+function ghostFishFor(){
+  let best = null;
+  for (let i = FISH.length - 1; i >= 0; i--){
+    const f = FISH[i];
+    if (fishUnlocked(S, f) && priceOf(f.cost, S) <= S.money){ best = f; break; }
+  }
+  if (best) return best;
+  for (let i = 0; i < FISH.length; i++){ if (fishUnlocked(S, FISH[i])) return FISH[i]; }
+  return FISH[0];
+}
+function ghostTankFor(){
+  let best = null;
+  for (let i = TANKS.length - 1; i >= 0; i--){ if (priceOf(TANKS[i].cost, S) <= S.money){ best = TANKS[i]; break; } }
+  return best || TANKS[0];
+}
+
+function drawPlot(g, ox, p, i, t){
+  const rm = ROOMS[i];
+  const bx = ox + p.x, by = p.y, bw = p.w, bh = MAP.PLOT_H * PLOT_BODY;
+  const ti = tankAt(i, p.slot);
+
+  /* the standing pad in front of the plot: this is the bit he walks onto */
+  const padTop = by + bh - 10, padH = APRON + 16;
+  g.fillStyle = "rgba(0,0,0,.34)";
+  roundRect(g, bx - 5, padTop + 6, bw + 10, padH, 13); g.fill();
+  g.save();
+  g.globalAlpha = 0.26; g.fillStyle = rm.sand;
+  roundRect(g, bx - 3, padTop, bw + 6, padH, 13); g.fill();
+  g.restore();
+  g.save();
+  g.setLineDash([8, 6]); g.strokeStyle = "rgba(255,255,255,.16)"; g.lineWidth = 2;
+  roundRect(g, bx - 3, padTop, bw + 6, padH, 13); g.stroke();
+  g.restore();
+
+  if (ti < 0){
+    /* EMPTY: a dark silhouette of what goes here, and the price over it */
+    g.fillStyle = "rgba(4,10,20,.62)";
+    roundRect(g, bx, by, bw, bh, 10); g.fill();
+    g.save();
+    g.setLineDash([9, 7]);
+    g.strokeStyle = "rgba(255,210,63,.55)"; g.lineWidth = 3;
+    roundRect(g, bx + 2, by + 2, bw - 4, bh - 4, 10); g.stroke();
+    g.restore();
+    const gt = ghostTankFor();
+    const gf = ghostFishFor();
+    ghostGlyph(g, gt.e, bx + bw * 0.5, by + bh * 0.42, Math.min(bh * 0.52, bw * 0.42), 0.55);
+    ghostGlyph(g, gf.e, bx + bw * 0.5, by + bh * 0.76, Math.min(bh * 0.34, bw * 0.3), 0.40);
+    const tc = priceOf(gt.cost, S);
+    priceTag(g, bx + bw * 0.5, by - 8, tc, tc <= S.money, gt.e);
+    return;
+  }
+
+  const tk = S.tanks[ti], td = TANK_BY[tk.t] || TANKS[0];
+  const mine = [];
+  for (let k = 0; k < S.fish.length; k++) if (S.fish[k].t === ti) mine.push(S.fish[k]);
+  const free = Math.max(0, td.hold - mine.length);
+
+  /* the tank */
+  const wat = g.createLinearGradient(0, by, 0, by + bh);
+  wat.addColorStop(0, rm.water[0]); wat.addColorStop(1, rm.water[1]);
+  roundRect(g, bx, by, bw, bh, 10); g.fillStyle = wat; g.fill();
+  g.save(); roundRect(g, bx, by, bw, bh, 10); g.clip();
+  g.fillStyle = rm.sand; g.fillRect(bx, by + bh - Math.max(6, bh * 0.12), bw, Math.max(6, bh * 0.12));
+  /* the fish, swimming */
+  const cap = td.hold;
+  const size = Math.max(14, Math.min(bh * 0.30, bw / Math.max(2.4, Math.min(cap, 5))));
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = size + "px serif";
+  const lanes = Math.max(1, Math.floor(bh / (size * 0.95)));
+  mine.forEach((f, k) => {
     const d = FISH_BY[f.k]; if (!d) return;
-    const lane = (i % Math.max(1, Math.floor(h / (size*0.95)))) + 1;
-    const ly = y + Math.min(h - size*0.6, lane * (h / (Math.floor(h/(size*0.95)) + 1)));
-    const span = Math.max(10, w - size);
-    const phase = (t/ (900 + (i*137) % 700)) + i;
-    const p = (Math.sin(phase) + 1) / 2;
-    const fx = x + size*0.5 + p * span * 0.92;
+    const lane = (k % lanes) + 1;
+    const ly = by + Math.min(bh - size * 0.6, lane * (bh / (lanes + 1)));
+    const span = Math.max(12, bw - size);
+    const phase = (t / (900 + (k * 137) % 700)) + k;
+    const pr = (Math.sin(phase) + 1) / 2;
+    const fx = bx + size * 0.5 + pr * span * 0.92;
     const dir = Math.cos(phase) >= 0 ? 1 : -1;
     g.save(); g.translate(fx, ly); g.scale(dir, 1); g.fillText(d.e, 0, 0); g.restore();
   });
+  /* a ghost of the next fish in the empty water, plus its price above */
+  if (free > 0){
+    const gf = ghostFishFor();
+    ghostGlyph(g, gf.e, bx + bw * 0.5, by + bh * 0.28, size * 1.05, 0.34);
+  }
   g.restore();
   /* glass */
-  roundRect(g, x, y, w, h, 8);
-  g.strokeStyle = "rgba(180,225,255,.55)"; g.lineWidth = 2; g.stroke();
-  g.save(); roundRect(g, x, y, w, h, 8); g.clip();
+  roundRect(g, bx, by, bw, bh, 10);
+  g.strokeStyle = "rgba(180,225,255,.6)"; g.lineWidth = 3; g.stroke();
+  g.save(); roundRect(g, bx, by, bw, bh, 10); g.clip();
   g.fillStyle = "rgba(255,255,255,.09)";
-  g.beginPath(); g.moveTo(x, y); g.lineTo(x + w*0.42, y); g.lineTo(x, y + h*0.7); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + bw * 0.42, by); g.lineTo(bx, by + bh * 0.7); g.closePath(); g.fill();
   g.restore();
   /* label */
-  const free = (filled.t ? filled.t.hold : 0) - fish.length;
   g.textAlign = "left"; g.textBaseline = "top";
-  g.font = "900 " + Math.max(8, Math.round(Math.min(11, h*0.16))) + "px 'Trebuchet MS',sans-serif";
+  g.font = "900 15px 'Trebuchet MS',sans-serif";
   g.fillStyle = free > 0 ? "#ffd23f" : "#9ff0b8";
-  g.fillText(free > 0 ? ("+" + free + " space") : "full", x + 5, y + 4);
+  g.fillText(free > 0 ? ("+" + free + " space") : "full", bx + 8, by + 7);
+  if (free > 0){
+    const gf = ghostFishFor();
+    const fc = priceOf(gf.cost, S);
+    priceTag(g, bx + bw * 0.5, by - 8, fc, fc <= S.money, gf.e);
+  } else {
+    /* full, but never a dead end: the silhouette of the bigger tank that
+       could stand on this plot instead, and what that would cost */
+    const up = biggerThan(ti);
+    if (up.length){
+      let want = up[0];
+      for (let i = up.length - 1; i >= 0; i--){ if (priceOf(up[i].cost, S) <= S.money){ want = up[i]; break; } }
+      ghostGlyph(g, want.e, bx + bw * 0.5, by + bh * 0.30, Math.min(bh * 0.34, bw * 0.24), 0.30);
+      const uc = priceOf(want.cost, S);
+      priceTag(g, bx + bw * 0.5, by - 8, uc, uc <= S.money, want.e);
+    }
+  }
 }
-function drawEmptySlot(g, x, y, w, h){
-  g.save();
-  g.setLineDash([6, 5]); g.strokeStyle = "rgba(255,210,63,.5)"; g.lineWidth = 2;
-  roundRect(g, x + 1, y + 1, w - 2, h - 2, 8); g.stroke();
-  g.setLineDash([]);
+
+function drawRoom(g, i, t){
+  const ox = rx0(i);
+  /* floor */
+  const fl = g.createLinearGradient(0, 0, 0, MAP.ROOM_H);
+  fl.addColorStop(0, "#132741"); fl.addColorStop(1, "#0a1628");
+  g.fillStyle = fl; g.fillRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H);
+  /* a room tint so each one feels like its own place */
+  g.save(); g.globalAlpha = 0.10; g.fillStyle = ROOMS[i].water[0];
+  g.fillRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H); g.restore();
+  /* floor tiles */
+  g.strokeStyle = "rgba(255,255,255,.035)"; g.lineWidth = 1.5;
+  for (let x = 0; x <= MAP.ROOM_W; x += 64){ g.beginPath(); g.moveTo(ox + x, 0); g.lineTo(ox + x, MAP.ROOM_H); g.stroke(); }
+  for (let y = 0; y <= MAP.ROOM_H; y += 64){ g.beginPath(); g.moveTo(ox, y); g.lineTo(ox + MAP.ROOM_W, y); g.stroke(); }
+  /* night lights */
+  if (S.up.lights){
+    const gl = g.createRadialGradient(ox + MAP.ROOM_W/2, MAP.ROOM_H*0.3, 10, ox + MAP.ROOM_W/2, MAP.ROOM_H*0.3, MAP.ROOM_W*0.75);
+    gl.addColorStop(0, "rgba(79,195,255,.20)"); gl.addColorStop(1, "rgba(79,195,255,0)");
+    g.fillStyle = gl; g.fillRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H);
+  }
+  /* walls */
+  g.strokeStyle = "#08111f"; g.lineWidth = 16;
+  g.strokeRect(ox - 8, -8, MAP.ROOM_W + 16, MAP.ROOM_H + 16);
+  g.strokeStyle = "rgba(79,195,255,.30)"; g.lineWidth = 2.5;
+  g.strokeRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H);
+  /* the room's own name on the back wall */
+  g.textAlign = "center"; g.textBaseline = "top";
+  g.font = "900 19px 'Trebuchet MS',sans-serif";
+  g.fillStyle = "rgba(191,230,255,.42)";
+  g.fillText(ROOMS[i].e + "  " + ROOMS[i].name.toUpperCase(), ox + MAP.ROOM_W/2, 10);
+  /* coral decor along the front wall */
+  if (S.up.coral){
+    g.textAlign = "center"; g.textBaseline = "bottom";
+    g.font = "30px serif";
+    for (let k = 0; k < 7; k++) g.fillText(k % 2 ? "\u{1FAB8}" : "\u{1F33F}", ox + (k + 0.5) * (MAP.ROOM_W/7), MAP.ROOM_H - 6);
+  }
+  /* feeding show bubbles */
+  if (S.up.show){
+    g.fillStyle = "rgba(255,255,255,.18)";
+    for (let k = 0; k < 10; k++){
+      const bx2 = ox + ((k * 137) % (MAP.ROOM_W - 20)) + 10;
+      const by2 = MAP.ROOM_H - ((t/8 + k * 90) % MAP.ROOM_H);
+      g.beginPath(); g.arc(bx2, by2, 3 + (k % 3), 0, 7); g.fill();
+    }
+  }
+  /* the plots */
+  plotsOf(i).forEach(p => drawPlot(g, ox, p, i, t));
+}
+
+function drawDesk(g, t){
+  const d = MAP.DESK, ox = rx0(0);
+  g.fillStyle = "rgba(0,0,0,.35)";
+  roundRect(g, ox + d.x - 5, d.y + 8, d.w + 10, d.h, 12); g.fill();
+  const gr = g.createLinearGradient(0, d.y, 0, d.y + d.h);
+  gr.addColorStop(0, "#39557f"); gr.addColorStop(1, "#1d3050");
+  g.fillStyle = gr; roundRect(g, ox + d.x, d.y, d.w, d.h, 12); g.fill();
+  g.strokeStyle = "#7fd0ff"; g.lineWidth = 3; roundRect(g, ox + d.x, d.y, d.w, d.h, 12); g.stroke();
+  g.fillStyle = "#cfe6ff"; roundRect(g, ox + d.x + 8, d.y + 8, d.w - 16, 16, 6); g.fill();
   g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillStyle = "rgba(255,210,63,.75)";
-  g.font = "900 " + Math.max(9, Math.round(Math.min(13, h*0.20))) + "px 'Trebuchet MS',sans-serif";
-  g.fillText("+ BUILD A TANK", x + w/2, y + h/2);
+  g.font = "42px serif"; g.fillText("\u{1F39F}️", ox + d.x + d.w * 0.30, d.y + d.h * 0.62);
+  g.font = "900 17px 'Trebuchet MS',sans-serif"; g.fillStyle = "#ffd23f";
+  g.fillText("TICKETS", ox + d.x + d.w * 0.68, d.y + d.h * 0.62);
+  /* the big sign upgrade hangs over the desk */
+  if (S.up.sign){
+    const A = HERO_ART[HERO] || HERO_ART.knight;
+    const sw = 300, sx = ox + d.x - 40, sy = d.y - 84, sh = 40;
+    g.fillStyle = "#7a5a1a"; roundRect(g, sx, sy, sw, sh, 8); g.fill();
+    g.strokeStyle = "#ffd23f"; g.lineWidth = 3; roundRect(g, sx, sy, sw, sh, 8); g.stroke();
+    g.fillStyle = "#ffd23f"; g.font = "900 22px 'Trebuchet MS',sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText((A.name.replace(/^The /, "") + "'S AQUARIUM").toUpperCase(), sx + sw/2, sy + sh/2 + 1);
+  }
+  /* the gift shop stall */
+  if (S.up.gift){
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = "56px serif"; g.fillText("\u{1F381}", ox + MAP.ROOM_W * 0.86, MAP.ROOM_H - 84);
+    g.font = "900 14px 'Trebuchet MS',sans-serif"; g.fillStyle = "#ffd23f";
+    g.fillText("GIFT SHOP", ox + MAP.ROOM_W * 0.86, MAP.ROOM_H - 44);
+  }
+  /* the visitor group waiting at the till */
+  if (V.cust && V.step !== "idle"){
+    const cheer = performance.now() < V.cheerUntil;
+    const hop = cheer ? Math.abs(Math.sin(t/130)) * 14 : Math.sin(t/700) * 4;
+    g.textAlign = "center"; g.textBaseline = "alphabetic";
+    g.font = "54px serif";
+    g.fillText(V.cust.e, ox + d.x + d.w + 46, d.y + d.h * 0.78 - hop);
+    g.font = "900 16px 'Trebuchet MS',sans-serif"; g.fillStyle = "#bfe6ff";
+    g.fillText("×" + V.cust.group, ox + d.x + d.w + 46, d.y + d.h + 14);
+  }
+}
+function drawPodium(g, t){
+  const pd = MAP.PODIUM, ox = rx0(0);
+  const cx = ox + pd.x, cy = pd.y;
+  const ready = UPGRADES.some(u => !S.up[u.id] && priceOf(u.cost, S) <= S.money);
+  g.fillStyle = "rgba(0,0,0,.35)";
+  g.beginPath(); g.ellipse(cx, cy + 8, pd.r, pd.r * 0.5, 0, 0, 7); g.fill();
+  g.fillStyle = "#17304d";
+  g.beginPath(); g.ellipse(cx, cy, pd.r, pd.r * 0.52, 0, 0, 7); g.fill();
+  /* the green ring, brighter when there is something he can actually build */
+  const pulse = 0.55 + 0.45 * Math.abs(Math.sin(t/420));
+  g.save();
+  g.globalAlpha = ready ? pulse : 0.45;
+  g.strokeStyle = "#3ddc84"; g.lineWidth = 6;
+  g.beginPath(); g.ellipse(cx, cy, pd.r - 4, pd.r * 0.52 - 3, 0, 0, 7); g.stroke();
+  g.restore();
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = "38px serif"; g.fillText("\u{1F6E0}️", cx, cy - 6);
+  g.font = "900 14px 'Trebuchet MS',sans-serif"; g.fillStyle = "#9ff0b8";
+  g.fillText("UPGRADES", cx, cy + pd.r * 0.52 + 12);
+}
+function drawGaps(g, t){
+  for (let i = 0; i < S.rooms; i++){
+    if (i >= ROOMS.length - 1) break;
+    const gx = rx1(i), open = (i + 1) < S.rooms;
+    /* the wall the gap is cut through */
+    g.fillStyle = "#08111f"; g.fillRect(gx, -8, MAP.WALL, MAP.ROOM_H + 16);
+    /* the doorway floor */
+    const fl = g.createLinearGradient(0, DOOR_LO, 0, DOOR_HI);
+    fl.addColorStop(0, "#132741"); fl.addColorStop(1, "#0a1628");
+    g.fillStyle = fl; g.fillRect(gx, DOOR_LO, MAP.WALL, MAP.DOOR_H);
+    g.strokeStyle = "rgba(79,195,255,.35)"; g.lineWidth = 2.5;
+    g.beginPath(); g.moveTo(gx, DOOR_LO); g.lineTo(gx + MAP.WALL, DOOR_LO); g.stroke();
+    g.beginPath(); g.moveTo(gx, DOOR_HI); g.lineTo(gx + MAP.WALL, DOOR_HI); g.stroke();
+    if (open) continue;
+    /* THE LOCKED DOOR, with its price painted on it */
+    const rm = ROOMS[i + 1], rc = priceOf(rm.cost, S), afford = rc <= S.money;
+    const dw = MAP.WALL - 14, dx = gx + 7;
+    g.fillStyle = "#23180c"; roundRect(g, dx, DOOR_LO + 6, dw, MAP.DOOR_H - 12, 8); g.fill();
+    g.strokeStyle = afford ? "#ffd23f" : "#6a5a1f"; g.lineWidth = 4;
+    roundRect(g, dx, DOOR_LO + 6, dw, MAP.DOOR_H - 12, 8); g.stroke();
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = "34px serif"; g.fillText(afford ? "\u{1F513}" : "\u{1F512}", gx + MAP.WALL/2, DOOR_MID - 18);
+    ghostGlyph(g, rm.e, gx + MAP.WALL/2, DOOR_MID + 26, 34, 0.55);
+    priceTag(g, gx + MAP.WALL/2, DOOR_LO - 4, rc, afford, rm.e);
+  }
+}
+function drawTrail(g, t){
+  if (V.where !== "park" || frozen()) return;
+  const a = nextAction();
+  const pts = trailPts(a);
+  const total = pathLen(pts);
+  if (total < 40){
+    /* he is already standing on it: ring it and say nothing */
+    const tp = targetPoint(a);
+    g.save();
+    g.strokeStyle = "#ffd23f"; g.lineWidth = 4;
+    g.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(t/300));
+    g.beginPath(); g.ellipse(tp.x, tp.y, 40, 20, 0, 0, 7); g.stroke();
+    g.restore();
+    return;
+  }
+  const CH = 54, SKIP = 58;
+  const phase = (t / 13) % CH;
+  g.save();
+  g.lineCap = "round"; g.lineJoin = "round";
+  let n = 0;
+  for (let d = SKIP + phase; d < total - 16 && n < 44; d += CH, n++){
+    const pt = alongPath(pts, d);
+    if (!pt) break;
+    const fade = Math.min(1, (total - d) / 160);
+    g.globalAlpha = 0.30 + 0.55 * fade;
+    g.strokeStyle = "#ffd23f"; g.lineWidth = 7;
+    const ang = Math.atan2(pt.uy, pt.ux);
+    g.save();
+    g.translate(pt.x, pt.y); g.rotate(ang);
+    g.beginPath(); g.moveTo(-11, -13); g.lineTo(9, 0); g.lineTo(-11, 13); g.stroke();
+    g.restore();
+  }
+  /* the ring on the thing itself */
+  const tp = targetPoint(a);
+  g.globalAlpha = 0.40 + 0.45 * Math.abs(Math.sin(t/300));
+  g.strokeStyle = "#ffd23f"; g.lineWidth = 4;
+  g.beginPath(); g.ellipse(tp.x, tp.y, 40, 20, 0, 0, 7); g.stroke();
+  g.restore();
+}
+/* the secret area. No maths in here at all: it is the reward. */
+function drawGrotto(g, t){
+  const w = MAP.SECRET.w, h = MAP.SECRET.h;
+  const bg = g.createRadialGradient(w/2, h*0.4, 20, w/2, h*0.4, w*0.8);
+  bg.addColorStop(0, "#0d2b3a"); bg.addColorStop(1, "#02070f");
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+  g.strokeStyle = "#0a1a24"; g.lineWidth = 18; g.strokeRect(-9, -9, w + 18, h + 18);
+  g.strokeStyle = "rgba(0,245,212,.35)"; g.lineWidth = 3; g.strokeRect(0, 0, w, h);
+  /* bioluminescent blobs */
+  for (let k = 0; k < 16; k++){
+    const bx = ((k * 211) % (w - 40)) + 20;
+    const by = ((k * 137) % (h - 60)) + 30 + Math.sin(t/900 + k) * 10;
+    const rr = 26 + (k % 4) * 10;
+    const gl = g.createRadialGradient(bx, by, 1, bx, by, rr);
+    gl.addColorStop(0, "rgba(0,245,212,.22)"); gl.addColorStop(1, "rgba(0,245,212,0)");
+    g.fillStyle = gl; g.beginPath(); g.arc(bx, by, rr, 0, 7); g.fill();
+  }
+  g.textAlign = "center"; g.textBaseline = "top";
+  g.font = "900 26px 'Trebuchet MS',sans-serif"; g.fillStyle = "#00f5d4";
+  g.fillText("\u{1F311} THE MIDNIGHT GROTTO", w/2, 18);
+  g.font = "900 15px 'Trebuchet MS',sans-serif"; g.fillStyle = "rgba(191,230,255,.65)";
+  g.fillText("Every fish on your cards swims free in here. Nothing to work out.", w/2, 50);
+  /* every species he holds a card for, swimming loose */
+  const held = FISH.filter(f => cardCount(f.id) > 0);
+  if (!held.length){
+    g.font = "900 17px 'Trebuchet MS',sans-serif"; g.fillStyle = "#8ba0bd";
+    g.fillText("Win a card and its fish will appear here.", w/2, h * 0.5);
+  }
+  const LANES = 5;
+  held.forEach((f, k) => {
+    const gd = cardGrade(f.id);
+    const lane = k % LANES;
+    const yy = 104 + lane * ((h - 170) / (LANES - 1));
+    /* every fish gets its own starting point round the lap, so two sharing a
+       lane are always at opposite ends of it and the names never sit on top
+       of each other */
+    const phase = t / 1500 + Math.floor(k / LANES) * Math.PI + (k % LANES) * 0.37;
+    const pr = (Math.sin(phase) + 1) / 2;
+    const xx = 56 + pr * (w - 112);
+    const dir = Math.cos(phase) >= 0 ? 1 : -1;
+    if (gd >= 1){
+      const gl = g.createRadialGradient(xx, yy, 2, xx, yy, 44);
+      gl.addColorStop(0, gd >= 3 ? "rgba(255,210,63,.35)" : (gd >= 2 ? "rgba(200,107,255,.32)" : "rgba(107,231,255,.32)"));
+      gl.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gl; g.beginPath(); g.arc(xx, yy, 44, 0, 7); g.fill();
+    }
+    g.save();
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = "42px serif";
+    g.translate(xx, yy); g.scale(dir, 1); g.fillText(f.e, 0, 0); g.restore();
+    const label = f.n + " ×" + cardCount(f.id);
+    g.font = "900 12px 'Trebuchet MS',sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    const lw = g.measureText(label).width + 12;
+    g.fillStyle = "rgba(2,7,15,.78)";
+    roundRect(g, xx - lw/2, yy + 21, lw, 17, 7); g.fill();
+    g.fillStyle = gd >= 3 ? "#ffd23f" : (gd >= 2 ? "#c86bff" : (gd >= 1 ? "#6be7ff" : "#9fb0c0"));
+    g.fillText(label, xx, yy + 30);
+  });
+}
+
+function paintPark(t){
+  const c = $("parkCanvas"); if (!c) return;
+  const wrap = $("world"); if (!wrap) return;
+  const r = wrap.getBoundingClientRect();
+  const vw = Math.max(60, Math.round(r.width)), vh = Math.max(60, Math.round(r.height));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (c.width !== Math.round(vw*dpr) || c.height !== Math.round(vh*dpr)){ c.width = Math.round(vw*dpr); c.height = Math.round(vh*dpr); }
+  const g = c.getContext("2d"); if (!g) return;
+
+  /* the camera: he stays in the middle until the edge of the world stops it */
+  const secret = V.where === "secret";
+  const WH = secret ? MAP.SECRET.h : MAP.ROOM_H;
+  const L = secret ? 0 : (rx0(0) - 30), R = secret ? MAP.SECRET.w : (worldRight() + 30);
+  const T = -30, B = WH + 30;
+  let z = clampN(vh / (WH + 52), 0.42, 1.85);
+  z = Math.min(z, vw / 300);   /* never fewer than 300 world units across */
+  z = Math.max(z, 0.30);
+  const halfW = vw / (2*z), halfH = vh / (2*z);
+  let cx = P.x, cy = P.y;
+  if (R - L <= 2*halfW) cx = (L + R) / 2; else cx = clampN(cx, L + halfW, R - halfW);
+  if (B - T <= 2*halfH) cy = (T + B) / 2; else cy = clampN(cy, T + halfH, B - halfH);
+  CAM.x = cx; CAM.y = cy; CAM.z = z; CAM.vw = vw; CAM.vh = vh;
+
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const sky = g.createLinearGradient(0, 0, 0, vh);
+  sky.addColorStop(0, secret ? "#02060c" : "#06101f"); sky.addColorStop(1, "#02060c");
+  g.fillStyle = sky; g.fillRect(0, 0, vw, vh);
+
+  g.save();
+  g.translate(vw/2, vh/2); g.scale(z, z); g.translate(-cx, -cy);
+
+  if (secret){
+    drawGrotto(g, t);
+  } else {
+    for (let i = 0; i < S.rooms; i++) drawRoom(g, i, t);
+    drawGaps(g, t);
+    drawDesk(g, t);
+    drawPodium(g, t);
+    drawTrail(g, t);
+  }
+
+  /* the hero */
+  const cheer = performance.now() < V.cheerUntil;
+  const u = 74;
+  const bob = cheer ? -Math.abs(Math.sin(t/130)) * u * 0.16
+                    : (Math.abs(Math.sin(P.walk)) > 0.01 ? -Math.abs(Math.sin(P.walk * 1.6)) * u * 0.07 : Math.sin(t/620) * u * 0.02);
+  g.save();
+  if (P.face < 0){ g.translate(P.x, 0); g.scale(-1, 1); g.translate(-P.x, 0); }
+  drawHeroSprite(g, P.x, P.y, u, HERO, { bob: bob, fx: P.face * 0.6, fy: 0.3, cheer: cheer });
+  g.restore();
+
   g.restore();
 }
 
-/* tapping a tank or a slot goes where he needs to go */
-$("tankCanvas").addEventListener("click", function(ev){
-  const r = this.getBoundingClientRect();
-  const x = ev.clientX - r.left, y = ev.clientY - r.top;
-  for (let i = 0; i < CV.hit.length; i++){
-    const b = CV.hit[i];
-    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h){
-      Snd.tick();
-      if (b.kind === "slot") setTab("build");
-      else setTab("market");
-      return;
-    }
+function paintSceneTag(){
+  const tag = $("sceneTag"); if (!tag) return;
+  if (V.where === "secret"){
+    tag.textContent = "\u{1F311} The Midnight Grotto · " + cardsHeld() + "/" + FISH.length + " species";
+    return;
   }
-});
-
-/* home-button.js normally docks into the HUD, but when a start overlay is
-   covering the HUD at the moment it first places itself it floats just under
-   the bar instead, which lands on the first room chip. home-button.js is
-   shared by every game and is not ours to edit, so the room bar simply steps
-   aside for it when that happens. Display only. */
-function keepRoomBarClear(){
-  try {
-    const bar = $("roomBar"); if (!bar) return;
-    const b = document.getElementById("mdHomeBtn");
-    let pad = 0;
-    if (b && b.parentNode !== bar && getComputedStyle(b).position === "fixed"){
-      const r = b.getBoundingClientRect(), br = bar.getBoundingClientRect();
-      if (r.width > 0 && !(r.right <= br.left || r.left >= br.right || r.bottom <= br.top || r.top >= br.bottom)){
-        pad = Math.ceil(r.right - br.left) + 6;
-      }
-    }
-    const css = pad > 0 ? pad + "px" : "";
-    if (bar.style.paddingLeft !== css) bar.style.paddingLeft = css;
-  } catch (e) { /* decoration only */ }
+  const rm = ROOMS[clampN(roomAtX(P.x), 0, S.rooms - 1)] || ROOMS[0];
+  tag.textContent = rm.name + " · day " + S.day + " · visitor " +
+    Math.min(PER_DAY, S.servedDay + 1) + "/" + PER_DAY + " · pull " + drawOf(S);
 }
-let frameN = 0;
+
+/* the one loop. It moves the hero and draws. It never adds money, it is
+   not a clock, and it pays nothing for being open. */
+let lastFrameT = 0, frameN = 0;
 (function frame(t){
-  try { paintScene(t || 0); if ((frameN++ % 24) === 0) keepRoomBarClear(); }
-  catch (e) { /* art never breaks the game */ }
+  try {
+    t = t || 0;
+    const dt = lastFrameT ? Math.min(0.05, (t - lastFrameT) / 1000) : 0;
+    lastFrameT = t;
+    if (!frozen()) step(dt);
+    triggers();
+    paintPark(t);
+    if ((frameN++ % 10) === 0) paintSceneTag();
+  } catch (e) { /* art never breaks the game */ }
   requestAnimationFrame(frame);
 })(0);
+/* =====================================================================
+   THE COLLECTION. A card is EARNED: the only way one exists is a park
+   level, and a park level is only ever a count of visitors he served,
+   which is only ever maths he got right. There is no pack to buy, no
+   daily card, no timer and no random roll for its own sake: the roll only
+   decides the GRADE of a card he has already earned, and the odds on that
+   roll move with his brain level and nothing else.
 
+   A card is a picture. Its value is a collection score, printed on the
+   card and added up in the binder. It is NEVER added to S.money.
+   ===================================================================== */
+function cardOf(id){ return S.cards[id] || null; }
+function cardCount(id){ const e = cardOf(id); return e ? e.c : 0; }
+function cardGrade(id){
+  const e = cardOf(id);
+  if (!e) return -1;
+  for (let g = MAX_GRADE; g >= 0; g--) if (e.b[g] > 0) return g;
+  return -1;
+}
+function cardToNext(id){
+  const e = cardOf(id), g = cardGrade(id);
+  if (!e || g < 0 || g >= MAX_GRADE) return 0;
+  return Math.max(0, CARD.UPGRADE_AT - e.b[g]);
+}
+function gradeName(g){ return (g >= 0 && g <= MAX_GRADE) ? GRADES[g].nm : ""; }
+function gradeCls(g){ return (g >= 0 && g <= MAX_GRADE) ? GRADES[g].cls : "g0"; }
+function gradeTag(g){ return (g >= 0 && g <= MAX_GRADE) ? GRADES[g].tag : ""; }
+function cardsHeld(){ let n = 0; FISH.forEach(f => { if (cardCount(f.id) > 0) n++; }); return n; }
+/* what one card of this species at this grade is worth to the collection */
+function oneValue(id, g){
+  const f = FISH_BY[id]; if (!f) return 0;
+  return f.attract * 10 * GRADES[Math.max(0, Math.min(MAX_GRADE, g))].mult;
+}
+function cardValue(id){
+  const e = cardOf(id); if (!e) return 0;
+  let v = 0;
+  for (let g = 0; g <= MAX_GRADE; g++) v += e.b[g] * oneValue(id, g);
+  return v;
+}
+function collectionValue(){ let v = 0; FISH.forEach(f => v += cardValue(f.id)); return v; }
+
+function rollGrade(odds){
+  const r = Math.random();
+  let acc = 0;
+  for (let g = 0; g < odds.length; g++){ acc += odds[g]; if (r < acc) return g; }
+  return 0;
+}
+/* a species he has never collected comes first, and the game says so out
+   loud when there is none left */
+function pickSpecies(){
+  if (CARD.GUARANTEE_NEW){
+    const fresh = FISH.filter(f => !cardCount(f.id) && fishUnlocked(S, f));
+    if (fresh.length) return pick(fresh).id;
+    const any = FISH.filter(f => !cardCount(f.id));
+    if (any.length) return pick(any).id;
+  }
+  const un = FISH.filter(f => fishUnlocked(S, f));
+  return pick(un.length ? un : FISH).id;
+}
+/* Add one copy at grade g and roll the ladder. Returns exactly what
+   happened, which is all the reveal is allowed to show. */
+function gainCard(id, g){
+  const f = FISH_BY[id];
+  if (!f) return null;
+  if (!(g >= 0 && g <= MAX_GRADE)) g = 0;
+  const fresh = !cardOf(id);
+  const e = fresh ? blankCard() : cardOf(id);
+  if (fresh) S.cards[id] = e;
+  const before = fresh ? -1 : cardGrade(id);
+  e.c += 1;
+  e.b[g] += 1;
+  cardCascade(e);
+  const after = cardGrade(id);
+  save();
+  return { id: id, name: f.n, e: f.e, pulled: g, isNew: fresh, from: before, to: after,
+           upgraded: (!fresh && after > before), count: e.c, toNext: cardToNext(id),
+           worth: oneValue(id, g) };
+}
+
+/* ---------------------------------------------------------------------
+   PARK LEVEL. Called from collect() and nowhere else, so a card can only
+   ever follow a served visitor.
+   --------------------------------------------------------------------- */
+function checkParkLevel(){
+  const want = parkLevelFor(S.servedAll);
+  while (S.plevel < want && S.plevel < 99){
+    S.plevel++;
+    const card = gainCard(pickSpecies(), rollGrade(cardOdds(brainLevel())));
+    V.cardQ.push({ level: S.plevel, card: card,
+                   why: "You have served " + S.servedAll + " visitors." +
+                        (S.plevel === SECRET_AT ? " And you just found a way in somewhere." : "") });
+  }
+  save();
+  paintDock();
+}
+function showNextCard(){
+  const item = V.cardQ.shift();
+  if (!item){
+    const fn = V.afterCard; V.afterCard = null;
+    paintHud();
+    if (fn) fn();
+    return;
+  }
+  V.showing = item;
+  const c = item.card;
+  $("upTitle").innerHTML = "LEVEL UP! <span style=\"color:#fff\">⭐ " + item.level + "</span>";
+  $("upWhy").textContent = item.why;
+  $("upMsg").innerHTML = "";
+  const card = $("upCard");
+  card.classList.remove("open");
+  const fr = $("upFront");
+  if (c){
+    fr.className = "face fr " + gradeCls(c.pulled);
+    fr.innerHTML =
+      (c.isNew ? '<span class="newtag">NEW</span>' : "") +
+      '<span class="e">' + c.e + '</span>' +
+      '<span class="n">' + c.name + '</span>' +
+      '<span class="gd">' + (gradeTag(c.pulled) ? gradeTag(c.pulled) + " " : "") + gradeName(c.pulled).toUpperCase() + '</span>' +
+      '<span class="vl">+' + c.worth + '</span>' +
+      (c.count > 1 ? '<span class="gd">you have ' + c.count + '</span>' : "") +
+      (c.upgraded ? '<span class="uptag">UPGRADED TO ' + gradeName(c.to).toUpperCase() + '</span>' : "");
+  } else {
+    fr.className = "face fr g0";
+    fr.innerHTML = '<span class="e">⭐</span><span class="n">Park level ' + item.level + '</span>';
+  }
+  $("upOv").classList.add("on");
+  Snd.kaching();
+  paintHud();
+}
+$("upCard").onclick = function(){
+  const card = $("upCard");
+  if (card.classList.contains("open")) return;
+  card.classList.add("open");
+  Snd.pop();
+  const c = V.showing && V.showing.card;
+  if (!c){ $("upMsg").textContent = "One more level on the board."; return; }
+  const bits = [];
+  if (c.isNew) bits.push('<span class="nw">A new species for the collection!</span>');
+  if (c.upgraded) bits.push('<span class="up">' + CARD.UPGRADE_AT + " " + gradeName(c.from) +
+                            " cards rolled up into one " + gradeName(c.to) + "!</span>");
+  if (!c.isNew && !c.upgraded && c.toNext > 0)
+    bits.push(c.toNext + " more " + gradeName(c.pulled) + (c.toNext === 1 ? "" : "s") +
+              " and it becomes a " + gradeName(Math.min(MAX_GRADE, c.pulled + 1)) + ".");
+  if (!bits.length) bits.push("Filed in the collection.");
+  $("upMsg").innerHTML = bits.join("  ");
+};
+$("upDone").onclick = function(){
+  $("upOv").classList.remove("on");
+  V.showing = null;
+  Snd.tick();
+  showNextCard();
+};
+
+/* ---------------------------------------------------------------------
+   THE BINDER
+   --------------------------------------------------------------------- */
+function paintBinder(){
+  const b = $("binder");
+  b.innerHTML = "";
+  FISH.forEach(f => {
+    const n = cardCount(f.id), g = cardGrade(f.id);
+    const d = document.createElement("div");
+    d.className = "bc" + (n ? " " + gradeCls(g) : " un");
+    const nx = cardToNext(f.id);
+    d.innerHTML =
+      (n > 1 ? '<span class="cnt">×' + n + "</span>" : "") +
+      '<span class="e">' + f.e + "</span>" +
+      '<span class="n">' + (n ? f.n : "?????") + "</span>" +
+      (n ? '<span class="gd">' + (gradeTag(g) ? gradeTag(g) + " " : "") + gradeName(g).toUpperCase() + "</span>" : '<span class="gd">NOT YET</span>') +
+      (n ? '<span class="nx">' + (nx > 0 ? nx + " more → " + gradeName(g + 1) : "top grade ✓") + "</span>"
+         : '<span class="nx">level up to find it</span>');
+    b.appendChild(d);
+  });
+  $("dexLine").innerHTML = "<b style=\"color:#3ddc84\">" + cardsHeld() + " of " + FISH.length + "</b> species · " +
+    "collection value <b style=\"color:#ffd23f\">" + collectionValue().toLocaleString("en-US") + "</b> · " +
+    "park level <b style=\"color:#ffd23f\">⭐" + S.plevel + "</b> · next card at " +
+    (parkNeed(S.plevel + 1) - S.servedAll) + " more visitor" + ((parkNeed(S.plevel + 1) - S.servedAll) === 1 ? "" : "s");
+}
+function openDex(){ paintBinder(); $("dexOv").classList.add("on"); }
+$("dexDone").onclick = function(){ $("dexOv").classList.remove("on"); Snd.tick(); };
+
+/* ---------------------------------------------------------------------
+   THE SECRET AREA. Earned at park level SECRET_AT, then always there.
+   --------------------------------------------------------------------- */
+let parkPos = null;
+function goSecret(){
+  if (V.where === "secret") return;
+  parkPos = { x: P.x, y: P.y };
+  V.where = "secret";
+  V.moveTo = null; V.gest = null; V.firedZone = null;
+  P.x = MAP.SECRET.w * 0.5; P.y = MAP.SECRET.h - 70;
+  closeSheet();
+  bubble("The Midnight Grotto", "Your fish, swimming free. Nothing to work out in here.");
+  Snd.splash();
+  paintHud(); paintSceneTag();
+}
+function goPark(){
+  if (V.where !== "secret") return;
+  V.where = "park";
+  V.moveTo = null; V.gest = null; V.firedZone = null;
+  if (parkPos){ P.x = parkPos.x; P.y = parkPos.y; }
+  if (!standable(P.x, P.y)){ P.x = rx0(0) + 534; P.y = MAP.ROOM_H - 44; }
+  Snd.tick();
+  paintHud(); paintSceneTag();
+}
 /* =====================================================================
    BUTTONS
    ===================================================================== */
-$("tabServe").onclick  = () => { Snd.tick(); setTab("serve"); };
-$("tabMarket").onclick = () => { Snd.tick(); setTab("market"); };
-$("tabBuild").onclick  = () => { Snd.tick(); setTab("build"); };
-$("hintBtn").onclick   = hint;
-$("muteBtn").onclick   = () => { const on = Snd.toggle(); $("muteBtn").textContent = on ? "\u{1F50A}" : "\u{1F507}"; if (on) Snd.tick(); };
-$("quitBtn").onclick   = () => {
-  if (!confirm("Start the whole aquarium again from scratch? Everything you built is lost.")) return;
+$("sheetClose").onclick = () => { Snd.tick(); sheetDismiss(); };
+$("hintBtn").onclick    = hint;
+$("dockCards").onclick  = () => { Snd.tick(); openDex(); };
+$("dockPlay").onclick   = () => {
+  Snd.tick();
+  if (V.where === "secret") goPark();
+  else if (sheetOn()) sheetDismiss();
+  paintDock();
+};
+$("dockSecret").onclick = () => {
+  if (!secretOpen()){
+    Snd.nope();
+    bubble("Still locked", "The grotto opens at park level ⭐" + SECRET_AT +
+           ". You are on ⭐" + S.plevel + " — " + Math.max(0, parkNeed(SECRET_AT) - S.servedAll) + " more visitors.");
+    return;
+  }
+  if (V.where === "secret") goPark(); else goSecret();
+  paintDock();
+};
+$("muteBtn").onclick = () => { const on = Snd.toggle(); $("muteBtn").textContent = on ? "\u{1F50A}" : "\u{1F507}"; if (on) Snd.tick(); };
+$("quitBtn").onclick = () => {
+  if (!confirm("Start the whole aquarium again from scratch? Everything you built, and every card you collected, is lost.")) return;
   const f = freshState();
   Object.keys(S).forEach(k => delete S[k]);
   Object.keys(f).forEach(k => S[k] = f[k]);
-  save(); V.cust = null; V.step = "idle";
-  paintHud(); paintRooms(); paintServe(); refreshPanes();
+  save();
+  V.cust = null; V.step = "idle"; V.cardQ = []; V.showing = null; V.pend = null; V.resume = null;
+  V.where = "park"; V.firedZone = null; V.moveTo = null; V.gest = null; V.keys = {};
+  P.x = rx0(0) + 534; P.y = MAP.ROOM_H - 44; P.face = 1;
+  closeSheet();
+  paintHud(); paintRooms(); paintServe();
   $("startScreen").classList.add("on");
   paintStartStats();
 };
 $("startBtn").onclick = () => {
   $("startScreen").classList.remove("on");
   Snd.start(); V.running = true;
+  V.firedZone = null;
   nextVisitor();
 };
 
@@ -1956,24 +3118,22 @@ function paintStartStats(){
     stat(money(S.money), "in the till") +
     stat(S.fish.length + "", "fish") +
     stat(S.tanks.length + "/" + slotsOf(S), "tanks") +
-    stat(S.rooms + "/" + ROOMS.length, "rooms");
+    stat(S.rooms + "/" + ROOMS.length, "rooms") +
+    stat("⭐ " + S.plevel, "park level") +
+    stat(cardsHeld() + "/" + FISH.length, "cards");
 }
 (function init(){
   const A = HERO_ART[HERO] || HERO_ART.knight;
   $("heroLine").innerHTML = "Running the aquarium today: <span style=\"color:" + A.body + "\">" + A.name + "</span>";
   $("muteBtn").textContent = Snd.isOn() ? "\u{1F50A}" : "\u{1F507}";
   $("startBtn").textContent = S.servedAll > 0 ? "Back to the aquarium" : "Open the gates";
+  if (!standable(P.x, P.y)){ P.x = rx0(0) + 534; P.y = MAP.ROOM_H - 44; }
   paintStartStats();
-  paintHud(); paintRooms(); paintServe(); setTab("serve");
+  paintHud(); paintRooms(); paintServe(); paintSceneTag();
   if (hasBrain()){ try { Brain.onChange(function(){ if (syncScale(S) !== 1){ save(); paintRooms(); refreshPanes(); } paintHud(); }); } catch (e) { } }
   if (hasWallet()){ try { Wallet.onChange(paintHud); } catch (e) { } }
   window.addEventListener("pageshow", paintHud);
 })();
-
-/* =====================================================================
-   TEST HOOKS. Nothing below changes how the game plays; it lets an
-   automated check drive the real code and measure the real economy.
-   ===================================================================== */
 function simState(){
   return { money: START_MONEY, rooms: 1, tanks: [{ t:"small", r:0 }],
            fish: [{ k:"guppy" }, { k:"guppy" }], up: {}, lvl: 3 };
@@ -2044,19 +3204,204 @@ function simulate(n, opts){
   log.lvl = st.lvl;
   return log;
 }
+/* ---------------------------------------------------------------------
+   THE TRAIL AUDIT. It drives the REAL serve, the REAL buy functions and
+   the REAL nextAction(), and after every single state change it asserts
+   the one rule the chevrons live by: the thing they point at must be
+   something he can do right now, and there must always be something.
+   It snapshots and restores the save, so running it changes nothing.
+   --------------------------------------------------------------------- */
+function auditTrail(n){
+  n = Math.max(1, Math.min(2000, n || 300));
+  const snap = JSON.stringify(S);
+  const keepStep = V.step, keepCust = V.cust;
+  const wasOff = SAVE_OFF;
+  SAVE_OFF = true;
+  const fails = [];
+  let samples = 0, acts = 0, serves = 0;
+  const kinds = {};
+
+  function chk(tag){
+    samples++;
+    let a = null;
+    try { a = nextAction(); } catch (e) { fails.push({ tag: tag, why: "nextAction threw: " + e }); return; }
+    if (!a){ fails.push({ tag: tag, why: "pointed at nothing while the desk was open" }); return; }
+    kinds[a.kind] = (kinds[a.kind] || 0) + 1;
+    if (!(typeof a.cost === "number") || !isFinite(a.cost) || a.cost < 0)
+      fails.push({ tag: tag, why: "cost is not a number", cost: a.cost });
+    if (a.cost > S.money)
+      fails.push({ tag: tag, why: "UNAFFORDABLE", kind: a.kind, what: a.what, cost: a.cost, money: S.money });
+    let tp = null;
+    try { tp = targetPoint(a); } catch (e) { }
+    if (!tp || !isFinite(tp.x) || !isFinite(tp.y))
+      fails.push({ tag: tag, why: "target is not a real place", kind: a.kind });
+    const path = trailPts(a);
+    if (!path || path.length < 2 || !isFinite(pathLen(path)))
+      fails.push({ tag: tag, why: "no walkable path to the target", kind: a.kind });
+    if (a.kind === "plot"){
+      const z = zones().filter(q => q.id === a.id)[0];
+      if (!z) fails.push({ tag: tag, why: "plot is not in the world", id: a.id });
+      else if (!z.live) fails.push({ tag: tag, why: "plot has nothing to do", id: a.id });
+    }
+    if (a.kind === "gate" && a.room !== S.rooms)
+      fails.push({ tag: tag, why: "gate is not the next room", room: a.room, rooms: S.rooms });
+    if (a.kind === "podium" && !UPGRADES.some(u => !S.up[u.id] && priceOf(u.cost, S) <= S.money))
+      fails.push({ tag: tag, why: "podium with no affordable upgrade" });
+    if (a.kind === "desk" && a.cost !== 0)
+      fails.push({ tag: tag, why: "the desk is never allowed to cost anything", cost: a.cost });
+  }
+  /* exactly what walking there and tapping the green button would do */
+  function doAction(a){
+    if (a.kind === "plot"){
+      const ti = tankAt(a.room, a.slot);
+      if (ti >= 0 && tankFree(ti) > 0){
+        let f = null;
+        for (let i = FISH.length - 1; i >= 0; i--){ if (fishUnlocked(S, FISH[i]) && priceOf(FISH[i].cost, S) <= S.money){ f = FISH[i]; break; } }
+        if (!f) return false;
+        const u = priceOf(f.cost, S);
+        const n0 = S.fish.length;
+        doBuyFish(f, 1, u, u, ti);
+        return S.fish.length > n0;
+      }
+      if (ti >= 0){
+        const up = biggerThan(ti);
+        let want = null;
+        for (let i = up.length - 1; i >= 0; i--){ if (priceOf(up[i].cost, S) <= S.money){ want = up[i]; break; } }
+        if (!want) return false;
+        const was = S.tanks[ti].t;
+        tradeUpTank(want, a.room, a.slot);
+        return S.tanks[ti].t !== was;
+      }
+      let t = null;
+      for (let i = TANKS.length - 1; i >= 0; i--){ if (priceOf(TANKS[i].cost, S) <= S.money){ t = TANKS[i]; break; } }
+      if (!t) return false;
+      buyTankAt(t, a.room, a.slot);
+      return true;
+    }
+    if (a.kind === "podium"){
+      for (let i = 0; i < UPGRADES.length; i++){
+        const u = UPGRADES[i];
+        if (!S.up[u.id] && priceOf(u.cost, S) <= S.money){ buyUpgrade(u); return true; }
+      }
+      return false;
+    }
+    if (a.kind === "gate"){ const before = S.rooms; buyRoom(S.rooms); return S.rooms > before; }
+    return false;
+  }
+  const spots = [];
+  function randomSpot(){
+    if (!spots.length){
+      for (let i = 0; i < S.rooms; i++){
+        spots.push({ x: rx0(i) + 60, y: MAP.ROOM_H - 60 });
+        spots.push({ x: rx0(i) + MAP.ROOM_W - 60, y: MAP.ROOM_H - 60 });
+        spots.push({ x: rx0(i) + MAP.ROOM_W * 0.5, y: plotBodyBottom() + 20 });
+        if (i < S.rooms - 1) spots.push({ x: rx1(i) + MAP.WALL * 0.5, y: DOOR_MID });
+      }
+    }
+    return spots[Math.floor(Math.random() * spots.length)];
+  }
+
+  try {
+    for (let i = 0; i < n; i++){
+      spots.length = 0;
+      const sp = randomSpot();
+      if (sp && standable(sp.x, sp.y)){ P.x = sp.x; P.y = sp.y; }
+      chk("idle:" + i);
+      nextVisitor();
+      clearTimeout(V.timer); V.timer = null;
+      chk("arrived:" + i);
+      let guard = 0;
+      while ((V.step === "bill" || V.step === "rate" || V.step === "change") && guard++ < 8){
+        if (V.step === "change"){
+          const c = V.cust;
+          V.tray = breakdown(c.change, tillFor(brainLevel())) || [];
+          paintChange();
+          $("giveBtn").click();
+        } else {
+          const q = currentQuestion();
+          if (!q) break;
+          V.typed = String(q.answer);
+          submitTyped();
+        }
+        chk("mid:" + i + ":" + guard);
+      }
+      serves++;
+      clearTimeout(V.timer); V.timer = null;
+      V.cardQ.length = 0; V.afterCard = null;
+      chk("collected:" + i);
+      let g2 = 0;
+      while (g2++ < 60){
+        const a = nextAction();
+        if (a.kind === "desk") break;
+        if (!doAction(a)) break;
+        acts++;
+        chk("bought:" + i + ":" + g2);
+      }
+      chk("settled:" + i);
+    }
+  } catch (e) {
+    fails.push({ tag: "threw", why: String(e) });
+  }
+
+  /* put everything back exactly as it was */
+  const back = JSON.parse(snap);
+  Object.keys(S).forEach(k => delete S[k]);
+  Object.keys(back).forEach(k => S[k] = back[k]);
+  SAVE_OFF = wasOff;
+  V.cust = keepCust; V.step = keepStep;
+  V.cardQ.length = 0; V.afterCard = null; V.pend = null; V.resume = null; V.tray = []; V.typed = "";
+  clearTimeout(V.timer); V.timer = null;
+  paintHud(); paintRooms(); paintServe();
+  return { serves: serves, buys: acts, samples: samples, failures: fails.length,
+           fails: fails.slice(0, 25), kinds: kinds };
+}
+
 window.__AQ = {
-  S: S, V: V, FISH: FISH, TANKS: TANKS, ROOMS: ROOMS, UPGRADES: UPGRADES,
+  S: S, V: V, P: P, MAP: MAP, FISH: FISH, TANKS: TANKS, ROOMS: ROOMS, UPGRADES: UPGRADES, GRADES: GRADES,
   simulate: simulate, revenueFor: revenueFor, drawOf: drawOf, ticketFor: ticketFor, groupFor: groupFor,
   band: band, brainLevel: brainLevel, currentQuestion: currentQuestion,
   answer: function(v){ V.typed = String(v); submitTyped(); },
   autoAnswer: function(){ const q = currentQuestion(); if (!q) return null; V.typed = String(q.answer); submitTyped(); return q.answer; },
   autoChange: function(){ const c = V.cust; if (!c || V.step !== "change") return null;
     V.tray = breakdown(c.change, tillFor(brainLevel())) || []; paintChange(); $("giveBtn").click(); return c.change; },
-  nextVisitor: nextVisitor, setTab: setTab, money: () => S.money, coins: coinsNow,
+  nextVisitor: nextVisitor, money: () => S.money, coins: coinsNow,
   repaint: function(){ save(); paintHud(); paintRooms(); paintServe(); refreshPanes(); },
   noSave: function(v){ SAVE_OFF = !!v; },
   reset: function(){ const f = freshState(); Object.keys(S).forEach(k => delete S[k]); Object.keys(f).forEach(k => S[k] = f[k]);
-    V.cust = null; V.step = "idle"; save(); paintHud(); paintRooms(); paintServe(); refreshPanes(); }
+    V.cust = null; V.step = "idle"; V.cardQ = []; V.where = "park"; V.firedZone = null;
+    P.x = rx0(0) + 534; P.y = MAP.ROOM_H - 44;
+    closeSheet(); save(); paintHud(); paintRooms(); paintServe(); },
+
+  /* ---- the park ---- */
+  pos: function(){ return { x: Math.round(P.x * 100) / 100, y: Math.round(P.y * 100) / 100,
+                            room: S.room, where: V.where, zone: zoneId(), face: P.face,
+                            keys: JSON.parse(JSON.stringify(V.keys)), moveTo: V.moveTo,
+                            dragging: !!(V.gest && V.gest.moved) }; },
+  teleport: function(x, y){ if (standable(x, y)){ P.x = x; P.y = y; V.moveTo = null; return true; } return false; },
+  cam: function(){ return { x: CAM.x, y: CAM.y, z: CAM.z, vw: CAM.vw, vh: CAM.vh }; },
+  worldToScreen: function(x, y){ return { x: (x - CAM.x) * CAM.z + CAM.vw / 2, y: (y - CAM.y) * CAM.z + CAM.vh / 2 }; },
+  zones: zones, zone: zoneId, action: nextAction,
+  trail: function(){ const a = nextAction(); return { kind: a.kind, id: a.id, what: a.what, cost: a.cost,
+                     money: S.money, affordable: a.cost <= S.money, points: trailPts(a).length,
+                     length: Math.round(pathLen(trailPts(a))) }; },
+  auditTrail: auditTrail,
+  sheet: function(){ return V.sheet ? { kind: V.sheet.kind, room: V.sheet.room, slot: V.sheet.slot,
+                     title: $("sheetTitle").textContent, pane: $("paneServe").classList.contains("on") ? "serve" : "list",
+                     rows: $("listBody").children.length } : null; },
+  step: function(){ return V.step; },
+  closeSheet: sheetDismiss,
+
+  /* ---- the collection ---- */
+  cards: function(){ const o = {}; FISH.forEach(f => { const e = cardOf(f.id);
+    if (e) o[f.id] = { count: e.c, grade: cardGrade(f.id), gradeName: gradeName(cardGrade(f.id)),
+                       row: e.b.slice(), toNext: cardToNext(f.id), value: cardValue(f.id) }; });
+    return { held: cardsHeld(), of: FISH.length, value: collectionValue(), plevel: S.plevel, cards: o }; },
+  grantCard: function(id, g){ return gainCard(id, g); },
+  parkLevel: function(){ return { level: S.plevel, served: S.servedAll,
+                                  next: parkNeed(S.plevel + 1), secretAt: SECRET_AT, secret: secretOpen() }; },
+  setServed: function(n){ S.servedAll = Math.max(0, n | 0); S.plevel = parkLevelFor(S.servedAll); save(); paintHud(); },
+  showCards: function(){ openDex(); },
+  secret: function(){ goSecret(); }, park: function(){ goPark(); }
 };
 })();
 </script>
