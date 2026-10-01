@@ -209,6 +209,7 @@ canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display
 <script src="math-bank.js"></script>
 <script src="story-bank.js"></script>
 <script src="brain.js"></script>
+<script src="hero-look.js"></script>
 <script src="wallet.js"></script>
 <script>
 (function(){
@@ -1347,6 +1348,78 @@ const HERO_DEF = {
   dragon:   { body:"#45ad63", body2:"#2a7241", trim:"#9be36f", glove:"#7fd18f", skin:"#7fd18f" }
 };
 
+/* =====================================================================
+   THE KID'S OWN LOOK  (hero-look.js, storage "mathDungeonLook.v1")
+   Will, 2026-10-01: "we need an option to customize the character.
+   Lennon has brown skin and curly hair"
+
+   His skin paints the face, his outfit colour paints the tunic, and his
+   hair is painted on top of the head by HeroLook.drawHair, positioned
+   from THIS game's own head centre and radius, so the curls read the
+   same in every game.
+
+   Hair he picked stands in for the hero's built-in headgear (helm,
+   pointed hat, cap, hood) exactly the way a shop hat already does,
+   because a steel helm would hide the one thing he chose. A shop hat
+   still goes on last, on top of the hair.
+
+   BEEP-9 and Lil' Dragon are not people: HeroLook.isHuman() is false,
+   their skin IS the body colour, and they never get hair.
+
+   No hero-look.js, or nothing saved yet, and HERO_DEF is left exactly as
+   it is above: the old sprite, unchanged.
+   ===================================================================== */
+var HL = (function(){
+  function dim(hex, k){
+    var m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || "");
+    if (!m) return hex;
+    var o = "#";
+    for (var i = 1; i <= 3; i++){
+      var v = Math.max(0, Math.min(255, Math.round(parseInt(m[i], 16) * k)));
+      o += ("0" + v.toString(16)).slice(-2);
+    }
+    return o;
+  }
+  /* saved() and NOT just "HeroLook exists": before he has picked anything
+     the games must look exactly the way they looked yesterday. */
+  function saved(){
+    if (!window.HeroLook) return false;
+    try { return !!localStorage.getItem(HeroLook.KEY); } catch (e){ return false; }
+  }
+  function look(){ try { return window.HeroLook ? HeroLook.get() : null; } catch (e){ return null; } }
+  function human(id){ try { return !window.HeroLook || !!HeroLook.isHuman(id); } catch (e){ return true; } }
+  function apply(){
+    if (!saved()) return;
+    var L = look(); if (!L) return;
+    for (var k in HERO_DEF){
+      if (!Object.prototype.hasOwnProperty.call(HERO_DEF, k)) continue;
+      var A = HERO_DEF[k];
+      if (human(k)){
+        A.skin = L.skin; A.body = L.outfit;
+        A.body2 = dim(L.outfit, 0.62); A.glove = dim(L.outfit, 0.52);
+      } else {
+        A.skin = L.skin; A.body = L.skin;
+        A.body2 = dim(L.skin, 0.64); A.glove = dim(L.skin, 0.54);
+      }
+    }
+  }
+  /* the look to paint hair from, or null: nothing saved, no hero-look.js,
+     "None" picked, or a hero that is not a person */
+  function hair(id){
+    if (!saved() || !human(id)) return null;
+    var L = look();
+    return (L && L.hair && L.hair !== "none") ? L : null;
+  }
+  function paint(g, cx, cy, r, id){
+    var L = hair(id);
+    if (!L) return;
+    try { HeroLook.drawHair(g, cx, cy, r, L.hair, L.hairColor); } catch (e){ }
+  }
+  apply();
+  try { if (window.HeroLook && HeroLook.onChange) HeroLook.onChange(apply); } catch (e){ }
+  return { apply: apply, hair: hair, paint: paint, dim: dim, saved: saved, look: look, human: human };
+})();
+
 function drawHero(g, x, y, time){
   const P = HERO_DEF[HERO] || HERO_DEF.knight;
   const cxp = x + TS/2, cyp = y + TS/2;
@@ -1359,6 +1432,8 @@ function drawHero(g, x, y, time){
   const R  = TS*0.17;                       /* head radius */
   /* a shop hat REPLACES the built-in headgear (helm, pointed hat, cap, hood) */
   const hat = WEAR.hat;
+  /* the hair he picked stands in for the built-in headgear */
+  const hlHair = HL.hair(HERO);
 
   g.save();
   /* ---- ground shadow ---- */
@@ -1477,10 +1552,11 @@ function drawHero(g, x, y, time){
   } else {
     g.fillStyle = P.skin;
     g.beginPath(); g.arc(cxp, hy, R, 0, Math.PI*2); g.fill();
+    HL.paint(g, cxp, hy, R, HERO);
   }
 
   /* ---- headgear + face, per hero ---- */
-  if (HERO === "knight" && hat){
+  if (HERO === "knight" && (hat || hlHair)){
     /* helm off under a shop hat: just his face */
     if (!up){
       g.fillStyle = "#1a2029";
@@ -1510,7 +1586,7 @@ function drawHero(g, x, y, time){
     }
   } else if (HERO === "wizard"){
     /* tall pointed hat with a gold band (unless a shop hat replaces it) */
-    if (!hat){
+    if (!hat && !hlHair){
       g.fillStyle = P.body2;
       g.beginPath();
       g.moveTo(cxp - R*1.35, hy - R*0.55);
@@ -1532,7 +1608,7 @@ function drawHero(g, x, y, time){
       g.lineTo(cxp + fx*0.6, hy + R*1.55);
       g.closePath(); g.fill();
     }
-  } else if (HERO === "ninja" && hat){
+  } else if (HERO === "ninja" && (hat || hlHair)){
     /* hood off under a shop hat: his face with the lower mask still on */
     g.fillStyle = P.body2;
     g.beginPath(); g.arc(cxp, hy + R*0.12, R*1.04, 0, Math.PI); g.fill();
@@ -1571,7 +1647,7 @@ function drawHero(g, x, y, time){
       g.fillStyle = P.body2;
       g.fillRect(cxp - R*0.78, hy - R*0.28, R*1.56, R*0.56);
     }
-  } else if (HERO === "explorer" && hat){
+  } else if (HERO === "explorer" && (hat || hlHair)){
     /* cap off under a shop hat: just his face */
     if (!up){
       g.fillStyle = "#1a2029";
@@ -1796,6 +1872,56 @@ window.CRATE = {
     return {target:L.target, vals:v.slice(), count:hits.length, hits:hits};
   }
 };
+
+/* =====================================================================
+   ESCAPE BACKS OUT ONE LAYER
+   Will, 2026-10-01: "the escape key should exit out of any screen."
+
+   One press closes the TOP-MOST open panel and nothing else, so a panel
+   stacked on another panel takes two presses, which is what backing out
+   means. Escape NEVER navigates away from the page.
+
+   Every layer below closes through that panel's OWN control, so the
+   game's own bookkeeping runs exactly as if the button had been tapped:
+   no second code path to keep in step. A panel he is part-way through
+   (a half-typed answer, an unopened card) still closes - the press is
+   never swallowed with nothing to show for it.
+
+   With no panel open, Escape is left alone for whatever the game already
+   does with it, and if nothing does, it is simply ignored.
+   ===================================================================== */
+(function(){
+  "use strict";
+  function el(id){ return document.getElementById(id); }
+  /* one visibility test for every convention in here (.on, .hide,
+     .hidden, display:none): is it actually taking up space on screen */
+  function vis(id){
+    var e = (typeof id === "string") ? el(id) : id;
+    if (!e) return false;
+    try { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); }
+    catch (err){ return false; }
+  }
+  function tap(id){ var b = el(id); if (b) b.click(); }
+  /* top-most first */
+  var LAYERS = [
+    { open: function(){ return vis("winOv"); },   close: function(){ tap("nextBtn"); } },  /* DOOR OPEN */
+    { open: function(){ return vis("startOv"); }, close: function(){ tap("goBtn"); } }     /* the room picker */
+  ];
+
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    for (var i = 0; i < LAYERS.length; i++){
+      var open = false;
+      try { open = !!LAYERS[i].open(); } catch (err){ open = false; }
+      if (!open) continue;
+      try { ev.preventDefault(); ev.stopPropagation(); } catch (err){}
+      try { LAYERS[i].close(); } catch (err){}
+      return;                        /* exactly one layer per press */
+    }
+  }, true);
+})();
+
 })();
 </script>
 <script src="home-button.js"></script>

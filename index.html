@@ -144,7 +144,73 @@
   .tvSide ul{margin:0;padding:0;list-style:none;font-size:14px;line-height:1.6;color:#fff;font-weight:700;}
   .tvSide li span{color:#a9b8de;font-weight:400;font-size:12.5px;}
   .tvMenuWrap .tvPick{margin-top:12px;}
+
+  /* ---------- CHARACTER CUSTOMISER ----------
+     The entry button sits right under the hero row and carries a live
+     thumbnail of the character, so the arcade itself shows him his face. */
+  .lookRow{display:flex;justify-content:center;margin-top:10px;}
+  .lookBtn{display:flex;align-items:center;gap:10px;font:inherit;cursor:pointer;color:#fff;text-align:left;
+    background:linear-gradient(135deg,rgba(60,30,90,.95),rgba(20,24,60,.95));border:2px solid #7a5ac8;
+    border-radius:14px;padding:6px 15px 6px 7px;box-shadow:0 3px 0 rgba(0,0,0,.35);}
+  .lookBtn:hover,.lookBtn:focus{border-color:#ffd23f;outline:none;transform:translateY(-2px);}
+  .lookBtn canvas{display:block;width:42px;height:48px;background:rgba(8,13,34,.8);border-radius:10px;}
+  .lookBtn .lt{display:block;font-size:15px;font-weight:900;letter-spacing:.3px;}
+  .lookBtn .ls{display:block;font-size:11.5px;font-weight:700;color:#c9b8ec;margin-top:1px;}
+
+  .ccStage{background:radial-gradient(ellipse at 50% 32%,#2b3675 0%,#0b1030 100%);
+    border:2px solid #34458f;border-radius:16px;padding:6px;}
+  .ccStage canvas{display:block;width:102px;height:116px;}
+  .ccWho{font-size:12px;font-weight:900;letter-spacing:1.2px;color:#ffd23f;text-align:center;margin-top:3px;}
+  .ccTop{display:flex;justify-content:center;margin:0 0 8px;}
+  .ccSec{margin:0 0 7px;}
+  .ccSec h3{margin:0 0 4px;font-size:11.5px;font-weight:900;letter-spacing:1.4px;color:#8fa0cc;}
+  .ccSwatches{display:flex;flex-wrap:wrap;gap:8px;}
+  .ccSw{flex:0 0 auto;width:46px;height:46px;border-radius:12px;border:3px solid #2a3668;cursor:pointer;
+    padding:0;font:inherit;position:relative;}
+  .ccSw.on{border-color:#ffd23f;box-shadow:0 0 0 3px rgba(255,210,63,.32);}
+  .ccSw.on::after{content:"\2713";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:23px;font-weight:900;color:#fff;text-shadow:0 1px 0 #000,0 0 6px rgba(0,0,0,.95);}
+  .ccHair{flex:0 0 auto;width:48px;border-radius:12px;border:3px solid #2a3668;background:rgba(10,16,40,.8);
+    cursor:pointer;padding:3px 0 2px;font:inherit;color:#a9b8de;
+    display:flex;flex-direction:column;align-items:center;gap:0;}
+  .ccHair canvas{display:block;width:40px;height:36px;}
+  .ccHair span{font-size:8.5px;font-weight:800;line-height:1.1;text-align:center;}
+  .ccHair.on{border-color:#ffd23f;background:rgba(70,56,14,.92);color:#fff;}
+  .ccNote{font-size:13.5px;line-height:1.45;font-weight:700;color:#ffe9a8;background:rgba(70,56,14,.5);
+    border:1px solid #a3830f;border-radius:12px;padding:10px 12px;margin:0 0 11px;}
+
+  /* ---------- GROWN-UP DRAWER + MASTER RESET ---------- */
+  .gsRow{text-align:center;margin-top:9px;}
+  .gsBtn{font:inherit;font-size:12px;font-weight:800;letter-spacing:.4px;color:#7683ae;cursor:pointer;
+    background:transparent;border:1px solid #273459;border-radius:999px;padding:7px 15px;}
+  .gsBtn:hover,.gsBtn:focus{color:#ffd23f;border-color:#5a6bb0;outline:none;}
+  .gsBtn .dot{display:none;width:7px;height:7px;border-radius:50%;background:#ff6b6b;margin-left:6px;vertical-align:middle;}
+  .gsBtn.has .dot{display:inline-block;}
+  .rsDanger{background:rgba(90,20,32,.45);border:2px solid #8a3346;border-radius:14px;padding:11px 13px;margin:0 0 12px;}
+  .rsDanger h3{margin:0 0 7px;font-size:12.5px;font-weight:900;letter-spacing:1px;color:#ffb0b0;}
+  .rsDanger ul{margin:0;padding:0 0 0 19px;font-size:14px;line-height:1.6;color:#fff;font-weight:700;}
+  .rsDanger ul span{color:#ecc6cc;font-weight:400;}
+  .tvB.bad{background:#c8102e;color:#fff;box-shadow:0 3px 0 #6d0a1c;}
+  #ccShade,#gsShade{z-index:92;}
+  #rsShade{z-index:94;}
+
   /* landscape phone: shorter everything, side-by-side controls, never a page scroll */
+  @media (max-height:460px){
+    /* preview beside the swatch rows, so all four rows are on screen at 812x375 */
+    .ccLand{display:flex;gap:14px;align-items:flex-start;}
+    .ccLand .ccTop{flex:0 0 auto;margin:0;display:block;}
+    .ccLand .ccRows{flex:1 1 auto;min-width:0;}
+    .ccStage canvas{width:104px;height:120px;}
+    .ccWho{font-size:11px;margin-top:3px;}
+    .ccSec{margin-bottom:7px;}
+    .ccSec h3{margin-bottom:4px;font-size:10.5px;}
+    .ccSwatches{gap:7px;}
+    .ccSw{width:42px;height:42px;}
+    .ccHair{width:52px;} .ccHair canvas{width:40px;height:36px;}
+    .ccNote{padding:8px 10px;font-size:12.5px;margin-bottom:8px;}
+    .rsDanger{padding:9px 11px;margin-bottom:9px;}
+    .rsDanger ul{font-size:13px;line-height:1.5;}
+  }
   @media (max-height:460px){
     /* the summary sits BESIDE the choices, so the two big buttons are still
        on screen without scrolling the card */
@@ -185,6 +251,13 @@
 
   <div class="label">1 · YOUR HERO</div>
   <div class="heroes" id="heroes"></div>
+  <div class="lookRow">
+    <button class="lookBtn" id="lookBtn" type="button">
+      <canvas id="lookThumb" aria-hidden="true"></canvas>
+      <span><span class="lt">&#x1F3A8; Make it look like me</span>
+      <span class="ls" id="lookSub">Skin, hair and clothes</span></span>
+    </button>
+  </div>
 
   <div class="label">2 · PICK A GAME</div>
   <div class="grid" id="grid">
@@ -275,6 +348,45 @@
   </div>
 
   <div class="foot">Your hero and your choice are remembered on this device.</div>
+
+  <!-- Deliberately down here, in its own quiet drawer, as far from the Play
+       buttons as the page allows: a master reset must never be a mis-tap. -->
+  <div class="gsRow">
+    <button class="gsBtn" id="gsBtn" type="button">&#x2699;&#xFE0F; Grown-ups: testing &amp; start over<span class="dot"></span></button>
+  </div>
+</div>
+
+<!-- ============ MAKE IT LOOK LIKE ME ============ -->
+<div class="tvShade" id="ccShade" role="dialog" aria-modal="true" aria-labelledby="ccTitle">
+  <div class="tvCard">
+    <div class="tvHead">
+      <h2 id="ccTitle">Make it look like me</h2>
+      <button class="tvX" id="ccClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="tvBody" id="ccBody"></div>
+  </div>
+</div>
+
+<!-- ============ GROWN-UP DRAWER ============ -->
+<div class="tvShade" id="gsShade" role="dialog" aria-modal="true" aria-labelledby="gsTitle">
+  <div class="tvCard">
+    <div class="tvHead">
+      <h2 id="gsTitle">Grown-up stuff</h2>
+      <button class="tvX" id="gsClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="tvBody" id="gsBody"></div>
+  </div>
+</div>
+
+<!-- ============ MASTER RESET CONFIRMATION (stacks on top) ============ -->
+<div class="tvShade" id="rsShade" role="dialog" aria-modal="true" aria-labelledby="rsTitle">
+  <div class="tvCard">
+    <div class="tvHead">
+      <h2 id="rsTitle">Start all over again?</h2>
+      <button class="tvX" id="rsClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="tvBody" id="rsBody"></div>
+  </div>
 </div>
 
 <!-- ============ MOVE MY STUFF ============ -->
@@ -292,7 +404,85 @@
 <script src="brain.js"></script>
 <script src="wallet.js"></script>
 <script src="transfer.js"></script>
+<script src="hero-look.js"></script>
 <script src="qrcode.min.js"></script>
+
+<script>
+/* ===================== MODAL STACK =====================
+   Will, 2026-10-01: "the escape key should exit out of any screen."
+
+   Every panel on this screen registers here, so Escape backs out ONE
+   layer at a time (the reset confirmation first, then the drawer behind
+   it) and NEVER navigates away from the page. With nothing open, Escape
+   is simply swallowed.
+
+   The page scroll is locked once when the first layer opens and released
+   once when the last one closes. On iOS Safari the scrolling element is
+   <html>, not <body>, so both are pinned: body{overflow:hidden} alone
+   let the page drift to 915px behind the panel in an 812x375 test.
+   ======================================================= */
+(function(){
+  "use strict";
+  var stack = [];                      /* outermost first, innermost last */
+  var bodyWas = "", htmlWas = "", yWas = 0;
+
+  function lock(){
+    try {
+      yWas = window.pageYOffset || document.documentElement.scrollTop || 0;
+      bodyWas = document.body.style.overflow;
+      htmlWas = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } catch(e){}
+  }
+  function unlock(){
+    try {
+      document.body.style.overflow = bodyWas;
+      document.documentElement.style.overflow = htmlWas;
+      window.scrollTo(0, yWas);
+    } catch(e){}
+  }
+
+  function indexOfEl(el){
+    for (var i = 0; i < stack.length; i++) if (stack[i].el === el) return i;
+    return -1;
+  }
+
+  function open(el, onClose){
+    if (!el || indexOfEl(el) !== -1) return;          /* already up: no double push */
+    if (!stack.length) lock();
+    stack.push({ el: el, onClose: (typeof onClose === "function" ? onClose : null) });
+    try { el.classList.add("open"); } catch(e){}
+  }
+
+  /* Closing a layer also closes anything stacked on top of it, innermost
+     first, so a stray close can never leave an orphan shade on screen. */
+  function close(el){
+    var at = indexOfEl(el), i, L;
+    if (at < 0) return;
+    for (i = stack.length - 1; i >= at; i--){
+      L = stack[i];
+      stack.length = i;
+      try { L.el.classList.remove("open"); } catch(e){}
+      if (L.onClose) { try { L.onClose(); } catch(e){} }
+    }
+    if (!stack.length) unlock();
+  }
+
+  function top(){ return stack.length ? stack[stack.length - 1].el : null; }
+  function closeTop(){ var t = top(); if (t) close(t); return !!t; }
+
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    try { ev.preventDefault(); ev.stopPropagation(); } catch(e){}
+    closeTop();
+  }, true);
+
+  window.MDModal = { open: open, close: close, closeTop: closeTop, top: top,
+                     depth: function(){ return stack.length; } };
+})();
+</script>
+
 <script>
 (function(){
   "use strict";
@@ -308,6 +498,20 @@
   var hero = "knight";
   try { var s = localStorage.getItem(KEY); if (s && HEROES.some(function(h){ return h.id === s; })) hero = s; } catch(e){}
 
+  /* The customiser needs to know which hero is selected right now, because
+     a dragon gets scales where a knight gets curls. One tiny accessor, so
+     there is still exactly one owner of mathDungeonChar on this page. */
+  var heroFns = [];
+  window.MDHero = {
+    get: function(){ return hero; },
+    name: function(id){
+      for (var i = 0; i < HEROES.length; i++) if (HEROES[i].id === (id || hero)) return HEROES[i].n;
+      return id || hero;
+    },
+    onChange: function(fn){ if (typeof fn === "function") heroFns.push(fn); }
+  };
+  function tellHero(){ for (var i = 0; i < heroFns.length; i++) { try { heroFns[i](hero); } catch(e){} } }
+
   var row = document.getElementById("heroes");
   HEROES.forEach(function(h){
     var b = document.createElement("button");
@@ -319,6 +523,7 @@
       [].forEach.call(row.children, function(c){ c.classList.remove("on"); });
       b.classList.add("on");
       linkUp();
+      tellHero();
     };
     row.appendChild(b);
   });
@@ -639,18 +844,12 @@
     });
   }
 
-  /* ---------- open / shut ---------- */
-  /* The scroll lock has to hold BOTH elements. On iOS Safari the scrolling
-     element is <html>, not <body>, so body{overflow:hidden} alone does not
-     stop the page drifting behind the panel (it scrolled to 915px in a
-     812x375 landscape test). Pin the scroll position and restore it after. */
-  var scrollLock = "", htmlLock = "", scrollWas = 0;
-  function shut(){
+  /* ---------- open / shut ----------
+     The shade class, the page-scroll lock and the Escape key all live in
+     MDModal now (the one stack this screen shares), so Escape backs out of
+     this panel exactly like it backs out of the customiser. */
+  function tidyUp(){
     try {
-      shade.classList.remove("open");
-      document.body.style.overflow = scrollLock;
-      document.documentElement.style.overflow = htmlLock;
-      try { window.scrollTo(0, scrollWas); } catch(e){}
       pending = null;
       body.innerHTML = "";
       paintDot();
@@ -660,14 +859,14 @@
       if (dirty) { dirty = false; try { location.reload(); } catch(e){} }
     } catch(e){}
   }
+  function shut(){
+    if (window.MDModal) MDModal.close(shade);
+    else { try { shade.classList.remove("open"); } catch(e){} tidyUp(); }
+  }
   function launch(){
     try {
-      scrollWas = window.pageYOffset || document.documentElement.scrollTop || 0;
-      scrollLock = document.body.style.overflow;
-      htmlLock = document.documentElement.style.overflow;
-      document.body.style.overflow = "hidden";              /* the page never */
-      document.documentElement.style.overflow = "hidden";   /* scrolls behind the panel */
-      shade.classList.add("open");
+      if (window.MDModal) MDModal.open(shade, tidyUp);
+      else shade.classList.add("open");
       menu();
       close.focus();
     } catch(e){ oops(); }
@@ -708,14 +907,616 @@
   open.onclick = function(ev){ try { ev.preventDefault(); launch(); } catch(e){} };
   close.onclick = function(ev){ try { ev.preventDefault(); shut(); } catch(e){} };
   shade.onclick = function(ev){ if (ev.target === shade) shut(); };
-  document.addEventListener("keydown", function(ev){
-    if (ev.key === "Escape" && shade.classList.contains("open")) shut();
-  });
   paintDot();
   try { fromLink(); } catch(e){}
   /* scanning while the arcade is ALREADY open only changes the address, it does
      not reload the page, so listen for that too */
   window.addEventListener("hashchange", function(){ try { fromLink(); } catch(e){} });
+})();
+</script>
+
+<script>
+/* ===================== MAKE IT LOOK LIKE ME =====================
+   Will, 2026-10-01: "we need an option to customize the character.
+   Lennon has brown skin and curly hair"
+
+   Lennon is 7. He picks colours by LOOKING, so every choice is a swatch
+   he can see, the hair styles are drawn as little heads rather than
+   named in a list, and the big preview changes the instant he taps. No
+   Save button: hero-look.js writes the choice straight away.
+
+   Every colour, every hair style and the hair drawing itself come from
+   window.HeroLook, the file the games share, so the face in this preview
+   is the face that walks the dungeon. There is no second palette here
+   and no second storage key.
+
+   BEEP-9 and Lil' Dragon are not people: HeroLook.isHuman() is false, so
+   the two hair rows are not rendered at all (no dead controls) and a
+   friendly line says why. "Skin" becomes the body colour.
+   ================================================================= */
+(function(){
+  "use strict";
+  var btn   = document.getElementById("lookBtn");
+  var shade = document.getElementById("ccShade");
+  var body  = document.getElementById("ccBody");
+  var closeX= document.getElementById("ccClose");
+  var thumb = document.getElementById("lookThumb");
+  var sub   = document.getElementById("lookSub");
+  if (!btn || !shade || !body || !closeX) return;
+  if (!window.HeroLook){           /* the contract did not load: no half-broken picker */
+    btn.style.display = "none";
+    return;
+  }
+  var HL = window.HeroLook;
+
+  var HERO_EMOJI = { knight:"\u{1F6E1}️", wizard:"✨", ninja:"\u{1F31C}",
+                     robot:"⚡", explorer:"\u{1F9ED}", dragon:"\u{1F525}" };
+  var NO_HAIR_LINE = {
+    robot:  "\u{1F916} BEEP-9 is a robot, so there is no hair to pick. The colour up there is his whole metal body.",
+    dragon: "\u{1F409} Lil' Dragon has scales, not curls, so there is no hair to pick. The colour up there is her scales."
+  };
+
+  function esc(s){
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function heroId(){
+    try { var h = window.MDHero && MDHero.get(); if (h) return h; } catch(e){}
+    try { var s = localStorage.getItem("mathDungeonChar"); if (s) return s; } catch(e){}
+    return "knight";
+  }
+  function heroName(id){
+    try { if (window.MDHero && MDHero.name) return MDHero.name(id); } catch(e){}
+    return id;
+  }
+  function nameOf(list, hex){
+    for (var i = 0; i < list.length; i++) if (String(list[i].hex).toLowerCase() === String(hex).toLowerCase()) return list[i].name;
+    return "";
+  }
+  function hairName(id){
+    for (var i = 0; i < HL.HAIRS.length; i++) if (HL.HAIRS[i].id === id) return HL.HAIRS[i].name;
+    return id;
+  }
+
+  /* ---------- colour maths: one shade lighter or darker, nothing fancy ---------- */
+  function rgb(hex){
+    var h = String(hex).replace("#","");
+    return [parseInt(h.slice(0,2),16) || 0, parseInt(h.slice(2,4),16) || 0, parseInt(h.slice(4,6),16) || 0];
+  }
+  function hx(c){
+    function p(n){ n = Math.max(0, Math.min(255, Math.round(n))).toString(16); return n.length < 2 ? "0" + n : n; }
+    return "#" + p(c[0]) + p(c[1]) + p(c[2]);
+  }
+  function dark(hex, a){ var c = rgb(hex); return hx([c[0]*(1-a), c[1]*(1-a), c[2]*(1-a)]); }
+  function lite(hex, a){ var c = rgb(hex); return hx([c[0]+(255-c[0])*a, c[1]+(255-c[1])*a, c[2]+(255-c[2])*a]); }
+
+  /* ---------- canvas helpers ---------- */
+  function rr(ctx, x, y, w, h, r){
+    r = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+  }
+  function fillRR(ctx,x,y,w,h,r,c){ ctx.fillStyle = c; rr(ctx,x,y,w,h,r); ctx.fill(); }
+  function dot(ctx,x,y,r,c){ ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+  function oval(ctx,x,y,rx,ry,c){
+    ctx.fillStyle = c; ctx.save(); ctx.translate(x,y); ctx.scale(1, ry/rx);
+    ctx.beginPath(); ctx.arc(0,0,rx,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+  function tri(ctx,ax,ay,bx,by,cx2,cy2,c){
+    ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.lineTo(cx2,cy2); ctx.closePath(); ctx.fill();
+  }
+  /* Size to the real CSS box at the real pixel ratio, then work in one
+     fixed logical space so the same drawing code serves a 42px thumbnail
+     and a 132px stage. */
+  function fit(cv, LW, LH){
+    if (!cv) return null;
+    var ctx = null;
+    try { ctx = cv.getContext("2d"); } catch(e){ return null; }
+    if (!ctx) return null;
+    var r = cv.getBoundingClientRect();
+    var w = r.width  || LW, h = r.height || LH;
+    var dpr = Math.min(3, window.devicePixelRatio || 1);
+    cv.width  = Math.max(1, Math.round(w * dpr));
+    cv.height = Math.max(1, Math.round(h * dpr));
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,cv.width,cv.height);
+    var s = Math.min(cv.width/LW, cv.height/LH);
+    ctx.setTransform(s,0,0,s,(cv.width-LW*s)/2,(cv.height-LH*s)/2);
+    return ctx;
+  }
+  function eyes(ctx, lx, rx, y, rw, rh){
+    oval(ctx,lx,y,rw,rh,"#ffffff"); oval(ctx,rx,y,rw,rh,"#ffffff");
+    dot(ctx,lx+rw*0.18,y+rh*0.18,rw*0.56,"#1c1209");
+    dot(ctx,rx+rw*0.18,y+rh*0.18,rw*0.56,"#1c1209");
+    dot(ctx,lx+rw*0.42,y-rh*0.22,rw*0.2,"#ffffff");
+    dot(ctx,rx+rw*0.42,y-rh*0.22,rw*0.2,"#ffffff");
+  }
+  function smile(ctx, cx, cy, r, c, lw){
+    ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI*0.22, Math.PI*0.78); ctx.stroke(); ctx.restore();
+  }
+
+  /* ---------- the character, 100 x 114 logical ---------- */
+  var LW = 100, LH = 114;
+  function drawChar(ctx, hid, look){
+    var skin = look.skin, out = look.outfit;
+    oval(ctx, 50, 108, 28, 6, "rgba(0,0,0,.28)");            /* ground shadow */
+    if (hid === "robot")      return drawRobot(ctx, skin, out);
+    if (hid === "dragon")     return drawDragon(ctx, skin, out);
+    return drawHuman(ctx, hid, look, skin, out);
+  }
+  function drawHuman(ctx, hid, look, skin, out){
+    fillRR(ctx,36,78,11,26,4,dark(out,.42)); fillRR(ctx,53,78,11,26,4,dark(out,.42));   /* legs */
+    fillRR(ctx,32,98,17,9,4,dark(out,.66));  fillRR(ctx,51,98,17,9,4,dark(out,.66));    /* boots */
+    fillRR(ctx,17,50,11,27,5,skin);          fillRR(ctx,72,50,11,27,5,skin);            /* arms */
+    dot(ctx,22.5,79,6,skin);                 dot(ctx,77.5,79,6,skin);                  /* hands */
+    fillRR(ctx,27,44,46,40,13,out);                                                     /* tunic */
+    fillRR(ctx,27,72,46,7,3,dark(out,.34));                                             /* belt */
+    fillRR(ctx,44,36,12,11,4,dark(skin,.2));                                            /* neck */
+    dot(ctx,31,29,4.6,skin); dot(ctx,69,29,4.6,skin);                                   /* ears */
+    dot(ctx,50,27,19,skin);                                                             /* head */
+    try { HL.drawHair(ctx, 50, 27, 19, look.hair, look.hairColor); } catch(e){}
+    eyes(ctx, 43, 57, 30, 4.3, 5);
+    smile(ctx, 50, 32, 8, dark(skin,.52), 2.2);
+    try {
+      ctx.save();
+      ctx.font = "600 19px \"Apple Color Emoji\",\"Segoe UI Emoji\",sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(HERO_EMOJI[hid] || "⭐", 50, 59);
+      ctx.restore();
+    } catch(e){}
+  }
+  function drawRobot(ctx, bodyC, trim){
+    ctx.save(); ctx.strokeStyle = dark(bodyC,.42); ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(50,13); ctx.lineTo(50,6); ctx.stroke(); ctx.restore();
+    dot(ctx,50,4,4,trim);
+    fillRR(ctx,44,42,12,9,3,dark(bodyC,.3));                                            /* neck */
+    fillRR(ctx,14,50,12,27,6,dark(bodyC,.14)); fillRR(ctx,74,50,12,27,6,dark(bodyC,.14));
+    dot(ctx,20,80,6,trim); dot(ctx,80,80,6,trim);                                       /* claws */
+    fillRR(ctx,34,84,13,20,4,dark(bodyC,.22)); fillRR(ctx,53,84,13,20,4,dark(bodyC,.22));
+    fillRR(ctx,31,100,18,8,3,dark(bodyC,.48)); fillRR(ctx,51,100,18,8,3,dark(bodyC,.48));
+    fillRR(ctx,26,48,48,36,10,bodyC);                                                   /* chest */
+    fillRR(ctx,37,54,26,18,6,trim);
+    dot(ctx,43,61,2.6,lite(trim,.6)); dot(ctx,50,61,2.6,lite(trim,.6)); dot(ctx,57,61,2.6,lite(trim,.6));
+    fillRR(ctx,28,11,44,33,11,bodyC);                                                   /* head */
+    fillRR(ctx,33,19,34,16,8,"#0a0f22");                                                /* visor */
+    dot(ctx,43,27,4,trim); dot(ctx,57,27,4,trim);
+    dot(ctx,44.4,25.6,1.3,"#ffffff"); dot(ctx,58.4,25.6,1.3,"#ffffff");
+    fillRR(ctx,41,37,18,4,2,dark(bodyC,.4));                                            /* grill */
+  }
+  function drawDragon(ctx, scales, trim){
+    ctx.save();                                                                          /* tail */
+    ctx.strokeStyle = scales; ctx.lineWidth = 9; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(64,80); ctx.quadraticCurveTo(93,84,88,62); ctx.stroke(); ctx.restore();
+    tri(ctx,88,64,82,53,94,55,trim);
+    ctx.fillStyle = trim;                                                                /* wing */
+    ctx.beginPath(); ctx.moveTo(66,54);
+    ctx.quadraticCurveTo(96,32,90,63); ctx.quadraticCurveTo(80,60,66,70);
+    ctx.closePath(); ctx.fill();
+    fillRR(ctx,36,88,13,17,6,dark(scales,.18)); fillRR(ctx,51,88,13,17,6,dark(scales,.18));
+    oval(ctx,50,72,24,22,scales);                                                        /* body */
+    oval(ctx,50,80,15,12,lite(trim,.42));                                                /* belly */
+    tri(ctx,34,15,29,2,43,12,trim); tri(ctx,66,15,71,2,57,12,trim);                      /* horns */
+    dot(ctx,50,30,19,scales);                                                            /* head */
+    oval(ctx,50,40,13,9,lite(scales,.14));                                               /* snout */
+    dot(ctx,46,38.5,1.6,dark(scales,.5)); dot(ctx,54,38.5,1.6,dark(scales,.5));
+    eyes(ctx, 43, 57, 28, 4.3, 5);
+    smile(ctx, 50, 40, 7, dark(scales,.55), 2);
+  }
+
+  /* ---------- a little head, just to show a hair style ---------- */
+  var MW = 44, MH = 40;
+  function drawMiniHead(cv, style, skin, hairColor){
+    var ctx = fit(cv, MW, MH);
+    if (!ctx) return;
+    dot(ctx, 22, 22, 9, skin);
+    try { HL.drawHair(ctx, 22, 22, 9, style, hairColor); } catch(e){}
+    dot(ctx, 19, 24, 1.3, "#1c1209"); dot(ctx, 25, 24, 1.3, "#1c1209");
+  }
+
+  /* ---------- the panel ---------- */
+  function swatchRow(field, list, current){
+    var h = ['<div class="ccSwatches">'], i, it;
+    for (i = 0; i < list.length; i++){
+      it = list[i];
+      h.push('<button type="button" class="ccSw' + (String(it.hex).toLowerCase() === String(current).toLowerCase() ? " on" : "")
+        + '" data-field="' + field + '" data-val="' + esc(it.hex) + '" style="background:' + esc(it.hex)
+        + '" aria-label="' + esc(it.name) + '" title="' + esc(it.name) + '"></button>');
+    }
+    h.push("</div>");
+    return h.join("");
+  }
+  function hairRow(look){
+    var h = ['<div class="ccSwatches">'], i, it;
+    for (i = 0; i < HL.HAIRS.length; i++){
+      it = HL.HAIRS[i];
+      h.push('<button type="button" class="ccHair' + (it.id === look.hair ? " on" : "")
+        + '" data-field="hair" data-val="' + esc(it.id) + '" aria-label="' + esc(it.name) + '">'
+        + '<canvas class="ccMini" data-style="' + esc(it.id) + '"></canvas>'
+        + "<span>" + esc(it.name) + "</span></button>");
+    }
+    h.push("</div>");
+    return h.join("");
+  }
+  function sec(title, inner){ return '<div class="ccSec"><h3>' + esc(title) + "</h3>" + inner + "</div>"; }
+
+  function build(){
+    var hid = heroId(), look = HL.get(), human = true;
+    try { human = HL.isHuman(hid); } catch(e){}
+    var h = ['<div class="ccLand">'];
+    h.push('<div class="ccTop"><div><div class="ccStage"><canvas id="ccCv"></canvas></div>'
+         + '<div class="ccWho">' + esc(heroName(hid)) + "</div></div></div>");
+    h.push('<div class="ccRows">');
+    if (!human) h.push('<div class="ccNote">' + esc(NO_HAIR_LINE[hid] || "This hero has no hair to pick.") + "</div>");
+    h.push(sec(human ? "SKIN" : "BODY COLOUR", swatchRow("skin", HL.SKINS, look.skin)));
+    if (human){
+      h.push(sec("HAIR", hairRow(look)));
+      h.push(sec("HAIR COLOUR", swatchRow("hairColor", HL.HAIR_COLORS, look.hairColor)));
+    }
+    h.push(sec(human ? "CLOTHES" : "TRIM COLOUR", swatchRow("outfit", HL.OUTFITS, look.outfit)));
+    h.push("</div></div>");
+    body.innerHTML = h.join("");
+
+    [].forEach.call(body.querySelectorAll("[data-field]"), function(el){
+      el.onclick = function(ev){
+        try { ev.preventDefault(); } catch(e){}
+        var f = el.getAttribute("data-field"), v = el.getAttribute("data-val"), p = {};
+        p[f] = v;
+        try { HL.set(p); } catch(e){}                       /* saved the instant he taps */
+        var grp = el.parentNode;
+        if (grp) [].forEach.call(grp.children, function(c){ c.classList.remove("on"); });
+        el.classList.add("on");
+        paintPanel();
+        paintButton();
+      };
+    });
+    paintPanel();
+  }
+
+  function paintPanel(){
+    var hid = heroId(), look = HL.get();
+    var ctx = fit(document.getElementById("ccCv"), LW, LH);
+    if (ctx) drawChar(ctx, hid, look);
+    [].forEach.call(body.querySelectorAll("canvas.ccMini"), function(cv){
+      drawMiniHead(cv, cv.getAttribute("data-style"), look.skin, look.hairColor);
+    });
+  }
+
+  /* the arcade's own button carries the live face, so he sees himself
+     before he ever opens the panel */
+  function paintButton(){
+    var hid = heroId(), look = HL.get(), human = true;
+    try { human = HL.isHuman(hid); } catch(e){}
+    var ctx = fit(thumb, LW, LH);
+    if (ctx) drawChar(ctx, hid, look);
+    if (sub){
+      var bits = [];
+      if (human && look.hair !== "none") bits.push(hairName(look.hair) + " hair");
+      bits.push((nameOf(HL.SKINS, look.skin) || "Chosen") + (human ? " skin" : " body"));
+      bits.push((nameOf(HL.OUTFITS, look.outfit) || "Chosen") + (human ? " clothes" : " trim"));
+      sub.textContent = bits.join(" · ");
+    }
+  }
+
+  function shut(){ if (window.MDModal) MDModal.close(shade); else shade.classList.remove("open"); }
+  function launch(){
+    if (window.MDModal) MDModal.open(shade, function(){ try { body.innerHTML = ""; } catch(e){} });
+    else shade.classList.add("open");
+    build();                                     /* after .open, so the boxes have a size */
+    try { closeX.focus(); } catch(e){}
+  }
+
+  btn.onclick    = function(ev){ try { ev.preventDefault(); } catch(e){} launch(); };
+  closeX.onclick = function(ev){ try { ev.preventDefault(); } catch(e){} shut(); };
+  shade.onclick  = function(ev){ if (ev.target === shade) shut(); };
+
+  try { HL.onChange(function(){ paintButton(); }); } catch(e){}
+  try { if (window.MDHero) MDHero.onChange(function(){ paintButton(); if (shade.classList.contains("open")) build(); }); } catch(e){}
+  window.addEventListener("pageshow", paintButton);
+  window.addEventListener("orientationchange", function(){
+    setTimeout(function(){ paintButton(); if (shade.classList.contains("open")) paintPanel(); }, 120);
+  });
+  paintButton();
+})();
+</script>
+
+<script>
+/* ===================== GROWN-UP DRAWER + MASTER RESET =====================
+   Will, 2026-10-01: "ill need a master reset/restart option/button since
+   im testing and upgrading. Lennon will need to play from the beginning"
+
+   It lives in its own drawer at the very bottom of the page, nowhere near
+   a Play button, it asks first in plain words and lists what goes, and it
+   tucks the whole save away under ONE key first so a mis-tap is a tap to
+   put back. Losing a 300-Pokemon collection to a stray finger would be
+   miserable.
+
+   THE KEY LIST IS NOT WRITTEN FROM MEMORY. The explicit list comes live
+   from transfer.js (Transfer.keys()), and the prefix sweep below is
+   transfer.js's own PREFIXES array, copied from that file. The three keys
+   the brief names are then forced in by hand in case a future transfer.js
+   drops them. mdTransferBackup.v1 (the move-my-stuff undo) is explicitly
+   NOT touched, and neither is our own stash.
+   ========================================================================= */
+(function(){
+  "use strict";
+  var btn   = document.getElementById("gsBtn");
+  var gShade= document.getElementById("gsShade");
+  var gBody = document.getElementById("gsBody");
+  var gX    = document.getElementById("gsClose");
+  var rShade= document.getElementById("rsShade");
+  var rBody = document.getElementById("rsBody");
+  var rX    = document.getElementById("rsClose");
+  if (!btn || !gShade || !gBody || !gX || !rShade || !rBody || !rX) return;
+
+  var RESET_KEY     = "mdResetBackup.v1";          /* our own stash, never wiped */
+  var TRANSFER_KEY  = "mdTransferBackup.v1";       /* move-my-stuff's undo, never wiped */
+  /* copied from transfer.js's own PREFIXES array */
+  var PREFIXES = ["mdWallet", "mdBrain", "mdAquarium", "mathDungeon", "poke", "snake_", "mm_",
+                  "potion_", "crate_", "riddle_", "rune_", "det", "mc_"];
+  /* named in the brief in case transfer.js does not list them */
+  var EXTRA = ["mdAquarium.v1", "mc_best_v1", "mathDungeonLook.v1"];
+
+  var needReload = false;
+
+  function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function lsSet(k,v){ try { localStorage.setItem(k,v); return true; } catch(e){ return false; } }
+  function lsDel(k){ try { localStorage.removeItem(k); return true; } catch(e){ return false; } }
+  function esc(s){
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function n(v){ v = Number(v); return isFinite(v) ? Math.floor(v) : null; }
+
+  /* every progress key on this device, by transfer.js's own definition */
+  function progressKeys(){
+    var seen = {}, out = [], i, k;
+    try {
+      var ks = (window.Transfer && Transfer.keys) ? Transfer.keys() : [];
+      for (i = 0; i < ks.length; i++) seen[ks[i]] = 1;
+    } catch(e){}
+    for (i = 0; i < EXTRA.length; i++) seen[EXTRA[i]] = 1;
+    try {
+      for (i = 0; i < localStorage.length; i++){
+        k = localStorage.key(i);
+        if (!k) continue;
+        for (var p = 0; p < PREFIXES.length; p++){
+          if (k.indexOf(PREFIXES[p]) === 0) { seen[k] = 1; break; }
+        }
+      }
+    } catch(e){}
+    try { delete seen[(window.Transfer && Transfer.backupKey) || TRANSFER_KEY]; } catch(e){}
+    delete seen[TRANSFER_KEY];
+    delete seen[RESET_KEY];
+    for (k in seen) if (Object.prototype.hasOwnProperty.call(seen, k)) out.push(k);
+    out.sort();
+    return out;
+  }
+  function presentKeys(){
+    var all = progressKeys(), out = [];
+    for (var i = 0; i < all.length; i++) if (lsGet(all[i]) !== null) out.push(all[i]);
+    return out;
+  }
+
+  function readStash(){
+    try {
+      var s = JSON.parse(lsGet(RESET_KEY) || "null");
+      if (!s || typeof s !== "object" || !s.data || typeof s.data !== "object") return null;
+      return s;
+    } catch(e){ return null; }
+  }
+  function canUndo(){ return !!readStash(); }
+  function paintDot(){ try { btn.classList.toggle("has", canUndo()); } catch(e){} }
+
+  /* ---------- plain words for what is about to go ---------- */
+  function lossHTML(){
+    var li = [], s = null;
+    try { s = window.Transfer ? Transfer.summarize() : null; } catch(e){}
+    if (s){
+      if (n(s.pokemon) !== null){
+        li.push("<li>" + n(s.pokemon) + " Pokemon <span>and "
+          + (n(s.cards) === null ? "the whole card binder" : n(s.cards) + " cards") + "</span></li>");
+      }
+      if (n(s.coins) !== null){
+        li.push("<li>" + n(s.coins) + " coins <span>and " + (n(s.items) || 0) + " things bought in the shop</span></li>");
+      }
+      if (n(s.level) !== null) li.push("<li>Brain Level " + n(s.level) + " <span>all the way back to Level 1</span></li>");
+    }
+    var aq = lsGet("mdAquarium.v1");
+    if (aq){
+      var bits = [];
+      try {
+        var a = JSON.parse(aq);
+        if (a && n(a.money) !== null) bits.push("$" + n(a.money));
+        if (a && Object.prototype.toString.call(a.tanks) === "[object Array]") bits.push(a.tanks.length + (a.tanks.length === 1 ? " tank" : " tanks"));
+        if (a && n(a.rooms) !== null) bits.push(n(a.rooms) + (n(a.rooms) === 1 ? " room" : " rooms"));
+      } catch(e){}
+      li.push("<li>The whole aquarium <span>" + (bits.length ? esc(bits.join(", ")) : "fish, tanks, rooms and its money") + "</span></li>");
+    } else {
+      li.push("<li>The aquarium <span>nothing saved there yet</span></li>");
+    }
+    li.push("<li>Every best run <span>mine cart, number snake, monster merge, the detective room, the dungeon</span></li>");
+    li.push("<li>How the character looks <span>skin, hair and clothes go back to the plain one</span></li>");
+    return "<ul>" + li.join("") + "</ul>";
+  }
+
+  /* ---------- the wipe ---------- */
+  function doReset(){
+    var keys = progressKeys(), before = {}, i;
+    for (i = 0; i < keys.length; i++) before[keys[i]] = lsGet(keys[i]);
+    var stash = JSON.stringify({ v: 1, t: Date.now(), data: before });
+    /* stash FIRST, and prove it landed, before a single key is removed */
+    if (!lsSet(RESET_KEY, stash) || lsGet(RESET_KEY) !== stash){
+      lsDel(RESET_KEY);
+      return { ok: false, message: "A safety copy could not be saved first, so nothing was changed. Free up some space and try again." };
+    }
+    var cleared = [];
+    try {
+      for (i = 0; i < keys.length; i++){
+        if (before[keys[i]] === null) continue;
+        lsDel(keys[i]);
+        cleared.push(keys[i]);
+      }
+    } catch(e){
+      return { ok: false, message: "The start-over stopped part way. Tap Undo to put everything back." };
+    }
+    return { ok: true, cleared: cleared, checked: keys.length };
+  }
+  function doUndo(){
+    var s = readStash();
+    if (!s) return { ok: false, message: "There is nothing to put back on this device." };
+    var restored = 0, k, v;
+    try {
+      for (k in s.data){
+        if (!Object.prototype.hasOwnProperty.call(s.data, k)) continue;
+        if (k === RESET_KEY || k === TRANSFER_KEY) continue;
+        v = s.data[k];
+        if (v === null || v === undefined) lsDel(k);
+        else if (typeof v === "string") lsSet(k, v);
+        else continue;
+        restored++;
+      }
+    } catch(e){
+      return { ok: false, message: "The undo did not finish. Nothing else was changed." };
+    }
+    lsDel(RESET_KEY);
+    return { ok: true, restored: restored };
+  }
+
+  /* ---------- screens ---------- */
+  function on(id, fn){
+    var el = document.getElementById(id);
+    if (el) el.onclick = function(ev){ try { ev.preventDefault(); } catch(e){} fn(); };
+    return el;
+  }
+
+  function gsScreen(){
+    var here = presentKeys().length;
+    var undoBit = canUndo()
+      ? '<button class="tvBig" id="gsUndo" type="button"><span class="bi">&#x21A9;&#xFE0F;</span>'
+        + '<span class="bx"><span class="bt">Undo the last start-over</span>'
+        + '<span class="bs">Put the whole save back exactly as it was. This is here until you use it.</span></span></button>'
+      : "";
+    gBody.innerHTML =
+      '<p class="tvP">For <b>Will</b>, not for Lennon. This is where you wipe the device so the games start from the very beginning again.</p>'
+      + '<div class="tvPick">'
+      + '<button class="tvBig" id="gsReset" type="button"><span class="bi">&#x1F9F9;</span>'
+      + '<span class="bx"><span class="bt">Start all over again</span>'
+      + '<span class="bs">Throws away everything saved here. It asks you first, and a copy is kept so you can put it back.</span></span></button>'
+      + undoBit
+      + "</div>"
+      + '<div class="tvNote">' + here + ' saved ' + (here === 1 ? "thing" : "things")
+      + ' on this device right now. The <b>Move my stuff</b> code and its own undo are left alone by everything in here.</div>';
+    on("gsReset", rsAsk);
+    on("gsUndo", rsUndoAsk);
+  }
+
+  function rsAsk(){
+    rBody.innerHTML =
+      '<p class="tvP">This throws away <b>everything</b> saved on this device. Lennon starts the games from the beginning.</p>'
+      + '<div class="rsDanger"><h3>&#x26A0;&#xFE0F; WHAT GOES AWAY</h3>' + lossHTML() + "</div>"
+      + '<div class="tvBtns">'
+      + '<button class="tvB bad" id="rsGo" type="button">Yes, start from the beginning</button>'
+      + '<button class="tvB alt" id="rsNo" type="button">No, keep everything</button>'
+      + "</div>"
+      + '<div class="tvNote">Nothing has gone yet. A full copy is tucked away first, so if this was a mis-tap, <b>Undo</b> on the next screen puts every bit of it back.</div>';
+    openReset();
+    on("rsNo", shutReset);
+    on("rsGo", function(){
+      var r = doReset();
+      if (!r.ok){
+        rBody.innerHTML = '<div class="tvBad">' + esc(r.message) + "</div>"
+          + '<div class="tvBtns"><button class="tvB alt" id="rsBack" type="button">Back</button></div>';
+        on("rsBack", shutReset);
+        return;
+      }
+      needReload = true;
+      rBody.innerHTML =
+        '<div class="tvGood">Done. Everything is back to the very beginning.</div>'
+        + '<div class="tvNote">' + r.cleared.length + ' saved ' + (r.cleared.length === 1 ? "thing was" : "things were")
+        + ' cleared. The copy is tucked away, so this is still undoable.</div>'
+        + '<div class="tvBtns">'
+        + '<button class="tvB alt" id="rsUndoNow" type="button">&#x21A9;&#xFE0F; Undo that, I did not mean it</button>'
+        + '<button class="tvB" id="rsPlay" type="button">Great, start fresh</button>'
+        + "</div>";
+      on("rsUndoNow", function(){ runUndo(); });
+      on("rsPlay", function(){ shutAll(); });
+    });
+  }
+
+  function rsUndoAsk(){
+    var s = readStash();
+    if (!s){
+      rBody.innerHTML = '<div class="tvBad">There is nothing to put back on this device.</div>'
+        + '<div class="tvBtns"><button class="tvB alt" id="rsBack2" type="button">Back</button></div>';
+      openReset(); on("rsBack2", shutReset); return;
+    }
+    var count = 0, k;
+    for (k in s.data) if (Object.prototype.hasOwnProperty.call(s.data, k) && s.data[k] !== null) count++;
+    var when = "";
+    try { when = new Date(Number(s.t) || 0).toLocaleString(); } catch(e){}
+    rBody.innerHTML =
+      '<p class="tvP">This puts back exactly what was on this device before the start-over' + (when ? " of <b>" + esc(when) + "</b>" : "") + '.</p>'
+      + '<div class="tvNote">' + count + ' saved ' + (count === 1 ? "thing comes" : "things come") + ' back, byte for byte.</div>'
+      + '<div class="tvBtns">'
+      + '<button class="tvB" id="rsUndoYes" type="button">Yes, put it all back</button>'
+      + '<button class="tvB alt" id="rsUndoNo" type="button">No, leave it</button>'
+      + "</div>";
+    openReset();
+    on("rsUndoNo", shutReset);
+    on("rsUndoYes", runUndo);
+  }
+
+  function runUndo(){
+    var r = doUndo();
+    if (!r.ok){
+      rBody.innerHTML = '<div class="tvBad">' + esc(r.message) + "</div>"
+        + '<div class="tvBtns"><button class="tvB alt" id="rsBack3" type="button">Back</button></div>';
+      on("rsBack3", shutReset);
+      return;
+    }
+    needReload = true;
+    rBody.innerHTML = '<div class="tvGood">Put back. This device is exactly how it was before.</div>'
+      + '<div class="tvNote">' + r.restored + ' ' + (r.restored === 1 ? "key" : "keys") + ' restored.</div>'
+      + '<div class="tvBtns"><button class="tvB" id="rsDone" type="button">Great, carry on</button></div>';
+    on("rsDone", shutAll);
+  }
+
+  /* ---------- open / shut, all through the one modal stack ---------- */
+  function openReset(){
+    if (window.MDModal) MDModal.open(rShade, function(){ gsScreen(); paintDot(); });
+    else rShade.classList.add("open");
+    try { rX.focus(); } catch(e){}
+  }
+  function shutReset(){ if (window.MDModal) MDModal.close(rShade); else rShade.classList.remove("open"); }
+  function shutAll(){ if (window.MDModal) MDModal.close(gShade); else { rShade.classList.remove("open"); gShade.classList.remove("open"); } }
+
+  function launch(){
+    if (window.MDModal){
+      MDModal.open(gShade, function(){
+        paintDot();
+        /* brain.js, wallet.js and hero-look.js each hold their save in memory.
+           After a wipe or an undo the page MUST reload, or the next coin earned
+           would write the OLD numbers straight back. This is the automatic
+           refresh: the arcade behind is genuinely fresh, with nothing to tap. */
+        if (needReload){ needReload = false; try { location.reload(); } catch(e){} }
+      });
+    } else gShade.classList.add("open");
+    gsScreen();
+    try { gX.focus(); } catch(e){}
+  }
+
+  btn.onclick = function(ev){ try { ev.preventDefault(); } catch(e){} launch(); };
+  gX.onclick  = function(ev){ try { ev.preventDefault(); } catch(e){} shutAll(); };
+  rX.onclick  = function(ev){ try { ev.preventDefault(); } catch(e){} shutReset(); };
+  gShade.onclick = function(ev){ if (ev.target === gShade) shutAll(); };
+  rShade.onclick = function(ev){ if (ev.target === rShade) shutReset(); };
+  paintDot();
 })();
 </script>
 </body>

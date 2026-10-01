@@ -501,6 +501,23 @@
   function summarize(data) {
     var s = { pokemon: null, cards: null, coins: null, level: null, hero: null, items: null, keys: 0 };
     try { s.keys = countKeys(data); } catch (e) { }
+    /* collect() packs the collection into PK_KEY to keep the transfer code
+       small enough for one QR, so a summary of a freshly-collected save sees
+       no "pokeDex.v1" at all. Unpack it first, or every count reads zero.
+       That bug told the reset screen "0 Pokemon" while 140 were saved, which
+       is the worst possible lie to tell someone right before a wipe. */
+    try {
+      if (data && Object.prototype.hasOwnProperty.call(data, PK_KEY) && !data["pokeDex.v1"]) {
+        var wide = unpackPoke(data[PK_KEY]);
+        if (wide) {
+          var merged = {}, mk;
+          for (mk in data) if (Object.prototype.hasOwnProperty.call(data, mk)) merged[mk] = data[mk];
+          merged["pokeDex.v1"] = wide["pokeDex.v1"];
+          merged["pokeCards.v1"] = wide["pokeCards.v1"];
+          data = merged;
+        }
+      }
+    } catch (e) { }
     try {
       var d = JSON.parse(data["pokeDex.v1"] || "null");
       if (d && d.caught && typeof d.caught === "object") s.pokemon = countKeys(d.caught);

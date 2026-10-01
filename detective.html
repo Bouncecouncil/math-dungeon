@@ -125,6 +125,7 @@ button{font-family:inherit;cursor:pointer;border:none}
   #toast{bottom:6px;font-size:13px;padding:7px 12px}
 }
 </style>
+<script src="hero-look.js"></script>
 <script src="wallet.js"></script>
 </head>
 <body>
@@ -1076,6 +1077,73 @@ const HERO_ART = {
   dragon:   {body:"#4fbf6a", trim:"#2f8f4a", skin:"#4fbf6a", accent:"#f5e6a8", name:"Lil' Dragon"}
 };
 
+/* =====================================================================
+   THE KID'S OWN LOOK  (hero-look.js, storage "mathDungeonLook.v1")
+   Will, 2026-10-01: "we need an option to customize the character.
+   Lennon has brown skin and curly hair"
+
+   His skin paints the face, his outfit colour paints the tunic, and his
+   hair is painted on top of the head by HeroLook.drawHair, positioned
+   from THIS game's own head centre and radius, so the curls read the
+   same in every game.
+
+   Hair he picked stands in for the hero's built-in headgear (helm,
+   pointed hat, cap, hood) exactly the way a shop hat already does,
+   because a steel helm would hide the one thing he chose. A shop hat
+   still goes on last, on top of the hair.
+
+   BEEP-9 and Lil' Dragon are not people: HeroLook.isHuman() is false,
+   their skin IS the body colour, and they never get hair.
+
+   No hero-look.js, or nothing saved yet, and HERO_ART is left exactly as
+   it is above: the old sprite, unchanged.
+   ===================================================================== */
+var HL = (function(){
+  function dim(hex, k){
+    var m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || "");
+    if (!m) return hex;
+    var o = "#";
+    for (var i = 1; i <= 3; i++){
+      var v = Math.max(0, Math.min(255, Math.round(parseInt(m[i], 16) * k)));
+      o += ("0" + v.toString(16)).slice(-2);
+    }
+    return o;
+  }
+  /* saved() and NOT just "HeroLook exists": before he has picked anything
+     the games must look exactly the way they looked yesterday. */
+  function saved(){
+    if (!window.HeroLook) return false;
+    try { return !!localStorage.getItem(HeroLook.KEY); } catch (e){ return false; }
+  }
+  function look(){ try { return window.HeroLook ? HeroLook.get() : null; } catch (e){ return null; } }
+  function human(id){ try { return !window.HeroLook || !!HeroLook.isHuman(id); } catch (e){ return true; } }
+  function apply(){
+    if (!saved()) return;
+    var L = look(); if (!L) return;
+    for (var k in HERO_ART){
+      if (!Object.prototype.hasOwnProperty.call(HERO_ART, k)) continue;
+      var A = HERO_ART[k];
+      if (human(k)){ A.skin = L.skin; A.body = L.outfit; A.trim = dim(L.outfit, 0.66); }
+      else         { A.skin = L.skin; A.body = L.skin;   A.trim = dim(L.skin, 0.68); }
+    }
+  }
+  /* the look to paint hair from, or null: nothing saved, no hero-look.js,
+     "None" picked, or a hero that is not a person */
+  function hair(id){
+    if (!saved() || !human(id)) return null;
+    var L = look();
+    return (L && L.hair && L.hair !== "none") ? L : null;
+  }
+  function paint(g, cx, cy, r, id){
+    var L = hair(id);
+    if (!L) return;
+    try { HeroLook.drawHair(g, cx, cy, r, L.hair, L.hairColor); } catch (e){ }
+  }
+  apply();
+  try { if (window.HeroLook && HeroLook.onChange) HeroLook.onChange(apply); } catch (e){ }
+  return { apply: apply, hair: hair, paint: paint, dim: dim, saved: saved, look: look, human: human };
+})();
+
 function drawHeroSprite(g, X, Y, u, id, o){
   o = o || {};
   const A = HERO_ART[id] || HERO_ART.knight;
@@ -1085,6 +1153,8 @@ function drawHeroSprite(g, X, Y, u, id, o){
   const cheer = !!o.cheer;
   /* a shop hat REPLACES the built-in headgear (helm, pointed hat, cap, hood) */
   const hat = (o.hat !== undefined) ? (o.hat || null) : WEAR.hat;
+  /* the hair he picked stands in for the built-in headgear */
+  const hlHair = HL.hair(id);
   const HY = Y - u*0.20 + b, HR = u*0.22;
   const eye = (dx) => { g.beginPath(); g.arc(X + dx + ex, HY + ey, u*0.038, 0, 7); g.fill(); };
 
@@ -1207,9 +1277,9 @@ function drawHeroSprite(g, X, Y, u, id, o){
     g.fillStyle = "#0d1a12";                           // nostrils
     g.beginPath(); g.arc(X - u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
     g.beginPath(); g.arc(X + u*0.04 + ex*1.4, HY + u*0.09 + ey, u*0.018, 0, 7); g.fill();
-  } else if (id === "ninja" && hat){
+  } else if (id === "ninja" && (hat || hlHair)){
     /* hood off under a shop hat: face, the lower mask, and the eyes */
-    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill(); HL.paint(g, X, HY, HR, id);
     g.fillStyle = A.trim; g.beginPath(); g.arc(X, HY + u*0.02, HR*1.02, 0, Math.PI); g.fill();
     g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
   } else if (id === "ninja"){
@@ -1225,9 +1295,9 @@ function drawHeroSprite(g, X, Y, u, id, o){
     g.closePath(); g.fill();
     g.fillStyle = "#141a22"; eye(-u*0.09); eye(u*0.09);
   } else {
-    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill();
+    g.fillStyle = A.skin; g.beginPath(); g.arc(X, HY, HR, 0, 7); g.fill(); HL.paint(g, X, HY, HR, id);
     g.fillStyle = "#141a22"; eye(-u*0.08); eye(u*0.08);
-    if (id === "knight" && !hat){
+    if (id === "knight" && !hat && !hlHair){
       g.fillStyle = "#cfdae6";                         // helm dome
       g.beginPath(); g.arc(X, HY - u*0.02, HR*1.04, Math.PI, 0); g.fill();
       g.fillRect(X - HR*1.04, HY - u*0.02, HR*2.08, u*0.06);
@@ -1244,7 +1314,7 @@ function drawHeroSprite(g, X, Y, u, id, o){
     } else if (id === "wizard"){
       g.fillStyle = "#eef1f5";                         // beard
       g.beginPath(); g.ellipse(X, HY + u*0.16, u*0.15, u*0.16, 0, 0, 7); g.fill();
-      if (!hat){
+      if (!hat && !hlHair){
         g.fillStyle = A.trim;                          // pointed hat
         g.beginPath();
         g.moveTo(X - u*0.26, HY - u*0.14);
@@ -1255,7 +1325,7 @@ function drawHeroSprite(g, X, Y, u, id, o){
         g.fillStyle = A.accent;
         g.beginPath(); g.arc(X + u*0.02, HY - u*0.34, u*0.055, 0, 7); g.fill();
       }
-    } else if (id === "explorer" && !hat){
+    } else if (id === "explorer" && !hat && !hlHair){
       g.fillStyle = A.accent;                          // cap
       g.beginPath(); g.arc(X, HY - u*0.04, HR*1.02, Math.PI, 0); g.fill();
       g.fillRect(X - HR*1.02, HY - u*0.05, HR*2.04, u*0.05);
@@ -1388,6 +1458,59 @@ window.DET = {
   get doorOpen(){ return state.doorOpen; },
   get read(){ return state.read.slice(); }
 };
+
+/* =====================================================================
+   ESCAPE BACKS OUT ONE LAYER
+   Will, 2026-10-01: "the escape key should exit out of any screen."
+
+   One press closes the TOP-MOST open panel and nothing else, so a panel
+   stacked on another panel takes two presses, which is what backing out
+   means. Escape NEVER navigates away from the page.
+
+   Every layer below closes through that panel's OWN control, so the
+   game's own bookkeeping runs exactly as if the button had been tapped:
+   no second code path to keep in step. A panel he is part-way through
+   (a half-typed answer, an unopened card) still closes - the press is
+   never swallowed with nothing to show for it.
+
+   With no panel open, Escape is left alone for whatever the game already
+   does with it, and if nothing does, it is simply ignored.
+   ===================================================================== */
+(function(){
+  "use strict";
+  function el(id){ return document.getElementById(id); }
+  /* one visibility test for every convention in here (.on, .hide,
+     .hidden, display:none): is it actually taking up space on screen */
+  function vis(id){
+    var e = (typeof id === "string") ? el(id) : id;
+    if (!e) return false;
+    try { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); }
+    catch (err){ return false; }
+  }
+  function tap(id){ var b = el(id); if (b) b.click(); }
+  /* top-most first */
+  var LAYERS = [
+    { open: function(){ return vis("pWrap"); },  close: function(){ tap("pClose"); } },    /* a clue plaque / hint panel */
+    { open: function(){ return vis("qWrap"); },  close: function(){ tap("qClose"); } },    /* the door's question */
+    { open: function(){ return vis("solved"); }, close: function(){ tap("nextBtn"); } },   /* case solved */
+    { open: function(){ return vis("end"); },    close: function(){ tap("endBtn"); } },    /* the end screen */
+    { open: function(){ return vis("start"); },  close: function(){ tap("startBtn"); } }   /* the start screen */
+  ];
+
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    for (var i = 0; i < LAYERS.length; i++){
+      var open = false;
+      try { open = !!LAYERS[i].open(); } catch (err){ open = false; }
+      if (!open) continue;
+      try { ev.preventDefault(); ev.stopPropagation(); } catch (err){}
+      try { LAYERS[i].close(); } catch (err){}
+      return;                        /* exactly one layer per press */
+    }
+  }, true);
+})();
+
 })();
 </script>
 <script src="home-button.js"></script>

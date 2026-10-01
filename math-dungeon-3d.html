@@ -183,7 +183,199 @@
 <script src="math-bank.js?v=1788984054"></script>
 <script src="story-bank.js?v=1788976124"></script>
 <script src="brain.js"></script>
+<script src="hero-look.js"></script>
 <script src="wallet.js"></script>
+
+<script>
+/* =====================================================================
+   THE KID'S OWN LOOK  (hero-look.js, storage "mathDungeonLook.v1")
+   Will, 2026-10-01: "we need an option to customize the character.
+   Lennon has brown skin and curly hair"
+
+   The dungeon's hero is a real articulated three.js rig built by
+   models.js and driven by d3-engine.js, so there is no canvas to paint.
+   This wraps MODELS.buildCharacter, which is the one function the engine
+   calls to make the hero, and does three things to the rig it gets back:
+
+     1. the HEAD box takes his skin colour,
+     2. the TORSO, LEGS and SLEEVES take his outfit colour (and bare arms,
+        the ones the rig painted in skin, take his skin colour instead),
+     3. his hair goes on as real geometry parented to the head group, so
+        it turns with the idle head-look, built from the same blocky
+        primitives the rig is.
+
+   The engine caches its materials by colour, so NOTHING here mutates a
+   material: a new colour is asked of the engine's own `mk` factory and
+   swapped onto the mesh. Mutating a cached material would repaint every
+   wall and monster that happened to share the hex.
+
+   Built-in headgear (helm, wizard hat, hood, explorer cap) is hidden for
+   a hero with hair, because a steel helm would cover the one thing he
+   chose. Only the pieces that poke above the skull are hidden, so the
+   wizard keeps his beard, the ninja keeps his face mask and the knight
+   keeps his visor slit.
+
+   BEEP-9 and Lil' Dragon are not people: HeroLook.isHuman() is false, so
+   their skin IS the body colour and they never get hair. BEEP-9's real
+   glTF model is left exactly as authored; it is a robot, so there is no
+   hair to add to it either way.
+
+   No hero-look.js, or nothing saved yet, and this does nothing at all:
+   the dungeon's heroes look exactly the way they looked yesterday.
+   ===================================================================== */
+(function(){
+  "use strict";
+
+  function saved(){
+    if (!window.HeroLook) return false;
+    try { return !!localStorage.getItem(HeroLook.KEY); } catch(e){ return false; }
+  }
+  function look(){ try { return window.HeroLook ? HeroLook.get() : null; } catch(e){ return null; } }
+  function human(id){ try { return !window.HeroLook || !!HeroLook.isHuman(id); } catch(e){ return true; } }
+  function hex(s){ var m = /^#([0-9a-fA-F]{6})$/.exec(s || ""); return m ? parseInt(m[1], 16) : null; }
+  function dim(n, k){
+    if (n == null) return n;
+    var r = Math.max(0, Math.min(255, Math.round(((n >> 16) & 255) * k)));
+    var g = Math.max(0, Math.min(255, Math.round(((n >> 8) & 255) * k)));
+    var b = Math.max(0, Math.min(255, Math.round((n & 255) * k)));
+    return (r << 16) | (g << 8) | b;
+  }
+
+  /* the exact boxes models.js humanoid() lays down, by their dimensions */
+  var HEAD  = [0.23, 0.21, 0.21];
+  var TORSO = [0.29, 0.24, 0.18];
+  var LEG   = [0.10, 0.26, 0.12];
+  var ARM   = [0.085, 0.22, 0.095];
+  var GLOVE = [0.095, 0.07, 0.105];
+
+  function isBox(mesh, d){
+    var p = mesh && mesh.geometry && mesh.geometry.parameters;
+    if (!p) return false;
+    return Math.abs(p.width - d[0]) < 1e-6 &&
+           Math.abs(p.height - d[1]) < 1e-6 &&
+           Math.abs(p.depth - d[2]) < 1e-6;
+  }
+
+  /* r is the HALF-WIDTH of the head box; the group's origin is the very
+     top of the skull, so every offset below reads as "above the head".
+     Same style families HeroLook.drawHair paints in 2D. */
+  function build3DHair(style, colorInt, r, mk){
+    if (!style || style === "none" || !r) return null;
+    var g = new THREE.Group();
+    var mat = mk(colorInt);
+    function add(m, x, y, z){ m.position.set(x, y, z); g.add(m); return m; }
+    function slab(w, h, d){ return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
+    function puff(rad){ return new THREE.Mesh(new THREE.SphereGeometry(rad, 10, 8), mat); }
+    var i, a, t;
+    if (style === "curly" || style === "coils" || style === "afro"){
+      var spread = style === "afro" ? 1.26 : (style === "coils" ? 1.00 : 1.12);
+      var pr = (style === "coils" ? 0.26 : 0.34) * r;
+      add(slab(r * 2.02, r * 0.44, r * 2.02), 0, r * 0.10, 0);       // the skull cap
+      var ring = style === "afro" ? 9 : 8;
+      for (i = 0; i < ring; i++){
+        a = (Math.PI * 2 * i) / ring;
+        add(puff(pr), Math.cos(a) * r * spread, r * 0.26, Math.sin(a) * r * spread);
+      }
+      for (i = 0; i < 4; i++){                                        // tighter second row = volume, not a halo
+        a = (Math.PI * 2 * i) / 4 + 0.4;
+        add(puff(pr * 0.9), Math.cos(a) * r * spread * 0.52, r * 0.50, Math.sin(a) * r * spread * 0.52);
+      }
+      add(puff(pr * 0.95), 0, r * 0.58, 0);
+    } else if (style === "fade" || style === "buzz"){
+      add(slab(r * 2.04, r * (style === "buzz" ? 0.22 : 0.36), r * 2.04), 0, r * 0.09, 0);
+    } else if (style === "straight"){
+      add(slab(r * 2.06, r * 0.42, r * 2.06), 0, r * 0.12, 0);
+      add(slab(r * 0.30, r * 1.45, r * 1.60), -r * 1.02, -r * 0.62, 0);
+      add(slab(r * 0.30, r * 1.45, r * 1.60),  r * 1.02, -r * 0.62, 0);
+      add(slab(r * 1.86, r * 1.25, r * 0.30), 0, -r * 0.55, r * 1.02);
+    } else if (style === "braids" || style === "locs"){
+      add(slab(r * 2.04, r * 0.40, r * 2.04), 0, r * 0.11, 0);
+      var n = style === "braids" ? 5 : 7;
+      var len = r * (style === "braids" ? 1.45 : 1.95);
+      for (i = 0; i < n; i++){
+        t = (n === 1) ? 0.5 : i / (n - 1);
+        add(slab(r * 0.22, len, r * 0.22), (t - 0.5) * r * 1.7, -len * 0.42, r * 0.86);
+      }
+    } else {
+      return null;
+    }
+    return g;
+  }
+
+  /* Which of a character's own head pieces come off when his hair goes on.
+     Two kinds, and only two:
+       1. anything that pokes above the skull - a helm dome, a wizard hat,
+          a hood, a cap, the explorer's painted-on hair;
+       2. a thin bar stuck flat on the FRONT of the face at eye height,
+          which is only ever a helmet's visor slit, and would read as a
+          blindfold once the helmet above it is gone.
+     Everything else stays, so the wizard keeps his beard (it has real
+     depth and sits at the chin) and the ninja keeps his face mask. */
+  var CROWN = 0.20;
+  function hideHeadgear(headGroup){
+    for (var i = 5; i < headGroup.children.length; i++){
+      var c = headGroup.children[i];
+      var p = c.geometry && c.geometry.parameters;
+      var h = p ? (p.height || 0) : 0;
+      var w = p ? (p.width || 0) : 0;
+      var d = p ? (p.depth || 0) : 0;
+      var aboveSkull = (c.position.y + h / 2) > CROWN;
+      var visorSlit  = d > 0 && d <= 0.03 && w > 0.12 &&
+                       c.position.z < -0.08 && c.position.y > 0.09;
+      if (aboveSkull || visorSlit) c.visible = false;
+    }
+  }
+
+  function retint(built, id, mk){
+    var L = look();
+    if (!L) return;
+    var skin = hex(L.skin), outfit = hex(L.outfit), hairCol = hex(L.hairColor);
+    if (skin == null || outfit == null) return;
+    var person = human(id);
+    var bodyCol = person ? outfit : skin;
+
+    var headMesh = null, meshes = [];
+    built.group.traverse(function(o){ if (o.isMesh) meshes.push(o); });
+    var i;
+    for (i = 0; i < meshes.length; i++){ if (isBox(meshes[i], HEAD)){ headMesh = meshes[i]; break; } }
+    if (!headMesh) return;                       /* not the rig we know: change nothing */
+    var skinMat = headMesh.material;             /* every bare-skin mesh shares this exact material */
+
+    for (i = 0; i < meshes.length; i++){
+      var m = meshes[i];
+      if (m === headMesh){ m.material = mk(skin); continue; }
+      if (isBox(m, TORSO)){ m.material = mk(bodyCol); continue; }
+      if (isBox(m, LEG)){ m.material = mk(dim(bodyCol, 0.84)); continue; }
+      if (isBox(m, ARM) || isBox(m, GLOVE)){
+        /* bare arms and bare hands were painted in the rig's skin hex, so
+           they share its material: those follow his skin, sleeves follow
+           his outfit */
+        m.material = (m.material === skinMat) ? mk(skin) : mk(bodyCol);
+        continue;
+      }
+    }
+
+    if (!person) return;                         /* a dragon has no curls */
+    if (!L.hair || L.hair === "none" || hairCol == null) return;
+    var headGroup = headMesh.parent;
+    if (!headGroup) return;
+    var hair = build3DHair(L.hair, hairCol, 0.115, mk);
+    if (!hair) return;
+    hideHeadgear(headGroup);
+    hair.position.set(0, 0.21, 0);               /* 0.21 = top of the 0.21-tall head box centred at 0.105 */
+    headGroup.add(hair);
+  }
+
+  if (!saved()) return;
+  if (typeof MODELS === "undefined" || !MODELS || typeof MODELS.buildCharacter !== "function") return;
+  var orig = MODELS.buildCharacter;
+  MODELS.buildCharacter = function(id, mk){
+    var built = orig(id, mk);
+    try { retint(built, id, mk); } catch(e){ /* a surprise rig keeps its own colours */ }
+    return built;
+  };
+})();
+</script>
 
 <div id="wrap">
   <canvas id="view3d" width="480" height="300"></canvas>
@@ -2389,8 +2581,94 @@ window.DEBUG={
   state:S,player:p,ents:()=>ents,C:()=>C,
   teleport:(x,y)=>{p.x=x;p.y=y;},
   answerRight:()=>{if(C)pickChoice(C.choices.findIndex(c=>c.ok));},
-  attack:attackAction,fire:attackAction,touch:touchMove
+  attack:attackAction,fire:attackAction,touch:touchMove,
+  /* what the hero rig actually ended up painted, so his look can be
+     checked against hero-look.js from the console instead of squinting
+     at pixels. Reads the live rig the engine is rendering. */
+  heroLook(){
+    const h = (typeof D3 !== "undefined" && D3) ? D3.hero : null;
+    const g = h ? h.group : null;
+    if (!g) return { error: "the engine has no hero in the scene yet" };
+    const meshes = []; g.traverse(o => { if (o.isMesh) meshes.push(o); });
+    const hex = m => {
+      const u = m.material && m.material.uniforms && m.material.uniforms.uColor;
+      return u ? "#" + u.value.getHexString().toUpperCase() : null;
+    };
+    const dim = (m, w, h, d) => {
+      const p = m.geometry && m.geometry.parameters; if (!p) return false;
+      return Math.abs(p.width - w) < 1e-6 && Math.abs(p.height - h) < 1e-6 && Math.abs(p.depth - d) < 1e-6;
+    };
+    const head = meshes.find(m => dim(m, 0.23, 0.21, 0.21)) || null;
+    const torso = meshes.find(m => dim(m, 0.29, 0.24, 0.18)) || null;
+    const hg = head && head.parent;
+    const hair = hg ? hg.children.find(c => c.isGroup) : null;
+    return {
+      hero: S.character,
+      head: head ? hex(head) : null,
+      torso: torso ? hex(torso) : null,
+      headgearHidden: hg ? hg.children.slice(5).filter(c => c.visible === false).length : null,
+      headgearTotal: hg ? Math.max(0, hg.children.length - 5) : null,
+      hair: hair ? { parts: hair.children.length, color: hex(hair.children[0]), y: hair.position.y } : null
+    };
+  }
 };
+
+/* =====================================================================
+   ESCAPE BACKS OUT ONE LAYER
+   Will, 2026-10-01: "the escape key should exit out of any screen."
+
+   One press closes the TOP-MOST open panel and nothing else, so a panel
+   stacked on another panel takes two presses, which is what backing out
+   means. Escape NEVER navigates away from the page.
+
+   Every layer below closes through that panel's OWN control, so the
+   game's own bookkeeping runs exactly as if the button had been tapped:
+   no second code path to keep in step. A panel he is part-way through
+   (a half-typed answer, an unopened card) still closes - the press is
+   never swallowed with nothing to show for it.
+
+   With no panel open, Escape is left alone for whatever the game already
+   does with it, and if nothing does, it is simply ignored.
+   ===================================================================== */
+(function(){
+  "use strict";
+  function el(id){ return document.getElementById(id); }
+  /* one visibility test for every convention in here (.on, .hide,
+     .hidden, display:none): is it actually taking up space on screen */
+  function vis(id){
+    var e = (typeof id === "string") ? el(id) : id;
+    if (!e) return false;
+    try { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); }
+    catch (err){ return false; }
+  }
+  function tap(id){ var b = el(id); if (b) b.click(); }
+  /* Top-most first. With none of these open the press is left alone, so
+     the dungeon's existing Escape (pause / resume, and skipping a
+     cinematic) keeps working exactly as it did. */
+  var LAYERS = [
+    { open: function(){ return vis("helperOv"); }, close: function(){ closeHelper(); } },               /* a helper or mini-game over the dungeon */
+    { open: function(){ return vis("fsHelp"); },   close: function(){ el("fsHelp").classList.add("hidden"); } }, /* the full-screen tip */
+    { open: function(){ return vis("winOv"); },    close: function(){ GAME.restart(); } },              /* YOU DID IT */
+    { open: function(){ return vis("overOv"); },   close: function(){ GAME.retryLevel(); } },           /* you fell */
+    { open: function(){ return vis("clearOv"); },  close: function(){ GAME.nextLevel(); } },            /* level clear */
+    { open: function(){ return vis("pauseOv"); },  close: function(){ GAME.resume(); } },               /* paused */
+    { open: function(){ return vis("introOv"); },  close: function(){ GAME.beginLevel(); } },           /* the level intro */
+    { open: function(){ return vis("titleOv"); },  close: function(){ GAME.start(); } }                 /* the title screen */
+  ];
+
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    for (var i = 0; i < LAYERS.length; i++){
+      var open = false;
+      try { open = !!LAYERS[i].open(); } catch (err){ open = false; }
+      if (!open) continue;
+      try { ev.preventDefault(); ev.stopPropagation(); } catch (err){}
+      try { LAYERS[i].close(); } catch (err){}
+      return;                        /* exactly one layer per press */
+    }
+  }, true);
+})();
 </script>
 <script src="home-button.js"></script>
 </body>

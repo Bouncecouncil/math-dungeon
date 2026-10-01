@@ -651,6 +651,56 @@ if (EMBED){
 
 /* test hook */
 window.HELPER = { startProblem, press, commitDrag, get step(){ return steps[si]; }, get steps(){ return steps; }, cells:()=>cells, parts:()=>PARTS, validNums };
+
+/* =====================================================================
+   ESCAPE BACKS OUT ONE LAYER
+   Will, 2026-10-01: "the escape key should exit out of any screen."
+
+   One press closes the TOP-MOST open panel and nothing else, so a panel
+   stacked on another panel takes two presses, which is what backing out
+   means. Escape NEVER navigates away from the page.
+
+   Every layer below closes through that panel's OWN control, so the
+   game's own bookkeeping runs exactly as if the button had been tapped:
+   no second code path to keep in step. A panel he is part-way through
+   (a half-typed answer, an unopened card) still closes - the press is
+   never swallowed with nothing to show for it.
+
+   With no panel open, Escape is left alone for whatever the game already
+   does with it, and if nothing does, it is simply ignored.
+   ===================================================================== */
+(function(){
+  "use strict";
+  function el(id){ return document.getElementById(id); }
+  /* one visibility test for every convention in here (.on, .hide,
+     .hidden, display:none): is it actually taking up space on screen */
+  function vis(id){
+    var e = (typeof id === "string") ? el(id) : id;
+    if (!e) return false;
+    try { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); }
+    catch (err){ return false; }
+  }
+  function tap(id){ var b = el(id); if (b) b.click(); }
+  /* top-most first. #win sits inside #helper, so it has to go first. */
+  var LAYERS = [
+    { open: function(){ return vis("win"); },    close: function(){ tap("againBtn"); } },  /* the solved card */
+    { open: function(){ return vis("helper"); }, close: function(){ tap("quitBtn"); } }    /* the helper itself */
+  ];
+
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    for (var i = 0; i < LAYERS.length; i++){
+      var open = false;
+      try { open = !!LAYERS[i].open(); } catch (err){ open = false; }
+      if (!open) continue;
+      try { ev.preventDefault(); ev.stopPropagation(); } catch (err){}
+      try { LAYERS[i].close(); } catch (err){}
+      return;                        /* exactly one layer per press */
+    }
+  }, true);
+})();
+
 })();
 </script>
 <script src="home-button.js"></script>

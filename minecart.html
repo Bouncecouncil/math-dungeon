@@ -193,6 +193,7 @@
 <script src="math-bank.js"></script>
 <script src="story-bank.js"></script>
 <script src="brain.js"></script>
+<script src="hero-look.js"></script>
 <script src="wallet.js"></script>
 <script>
 (function(){
@@ -370,6 +371,107 @@ const HERO_LOOK = {
   explorer:{body:0xc2874a, head:0xf0c9a0, trim:0x3ddc84},
   dragon:  {body:0x3ec46b, head:0x6ee39a, trim:0xffd23f}
 };
+
+/* =====================================================================
+   THE KID'S OWN LOOK  (hero-look.js, storage "mathDungeonLook.v1")
+   Will, 2026-10-01: "we need an option to customize the character.
+   Lennon has brown skin and curly hair"
+
+   This ride is three.js, so there is no canvas to paint: the rider's HEAD
+   box takes his skin colour, the TORSO box takes his outfit colour, and
+   his hair is real geometry parented to the head, built from the same
+   blocky primitives the rest of the cart is made of. The style families
+   are the ones HeroLook.drawHair paints in 2D, so curly hair in here
+   reads as the same curly hair as in the flat games.
+
+   The hair stands in for the rider's built-in hat exactly the way a shop
+   hat already does, so the one thing he chose is never hidden. A shop hat
+   still goes on last, on top of the hair.
+
+   BEEP-9 and Lil' Dragon are not people: HeroLook.isHuman() is false,
+   their skin IS the body colour, and they never get hair.
+
+   No hero-look.js, or nothing saved yet, and HERO_LOOK is left exactly as
+   it is above: the old rider, unchanged.
+   ===================================================================== */
+const HL = (function(){
+  function saved(){
+    if (!window.HeroLook) return false;
+    try { return !!localStorage.getItem(HeroLook.KEY); } catch(e){ return false; }
+  }
+  function look(){ try { return window.HeroLook ? HeroLook.get() : null; } catch(e){ return null; } }
+  function human(id){ try { return !window.HeroLook || !!HeroLook.isHuman(id); } catch(e){ return true; } }
+  function hex(s){ const m = /^#([0-9a-fA-F]{6})$/.exec(s || ""); return m ? parseInt(m[1], 16) : null; }
+  function dim(n, k){
+    if (n == null) return n;
+    const r = Math.max(0, Math.min(255, Math.round(((n >> 16) & 255) * k)));
+    const g = Math.max(0, Math.min(255, Math.round(((n >> 8) & 255) * k)));
+    const b = Math.max(0, Math.min(255, Math.round((n & 255) * k)));
+    return (r << 16) | (g << 8) | b;
+  }
+  /* the look to build hair from, or null: nothing saved, no hero-look.js,
+     "None" picked, or a hero that is not a person */
+  function hair(id){
+    if (!saved() || !human(id)) return null;
+    const L = look();
+    return (L && L.hair && L.hair !== "none") ? L : null;
+  }
+  /* r is the HALF-WIDTH of the head box; the group's origin is the very
+     top of the skull, so every offset below is "above the head". */
+  function build3DHair(style, colorInt, r, makeMat){
+    if (!style || style === "none" || !r) return null;
+    const g = new THREE.Group();
+    const mat = makeMat(colorInt);
+    const add = (m, x, y, z) => { m.position.set(x, y, z); g.add(m); return m; };
+    const slab = (w, h, d) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    const puff = (rad)     => new THREE.Mesh(new THREE.SphereGeometry(rad, 10, 8), mat);
+    if (style === "curly" || style === "coils" || style === "afro"){
+      const spread = style === "afro" ? 1.26 : (style === "coils" ? 1.00 : 1.12);
+      const pr = (style === "coils" ? 0.26 : 0.34) * r;
+      add(slab(r * 2.02, r * 0.44, r * 2.02), 0, r * 0.10, 0);     // the skull cap
+      const ring = style === "afro" ? 9 : 8;
+      for (let i = 0; i < ring; i++){
+        const a = (Math.PI * 2 * i) / ring;
+        add(puff(pr), Math.cos(a) * r * spread, r * 0.26, Math.sin(a) * r * spread);
+      }
+      for (let i = 0; i < 4; i++){                                  // a tighter second row = volume, not a halo
+        const a = (Math.PI * 2 * i) / 4 + 0.4;
+        add(puff(pr * 0.9), Math.cos(a) * r * spread * 0.52, r * 0.50, Math.sin(a) * r * spread * 0.52);
+      }
+      add(puff(pr * 0.95), 0, r * 0.58, 0);
+    } else if (style === "fade" || style === "buzz"){
+      add(slab(r * 2.04, r * (style === "buzz" ? 0.22 : 0.36), r * 2.04), 0, r * 0.09, 0);
+    } else if (style === "straight"){
+      add(slab(r * 2.06, r * 0.42, r * 2.06), 0, r * 0.12, 0);
+      for (const s of [-1, 1]) add(slab(r * 0.30, r * 1.45, r * 1.60), s * r * 1.02, -r * 0.62, 0);
+      add(slab(r * 1.86, r * 1.25, r * 0.30), 0, -r * 0.55, r * 1.02);
+    } else if (style === "braids" || style === "locs"){
+      add(slab(r * 2.04, r * 0.40, r * 2.04), 0, r * 0.11, 0);
+      const n = style === "braids" ? 5 : 7;
+      const len = r * (style === "braids" ? 1.45 : 1.95);
+      for (let i = 0; i < n; i++){
+        const t = n === 1 ? 0.5 : i / (n - 1);
+        add(slab(r * 0.22, len, r * 0.22), (t - 0.5) * r * 1.7, -len * 0.42, r * 0.86);
+      }
+    } else return null;
+    return g;
+  }
+  /* repaint the palette table the rider is built from */
+  if (saved()){
+    const L = look();
+    const skin = hex(L && L.skin), outfit = hex(L && L.outfit);
+    if (skin != null && outfit != null){
+      Object.keys(HERO_LOOK).forEach(id => {
+        const A = HERO_LOOK[id];
+        if (human(id)){ A.head = skin; A.body = outfit; A.trim = dim(outfit, 0.66); }
+        else          { A.head = skin; A.body = skin;   A.trim = dim(skin, 0.68); }
+      });
+    }
+  }
+  return { saved, look, human, hex, dim, hair, build3DHair };
+})();
+/* how far the shop-hat anchor has to rise so a bought hat sits ON the hair */
+let HAIR_LIFT = 0;
 
 /* ============================ state ============================ */
 const S = {
@@ -586,6 +688,24 @@ const cart = new THREE.Group();
   const hat = new THREE.Mesh(new THREE.BoxGeometry(0.86,0.22,0.86), new THREE.MeshBasicMaterial({color:look.trim}));
   hat.position.set(0,3.14,-0.1); rider.add(hat);
   cart.userData.hat = hat;             // the shop hat replaces this built-in one
+  /* the hair he picked, parented to the rider so it ducks and bobs with him.
+     It REPLACES the built-in hat (userData.hat is cleared so the cosmetics
+     layer can never switch that hat back on over his curls). */
+  const hairL = HL.hair(HERO_ID);
+  if (hairL){
+    const hairCol = HL.hex(hairL.hairColor);
+    const hairG = (hairCol == null) ? null : HL.build3DHair(
+      hairL.hair, hairCol, 0.36,
+      c => new THREE.MeshBasicMaterial({ color: c }));
+    if (hairG){
+      hairG.position.set(0, 3.07, -0.1);   // 3.07 = top of the 0.7-tall head centred at 2.72
+      rider.add(hairG);
+      hat.visible = false;
+      cart.userData.hat = null;
+      cart.userData.hair = hairG;
+      HAIR_LIFT = 0.16;
+    }
+  }
   if (HERO_ID === "dragon"){
     for (const sx of [-1,1]){
       const w = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.5,0.1), new THREE.MeshBasicMaterial({color:look.trim}));
@@ -610,7 +730,7 @@ const Look = (function(){
   const W = () => { try { return (typeof Wallet !== "undefined" && Wallet) ? Wallet : null; } catch(e){ return null; } };
   const PLAIN_CART = 0x8a5a2b, PLAIN_IRON = 0x50607e;
   const hatGroup = new THREE.Group();
-  hatGroup.position.set(0, 3.05, -0.1);
+  hatGroup.position.set(0, 3.05 + HAIR_LIFT, -0.1);   // a bought hat sits ON the hair, never inside it
   (cart.userData.rider || cart).add(hatGroup);   // rides with the rider, so it ducks too
   const texCache = {};
   function emojiTex(emoji){
@@ -1795,8 +1915,77 @@ window.CART = {
     };
     return {speed, window:out};
   },
-  setBest:(v)=>writeBest(v), BEST_KEY
+  setBest:(v)=>writeBest(v), BEST_KEY,
+  /* what the rider actually ended up painted, so his look can be checked
+     against hero-look.js from the console instead of squinting at pixels */
+  riderLook(){
+    const r = cart.userData.rider, hair = cart.userData.hair || null;
+    const hx = m => "#" + m.material.color.getHexString().toUpperCase();
+    const meshes = r ? r.children.filter(c => c.isMesh) : [];
+    return {
+      hero: HERO_ID,
+      head:  meshes[1] ? hx(meshes[1]) : null,     // torso, head, hat in build order
+      torso: meshes[0] ? hx(meshes[0]) : null,
+      builtInHatVisible: meshes[2] ? meshes[2].visible : null,
+      hair: hair ? { style: HL.hair(HERO_ID) && HL.hair(HERO_ID).hair,
+                     parts: hair.children.length,
+                     color: "#" + hair.children[0].material.color.getHexString().toUpperCase(),
+                     y: hair.position.y } : null
+    };
+  }
 };
+
+/* =====================================================================
+   ESCAPE BACKS OUT ONE LAYER
+   Will, 2026-10-01: "the escape key should exit out of any screen."
+
+   One press closes the TOP-MOST open panel and nothing else, so a panel
+   stacked on another panel takes two presses, which is what backing out
+   means. Escape NEVER navigates away from the page.
+
+   Every layer below closes through that panel's OWN control, so the
+   game's own bookkeeping runs exactly as if the button had been tapped:
+   no second code path to keep in step. A panel he is part-way through
+   (a half-typed answer, an unopened card) still closes - the press is
+   never swallowed with nothing to show for it.
+
+   With no panel open, Escape is left alone for whatever the game already
+   does with it, and if nothing does, it is simply ignored.
+   ===================================================================== */
+(function(){
+  "use strict";
+  function el(id){ return document.getElementById(id); }
+  /* one visibility test for every convention in here (.on, .hide,
+     .hidden, display:none): is it actually taking up space on screen */
+  function vis(id){
+    var e = (typeof id === "string") ? el(id) : id;
+    if (!e) return false;
+    try { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); }
+    catch (err){ return false; }
+  }
+  function tap(id){ var b = el(id); if (b) b.click(); }
+  /* top-most first. Nothing open leaves the press alone, so the dungeon's
+     own embed handler (Escape = back to the fight) still fires. */
+  var LAYERS = [
+    { open: function(){ return vis("helperOv"); }, close: function(){ closeHelper(); } },  /* the maths helper over the ride */
+    { open: function(){ return vis("endOv"); },    close: function(){ tap("againBtn"); } },/* STATION / the run summary */
+    { open: function(){ return vis("startOv"); },  close: function(){ tap("goBtn"); } }    /* the start screen */
+  ];
+
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    for (var i = 0; i < LAYERS.length; i++){
+      var open = false;
+      try { open = !!LAYERS[i].open(); } catch (err){ open = false; }
+      if (!open) continue;
+      try { ev.preventDefault(); ev.stopPropagation(); } catch (err){}
+      try { LAYERS[i].close(); } catch (err){}
+      return;                        /* exactly one layer per press */
+    }
+  }, true);
+})();
+
 })();
 </script>
 <script src="home-button.js"></script>

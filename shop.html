@@ -108,6 +108,7 @@
 </div>
 <div class="msg" id="msg"></div>
 
+<script src="hero-look.js"></script>
 <script src="wallet.js"></script>
 <script>
 (function(){
@@ -124,6 +125,73 @@
     explorer: { n:"The Explorer", e:"\u{1F9ED}",       body:"#a0703a", trim:"#3ddc84", skin:"#f2c9a0" },
     dragon:   { n:"Lil' Dragon",  e:"\u{1F409}",       body:"#2f9d57", trim:"#ffb800", skin:"#5be35b" }
   };
+
+/* =====================================================================
+   THE KID'S OWN LOOK  (hero-look.js, storage "mathDungeonLook.v1")
+   Will, 2026-10-01: "we need an option to customize the character.
+   Lennon has brown skin and curly hair"
+
+   His skin paints the face, his outfit colour paints the tunic, and his
+   hair is painted on top of the head by HeroLook.drawHair, positioned
+   from THIS game's own head centre and radius, so the curls read the
+   same in every game.
+
+   Hair he picked stands in for the hero's built-in headgear (helm,
+   pointed hat, cap, hood) exactly the way a shop hat already does,
+   because a steel helm would hide the one thing he chose. A shop hat
+   still goes on last, on top of the hair.
+
+   BEEP-9 and Lil' Dragon are not people: HeroLook.isHuman() is false,
+   their skin IS the body colour, and they never get hair.
+
+   No hero-look.js, or nothing saved yet, and HEROES is left exactly as
+   it is above: the old sprite, unchanged.
+   ===================================================================== */
+  var HL = (function(){
+  function dim(hex, k){
+    var m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || "");
+    if (!m) return hex;
+    var o = "#";
+    for (var i = 1; i <= 3; i++){
+      var v = Math.max(0, Math.min(255, Math.round(parseInt(m[i], 16) * k)));
+      o += ("0" + v.toString(16)).slice(-2);
+    }
+    return o;
+  }
+  /* saved() and NOT just "HeroLook exists": before he has picked anything
+     the games must look exactly the way they looked yesterday. */
+  function saved(){
+    if (!window.HeroLook) return false;
+    try { return !!localStorage.getItem(HeroLook.KEY); } catch (e){ return false; }
+  }
+  function look(){ try { return window.HeroLook ? HeroLook.get() : null; } catch (e){ return null; } }
+  function human(id){ try { return !window.HeroLook || !!HeroLook.isHuman(id); } catch (e){ return true; } }
+  function apply(){
+    if (!saved()) return;
+    var L = look(); if (!L) return;
+    for (var k in HEROES){
+      if (!Object.prototype.hasOwnProperty.call(HEROES, k)) continue;
+      var A = HEROES[k];
+      if (human(k)){ A.skin = L.skin; A.body = L.outfit; A.trim = dim(L.outfit, 0.66); }
+      else         { A.skin = L.skin; A.body = L.skin;   A.trim = dim(L.skin, 0.68); }
+    }
+  }
+  /* the look to paint hair from, or null: nothing saved, no hero-look.js,
+     "None" picked, or a hero that is not a person */
+  function hair(id){
+    if (!saved() || !human(id)) return null;
+    var L = look();
+    return (L && L.hair && L.hair !== "none") ? L : null;
+  }
+  function paint(g, cx, cy, r, id){
+    var L = hair(id);
+    if (!L) return;
+    try { HeroLook.drawHair(g, cx, cy, r, L.hair, L.hairColor); } catch (e){ }
+  }
+  apply();
+  try { if (window.HeroLook && HeroLook.onChange) HeroLook.onChange(apply); } catch (e){ }
+  return { apply: apply, hair: hair, paint: paint, dim: dim, saved: saved, look: look, human: human };
+})();
   var heroId = "knight";
   try { var h = localStorage.getItem("mathDungeonChar"); if (h && HEROES[h]) heroId = h; } catch(e){}
   try { var q = new URLSearchParams(location.search).get("hero"); if (q && HEROES[q]) heroId = q; } catch(e){}
@@ -157,7 +225,8 @@
     if (heroId === "robot"){ g.beginPath(); g.rect(x - hr, hy - hr, hr*2, hr*2); g.fill(); g.stroke();
       g.fillStyle = HERO.trim; g.fillRect(x - hr*.55, hy - hr*.25, hr*.35, hr*.3); g.fillRect(x + hr*.2, hy - hr*.25, hr*.35, hr*.3); }
     else { g.beginPath(); g.arc(x, hy, hr, 0, Math.PI*2); g.fill(); g.stroke();
-      if (heroId === "ninja"){ g.fillStyle = HERO.body; g.fillRect(x - hr, hy - hr*.1, hr*2, hr*.9); g.fillStyle = HERO.skin; g.fillRect(x - hr*.8, hy - hr*.35, hr*1.6, hr*.4); g.fillStyle = HERO.trim; g.fillRect(x - hr, hy - hr*.75, hr*2, hr*.22); }
+      HL.paint(g, x, hy, hr, heroId);
+      if (heroId === "ninja" && !HL.hair(heroId)){ g.fillStyle = HERO.body; g.fillRect(x - hr, hy - hr*.1, hr*2, hr*.9); g.fillStyle = HERO.skin; g.fillRect(x - hr*.8, hy - hr*.35, hr*1.6, hr*.4); g.fillStyle = HERO.trim; g.fillRect(x - hr, hy - hr*.75, hr*2, hr*.22); }
       g.fillStyle = "#1a1a1a"; g.beginPath(); g.arc(x - hr*.35, hy - hr*.15, hr*.12, 0, Math.PI*2); g.arc(x + hr*.35, hy - hr*.15, hr*.12, 0, Math.PI*2); g.fill();
       if (heroId !== "ninja"){ g.strokeStyle = "#1a1a1a"; g.lineWidth = 3; g.beginPath(); g.arc(x, hy + hr*.2, hr*.3, .15*Math.PI, .85*Math.PI); g.stroke(); }
       if (heroId === "dragon"){ g.fillStyle = HERO.trim; [-1,1].forEach(function(d){ g.beginPath(); g.moveTo(x + d*hr*.5, hy - hr*.8); g.lineTo(x + d*hr*.75, hy - hr*1.35); g.lineTo(x + d*hr*.9, hy - hr*.6); g.fill(); }); }
@@ -281,6 +350,60 @@
   }
   Wallet.onChange(function(){ render(); });
   render();
+
+/* =====================================================================
+   ESCAPE BACKS OUT ONE LAYER
+   Will, 2026-10-01: "the escape key should exit out of any screen."
+
+   One press closes the TOP-MOST open panel and nothing else, so a panel
+   stacked on another panel takes two presses, which is what backing out
+   means. Escape NEVER navigates away from the page.
+
+   Every layer below closes through that panel's OWN control, so the
+   game's own bookkeeping runs exactly as if the button had been tapped:
+   no second code path to keep in step. A panel he is part-way through
+   (a half-typed answer, an unopened card) still closes - the press is
+   never swallowed with nothing to show for it.
+
+   With no panel open, Escape is left alone for whatever the game already
+   does with it, and if nothing does, it is simply ignored.
+   ===================================================================== */
+(function(){
+  "use strict";
+  function el(id){ return document.getElementById(id); }
+  /* one visibility test for every convention in here (.on, .hide,
+     .hidden, display:none): is it actually taking up space on screen */
+  function vis(id){
+    var e = (typeof id === "string") ? el(id) : id;
+    if (!e) return false;
+    try { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); }
+    catch (err){ return false; }
+  }
+  function tap(id){ var b = el(id); if (b) b.click(); }
+  /* The shop has no panels: what stacks here is the try-on preview and the
+     "tap again to buy" confirmation on top of it, so Escape drops the
+     confirmation first and the try-on second. Top-most first. */
+  var LAYERS = [
+    { open: function(){ return sure !== null && Date.now() < sureT; },
+      close: function(){ sure = null; render(); } },                      /* tap-again-to-buy */
+    { open: function(){ return peek !== null; },
+      close: function(){ peek = null; render(); } }                       /* the try-on preview */
+  ];
+
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    for (var i = 0; i < LAYERS.length; i++){
+      var open = false;
+      try { open = !!LAYERS[i].open(); } catch (err){ open = false; }
+      if (!open) continue;
+      try { ev.preventDefault(); ev.stopPropagation(); } catch (err){}
+      try { LAYERS[i].close(); } catch (err){}
+      return;                        /* exactly one layer per press */
+    }
+  }, true);
+})();
+
 })();
 </script>
 <script src="home-button.js"></script>
