@@ -7,217 +7,329 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Aquarium Tycoon">
 <title>Aquarium Tycoon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
+/* =====================================================================
+   SUNNY REEF. The approved art direction (mockups/aquarium-mockups.html,
+   direction A). Every colour, radius, shadow and typeface below is read
+   straight off those frames: warm tan sand, turquoise water, saturated
+   tropical planting, cream chrome, soft blurred shadows. Nothing dark
+   navy survives from the old Math Dungeon skin.
+   ===================================================================== */
 :root{
-  --bg:#0b1424; --navy:#101c33; --navy2:#0a1528; --chalk:#f2f6fb; --dim:#8ba0bd;
-  --gold:#ffd23f; --good:#3ddc84; --bad:#ff4d5e; --blue:#4fc3ff; --teal:#00f5d4;
-  --edge:#25406b;
+  /* ground */
+  --sand1:#FBE6B4; --sand2:#F1D28B; --sand3:#DCB667; --sandLine:#C49C51;
+  --path1:#FFF4DA; --path2:#F6E3BB; --pathEdge:#E2C793;
+  --grass1:#8BD962; --grass2:#3F9C31; --grassDk:#2F7C27;
+  /* water + wood + stone */
+  --wat1:#7CF0E4; --wat2:#33C9DC; --wat3:#0A6E9C; --foam:#DFFCFB;
+  --wood1:#E0A664; --wood2:#90592A; --wood3:#BE803F;
+  --stone1:#CFC3AC; --stone2:#AFA08A; --stone3:#8A7C68;
+  /* ink */
+  --ink:#27333F; --ink2:#2B3440; --sub:#9aa6b4; --btnInk:#4A3100;
+  --out:rgba(52,36,14,.30);
+  /* chrome */
+  --chip:rgba(255,255,255,.90); --chipEdge:rgba(30,50,70,.13);
+  --card:#FFFFFF; --cardEdge:rgba(40,60,80,.14);
+  --btn:#FFD24A; --btnBase:#C87A10; --btnDown:#F0A81E;
+  --white:#FFFFFF; --whiteBase:rgba(60,45,25,.35);
+  --coin:#FFC928; --coinEdge:#F0A81E;
+  --good:#3DDC84; --goodEdge:#1FA85C; --bad:#FF5E6B; --badEdge:#D62F3E;
+  --tick:#4ADE80; --tickBase:#1C8A4A;
+  --ui:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--chalk);overflow:hidden;
-  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
-button{font-family:inherit;cursor:pointer;border:none;color:inherit}
-a{color:var(--blue)}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;color:var(--ink);
+  background:linear-gradient(160deg,var(--sand1),var(--sand2) 55%,var(--sand3));
+  font-family:var(--ui);font-weight:800;-webkit-user-select:none;user-select:none;
+  overscroll-behavior:none;touch-action:none}
+button{font-family:inherit;font-weight:800;cursor:pointer;border:none;color:inherit}
+a{color:#1393C2}
 
-#app{display:flex;flex-direction:column;height:100%;width:100%;position:relative;overflow:hidden}
-
-/* ---------- HUD: money, the fish counter, arcade coins. Nothing else. ---------- */
-#hud{display:flex;align-items:center;gap:9px;padding:6px 12px;font-weight:800;font-size:15px;
-  text-shadow:0 2px 4px #000;background:linear-gradient(180deg,rgba(4,9,20,.92),rgba(4,9,20,0));flex:0 0 auto;z-index:8}
-#hud .sp{flex:1}
-#hud span{white-space:nowrap}
-#moneyBox{color:var(--good)}
-#fishBox{color:var(--blue)}
-#coinBox{color:var(--gold);font-size:13px}
-#lvlBox{color:var(--dim);font-size:12px}
-#moneyBox.spend{animation:spend .5s}
-@keyframes spend{30%{transform:scale(1.18);color:var(--bad)}}
-#moneyBox.earn{animation:earn .6s}
-@keyframes earn{30%{transform:scale(1.3)}}
-#muteBtn,#quitBtn{background:#08101f;border:2px solid var(--edge);border-radius:999px;font-size:16px;
-  min-width:44px;height:36px;display:flex;align-items:center;justify-content:center}
-#quitBtn{color:var(--dim);font-size:14px}
-@media (max-width:620px){ #lvlBox{display:none} #hud{gap:6px;font-size:14px} }
-@media (max-width:430px){
-  #hud{gap:5px;padding:5px 8px;font-size:13px}
-  #fishBox,#coinBox{font-size:11px}
-  #muteBtn,#quitBtn{min-width:38px;height:32px;font-size:14px}
-}
-
-/* ---------- THE PARK. The whole screen is the park, and he walks it. ---------- */
-#world{flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:#06101f}
+/* the park is the whole screen: it runs off all four edges, nothing boxes it */
+#app{position:fixed;inset:0;overflow:hidden}
+#world{position:absolute;inset:0;overflow:hidden}
 #parkCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-#bubble{position:absolute;left:8px;right:8px;top:6px;z-index:3;background:#f4f7fb;color:#0e1a2c;border-radius:14px;
-  padding:6px 10px;font-weight:800;font-size:clamp(13px,2.2vw,17px);line-height:1.3;text-align:center;
-  box-shadow:0 5px 12px rgba(0,0,0,.5);transition:opacity .25s;pointer-events:none;max-width:560px;margin:0 auto}
-#bubble.hide{opacity:0}
-#bubble .who{display:block;font-size:.74em;color:#4a5f7d;font-weight:700}
-#bubble .amt{color:#116b3a}
-#sceneTag{position:absolute;left:8px;bottom:6px;z-index:3;font-size:12px;font-weight:800;color:#bfe6ff;
-  background:rgba(4,12,24,.72);border-radius:8px;padding:2px 8px;pointer-events:none}
-#starBadge{position:absolute;right:8px;top:6px;z-index:3;font-size:13px;font-weight:900;color:#1a1405;
-  background:var(--gold);border-radius:999px;padding:3px 10px;pointer-events:none;box-shadow:0 3px 8px rgba(0,0,0,.45)}
-@media (max-height:440px){ #sceneTag{font-size:10px} #starBadge{font-size:11px;padding:2px 8px} }
 
-/* ---------- the bottom bar: COLLECTION, PLAY, SECRET ---------- */
-#dock{flex:0 0 auto;display:flex;gap:6px;padding:5px 8px 7px;z-index:8;
-  background:linear-gradient(0deg,rgba(4,9,20,.96),rgba(4,9,20,.4))}
-#dock button{flex:1;min-height:46px;border-radius:13px;background:#132340;border:2px solid var(--edge);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:19px;line-height:1}
-#dock button small{font-size:9px;font-weight:900;letter-spacing:1px;color:var(--dim)}
-#dock button.on{background:linear-gradient(180deg,#1d3d6e,#12294d);border-color:var(--blue)}
-#dock button.on small{color:#bfe6ff}
-#dock button.lock{opacity:.7;border-style:dashed;border-color:#6a5a1f}
-#dock button.lock small{color:var(--gold)}
-#dock button.ready{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,210,63,.35)}
-#dock button:active{transform:translateY(2px)}
-@media (max-height:440px){
-  #dock{padding:3px 6px 4px;gap:5px}
-  #dock button{min-height:36px;font-size:15px;border-radius:10px}
-  #dock button small{font-size:8px}
+/* ---------- HUD. White pill chips floating on the park, Part 3 kit. ---------- */
+#hud{position:absolute;left:0;right:0;top:0;z-index:8;display:flex;flex-wrap:wrap;
+  align-items:flex-start;gap:7px;padding:8px 10px 0;pointer-events:none}
+#hud .sp{flex:1 1 20px;min-width:0}
+.chip{pointer-events:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  background:var(--chip);border:1.6px solid var(--chipEdge);border-radius:999px;
+  padding:5px 12px 5px 7px;min-height:34px;font-size:17px;color:var(--ink);
+  box-shadow:0 3px 0 rgba(42,26,6,.14),0 5px 10px rgba(42,26,6,.10)}
+.chip svg{display:block;flex:0 0 auto}
+.chip .lab{display:block;font-size:9.5px;letter-spacing:.4px;color:var(--sub);line-height:1.05}
+.chip .val{display:block;font-size:15px;color:var(--ink);line-height:1.12}
+.chip.stack{padding-top:3px;padding-bottom:3px;align-items:center}
+#moneyBox.spend{animation:spend .5s}
+@keyframes spend{30%{transform:scale(1.14)}}
+#moneyBox.earn{animation:earn .6s}
+@keyframes earn{30%{transform:scale(1.22)}}
+/* home-button.js docks itself as the first item in the HUD, but only when it
+   can be tapped where it stands: the bar itself is click-through, so its own
+   children have to take their taps back */
+#hud > a,#hud > button{pointer-events:auto}
+.rnd{pointer-events:auto;background:var(--chip);border:1.6px solid var(--chipEdge);border-radius:999px;
+  width:36px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ink);
+  box-shadow:0 3px 0 rgba(42,26,6,.14)}
+.rnd:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(42,26,6,.14)}
+
+/* ---------- the money toast. Every change to aquarium money, top right. ---------- */
+#toasts{position:absolute;right:10px;top:52px;z-index:15;display:flex;flex-direction:column;
+  align-items:flex-end;gap:6px;pointer-events:none}
+.toast{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  border-radius:999px;padding:5px 15px 5px 11px;min-height:38px;font-size:20px;color:#fff;
+  box-shadow:0 3px 0 rgba(42,26,6,.12),0 6px 14px rgba(42,26,6,.18);
+  will-change:transform,opacity}
+.toast.up{background:var(--good);border:2.2px solid var(--goodEdge);animation:tUp 3s cubic-bezier(.2,.7,.3,1) forwards}
+.toast.dn{background:var(--bad);border:2.2px solid var(--badEdge);animation:tDn 3s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes tUp{0%{transform:translateY(16px) scale(.8);opacity:0}
+  12%{transform:translateY(0) scale(1.08);opacity:1}
+  22%{transform:translateY(0) scale(1)}
+  70%{transform:translateY(-16px);opacity:1}
+  100%{transform:translateY(-44px);opacity:0}}
+@keyframes tDn{0%{transform:translateY(-16px) scale(.8);opacity:0}
+  12%{transform:translateY(0) scale(1.08);opacity:1}
+  22%{transform:translateY(0) scale(1)}
+  70%{transform:translateY(16px);opacity:1}
+  100%{transform:translateY(44px);opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .toast.up,.toast.dn{animation-duration:3s;animation-timing-function:linear}
 }
 
-/* ---------- THE SHEET. Every maths panel and every buy list opens in here. ---------- */
-#sheet{position:absolute;left:0;right:0;bottom:0;max-height:100%;z-index:12;display:none;flex-direction:column;
-  padding:0 8px 8px;pointer-events:none}
-#sheet.on{display:flex}
-#sheetCard{pointer-events:auto;width:100%;max-width:560px;margin:0 auto;max-height:100%;overflow:hidden;
-  background:linear-gradient(180deg,#132340,#0a1528);border:2px solid var(--edge);
-  border-radius:16px;padding:7px 10px 9px;display:flex;flex-direction:column;gap:6px;min-height:0;
-  box-shadow:0 -8px 26px rgba(0,0,0,.6);animation:rise .22s ease}
-@keyframes rise{from{transform:translateY(24px);opacity:.3}}
-#sheetHead{display:flex;align-items:center;gap:6px;flex:0 0 auto}
-#sheetTitle{font-weight:900;font-size:15px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#sheetHead .sp{flex:1}
-#sheetClose{background:#08101f;border:2px solid var(--edge);border-radius:999px;min-width:38px;height:32px;
-  font-size:14px;color:var(--dim);display:flex;align-items:center;justify-content:center}
-#sheetBody{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;overflow:hidden}
+/* ---------- the speech bubble over the park ---------- */
+#bubble{position:absolute;left:10px;right:10px;top:50px;z-index:6;background:var(--card);color:var(--ink);
+  border:1.8px solid var(--cardEdge);border-radius:18px;padding:8px 13px;font-size:clamp(13px,2.2vw,17px);
+  line-height:1.3;text-align:center;box-shadow:0 5px 0 rgba(42,26,6,.10),0 8px 18px rgba(42,26,6,.14);
+  transition:opacity .25s;pointer-events:none;max-width:520px;margin:0 auto}
+#bubble.hide{opacity:0}
+#bubble .who{display:block;font-size:.70em;color:var(--sub);letter-spacing:.6px}
+#bubble .amt{color:#1C8A4A}
+#sceneTag{position:absolute;right:10px;bottom:74px;z-index:6;font-size:11px;color:#6B5128;
+  background:rgba(255,255,255,.76);border-radius:999px;padding:3px 11px;pointer-events:none;
+  box-shadow:0 2px 0 rgba(42,26,6,.08);max-width:62%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
 
-.pane{display:none;flex-direction:column;gap:6px;min-height:0;flex:1 1 auto;overflow:hidden}
+/* ---------- the bottom bar: Collection / Play / Grotto (Part 3 kit) ---------- */
+#dock{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;align-items:flex-end;
+  justify-content:center;gap:10px;padding:0 10px 9px;pointer-events:none}
+#dock button{pointer-events:auto;flex:0 1 180px;min-height:46px;border-radius:19px;
+  background:var(--white);border:1.5px solid var(--out);color:var(--btnInk);font-size:17px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 7px 0 var(--whiteBase),inset 0 5px 0 rgba(255,255,255,.34)}
+#dock button:active{transform:translateY(5px);box-shadow:0 2px 0 var(--whiteBase),inset 0 5px 0 rgba(255,255,255,.12)}
+#dock button svg{flex:0 0 auto}
+#dockPlay{flex:0 1 150px;min-height:58px;background:var(--btn);border-radius:21px;font-size:19px;
+  box-shadow:0 8px 0 var(--btnBase),inset 0 5px 0 rgba(255,255,255,.34)}
+#dockPlay:active{transform:translateY(5px);box-shadow:0 3px 0 var(--btnBase),inset 0 5px 0 rgba(255,255,255,.12)}
+#dock button.lock{opacity:.62}
+#dock button.ready{box-shadow:0 7px 0 var(--whiteBase),0 0 0 3px rgba(255,201,40,.65),inset 0 5px 0 rgba(255,255,255,.34)}
+#app.sheeting #dock,#app.sheeting #sceneTag{display:none}
+@media (max-height:460px){
+  #dock{gap:8px;padding-bottom:7px}
+  #dock button{min-height:40px;font-size:15px;border-radius:16px;box-shadow:0 6px 0 var(--whiteBase),inset 0 4px 0 rgba(255,255,255,.34)}
+  #dockPlay{min-height:48px;font-size:17px}
+  #sceneTag{bottom:64px;font-size:10px}
+}
+@media (max-width:430px){
+  #dock button{flex:1 1 0;font-size:14px;gap:5px}
+  #dockPlay{flex:1 1 0;font-size:16px}
+  #hud{gap:5px;padding:7px 8px 0}
+  .chip{min-height:30px;font-size:14px;padding:4px 9px 4px 5px;gap:4px}
+  .chip .val{font-size:13px} .chip .lab{font-size:8.5px}
+  .rnd{width:32px;height:30px;font-size:13px}
+}
+
+/* =====================================================================
+   THE SHEET. In the serve step it is the Part 4 ticket-desk question
+   screen: speech bubble on the left, number pad under the thumb on the
+   right, hint bottom left, the park still showing through behind it.
+   ===================================================================== */
+#sheet{position:absolute;inset:0;z-index:12;display:none;background:rgba(42,26,6,.11)}
+#sheet.on{display:block}
+#sheetCard{position:absolute;inset:0;display:flex;flex-direction:column;gap:7px;padding:9px;min-height:0}
+#sheetHead{display:flex;align-items:center;gap:7px;flex:0 0 auto;z-index:3}
+#sheetTitle{font-size:15px;color:var(--ink);background:var(--chip);border:1.6px solid var(--chipEdge);
+  border-radius:999px;padding:5px 13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  box-shadow:0 3px 0 rgba(42,26,6,.12)}
+#sheetHead .sp{flex:1}
+#sheetClose{background:var(--chip);border:1.6px solid var(--chipEdge);border-radius:999px;width:36px;height:34px;
+  font-size:15px;color:var(--ink);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 0 rgba(42,26,6,.14)}
+#sheetClose:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(42,26,6,.14)}
+#sheetBody{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;overflow:hidden}
+#app.serving #sheetTitle{display:none}
+#app.serving #sheetHead{position:absolute;right:9px;top:9px}
+
+.pane{display:none;flex-direction:column;gap:7px;min-height:0;flex:1 1 auto;overflow:hidden}
 .pane.on{display:flex}
 
-/* ---------- serve pane ---------- */
-#stepTitle{display:flex;align-items:center;gap:6px;font-weight:800;font-size:16px;color:var(--gold);flex:0 0 auto}
+/* ---------- serve pane: bubble left, pad right ---------- */
+#paneServe{flex-direction:column;gap:8px}
+#serveLeft{display:flex;flex-direction:column;gap:7px;min-height:0;min-width:0;flex:1 1 auto}
+#askCard{position:relative;background:var(--card);border:1.8px solid var(--cardEdge);border-radius:22px;
+  padding:9px 14px 11px;box-shadow:0 6px 0 rgba(42,26,6,.09),0 10px 20px rgba(42,26,6,.13);
+  display:flex;flex-direction:column;gap:5px;min-height:0;flex:0 1 auto}
+#askCard::after{content:"";position:absolute;left:34px;bottom:-21px;width:0;height:0;
+  border-left:22px solid var(--card);border-bottom:22px solid transparent}
+#stepTitle{display:flex;align-items:center;gap:6px;font-size:11.5px;letter-spacing:.5px;color:var(--sub);
+  text-transform:uppercase;flex:0 0 auto}
 #stepTitle .sp{flex:1}
-#hintBtn{background:var(--blue);color:#06121b;font-size:13px;font-weight:800;padding:7px 9px;border-radius:10px;min-height:38px;box-shadow:0 3px 0 #1d6f99}
-#hintBtn:active{transform:translateY(2px);box-shadow:0 1px 0 #1d6f99}
-#hintBtn.broke{opacity:.42;filter:grayscale(.85);box-shadow:0 3px 0 rgba(0,0,0,.35)}
-#hintBtn.broke:active{box-shadow:0 1px 0 rgba(0,0,0,.35)}
-#hintBtn .need{font-size:11px;font-weight:800;color:var(--gold);background:rgba(0,0,0,.3);border-radius:6px;padding:1px 4px;margin-left:3px}
+#ask{flex:0 1 auto;min-height:0;overflow-y:auto;font-size:13px;color:var(--sub);line-height:1.3}
+#ask .sum{display:block;font-size:clamp(23px,5.2vw,44px);color:var(--ink2);line-height:1.1;margin-bottom:2px}
+#ask .note{display:block;font-size:13px;color:var(--sub);line-height:1.3}
+#ask b{color:#1393C2}
+#slotRow{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+#typeIt{font-size:14px;color:var(--sub);letter-spacing:.4px;white-space:nowrap}
+#paneServe.chg #slotRow,#paneServe.chg #typeIt{display:none}
+#msg{min-height:0;font-size:12.5px;color:var(--sub);line-height:1.28;flex:0 1 auto;overflow:hidden}
+#msg.bad{color:#D62F3E} #msg.good{color:#1C8A4A} #msg.hint{color:#1393C2}
+#helpLink{display:none;font-size:12px;flex:0 0 auto}
+#helpLink.on{display:block}
+#display{background:#EEF2F6;border:1.6px solid var(--cardEdge);border-radius:14px;min-height:50px;
+  display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--ink2);
+  letter-spacing:1px;flex:0 1 auto;min-width:96px;padding:0 12px}
+#display.wait{font-size:12.5px;color:var(--sub);letter-spacing:.4px}
+#display:not(.wait)::after{content:"";width:3.4px;height:1.05em;margin-left:5px;border-radius:2px;
+  background:#1393C2;animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+#display.bad{border-color:var(--badEdge);background:#FFE9EB;animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+#hintBtn{position:relative;background:var(--btn);color:var(--btnInk);font-size:16px;padding:8px 16px;
+  border-radius:17px;min-height:42px;border:1.5px solid var(--out);display:inline-flex;align-items:center;gap:7px;
+  box-shadow:0 6px 0 var(--btnBase),inset 0 4px 0 rgba(255,255,255,.34)}
+#hintBtn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--btnBase),inset 0 4px 0 rgba(255,255,255,.12)}
+#hintBtn.broke{opacity:.46;filter:saturate(.35)}
+#hintBtn .need{font-size:13px;color:#fff;background:var(--bad);border:2.4px solid #fff;border-radius:999px;
+  min-width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+  position:absolute;right:-8px;top:-10px;box-shadow:0 2px 0 rgba(42,26,6,.18)}
+#hintBtn.broke .need{background:#8A94A0}
 #hintBtn .need.hide{display:none}
 #hintBtn.nope{animation:nope .32s ease}
 @keyframes nope{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-#msg{min-height:19px;font-size:13px;font-weight:700;color:var(--dim);line-height:1.3;flex:0 1 auto;overflow:hidden}
-#msg.bad{color:var(--bad)} #msg.good{color:var(--good)} #msg.hint{color:var(--blue)}
-/* the question box is the only flexible row: it shrinks and scrolls so the
-   number pad can never be pushed off a short screen */
-#ask{font-size:15px;font-weight:800;color:var(--chalk);line-height:1.35;background:#08101f;border:2px solid var(--edge);
-  border-radius:10px;padding:6px 8px;flex:0 1 auto;min-height:52px;overflow-y:auto}
-#numBox{flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
-#ask b{color:var(--gold)}
-#helpLink{display:none;font-size:12px;font-weight:800;flex:0 0 auto}
-#helpLink.on{display:block}
-#display{background:#08101f;border:3px solid #7a6526;border-radius:12px;min-height:48px;display:flex;align-items:center;justify-content:center;
-  font-size:29px;font-weight:800;color:var(--gold);letter-spacing:2px;flex:0 0 auto;
-  font-family:"Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif}
-#display.wait{font-size:14px;color:var(--dim);letter-spacing:0;font-family:inherit}
-#display.bad{border-color:var(--bad);animation:shake .4s}
-@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
-#pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:0 0 auto}
-#pad button{height:46px;font-size:24px;font-weight:800;border-radius:11px;background:#1c2f4f;color:var(--chalk);box-shadow:0 4px 0 #0a1424}
-#pad button:active{transform:translateY(3px);box-shadow:0 1px 0 #0a1424}
-#pad button.back{background:#4a2f36;font-size:20px}
-#pad button.ok{background:var(--blue);color:#06121b;box-shadow:0 4px 0 #1d6f99}
-#pad.off{opacity:.35;pointer-events:none}
+#serveFoot{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 
-/* making change: the till is the only part allowed to shrink and scroll, so
-   "Give change" is pinned at the bottom and can never be pushed off. */
-#changeBox{display:none;flex-direction:column;gap:5px;min-height:0;flex:1 1 auto;overflow:hidden}
+/* the number pad lives in its own translucent white panel, Part 4 */
+#numBox{flex:0 0 auto;display:flex;flex-direction:column;gap:7px;
+  background:var(--chip);border:1.6px solid var(--chipEdge);border-radius:24px;padding:9px;
+  box-shadow:0 6px 0 rgba(42,26,6,.09),0 10px 20px rgba(42,26,6,.13)}
+#pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;flex:1 1 auto}
+#pad button{min-height:44px;font-size:20px;border-radius:17px;background:var(--white);color:var(--btnInk);
+  border:1.5px solid var(--out);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 0 rgba(60,45,25,.28),inset 0 4px 0 rgba(255,255,255,.34)}
+#pad button:active{transform:translateY(5px);background:#E9EDF2;
+  box-shadow:0 1px 0 rgba(60,45,25,.28),inset 0 4px 0 rgba(255,255,255,.12)}
+#pad button.ok{background:var(--tick);box-shadow:0 6px 0 var(--tickBase),inset 0 4px 0 rgba(255,255,255,.34)}
+#pad button.ok:active{box-shadow:0 1px 0 var(--tickBase),inset 0 4px 0 rgba(255,255,255,.12);background:#3FC973}
+#pad button svg{display:block}
+#pad.off{opacity:.38;pointer-events:none}
+@media (min-aspect-ratio:1/1){
+  #paneServe{flex-direction:row;align-items:stretch}
+  #numBox{flex:0 0 clamp(210px,31vw,274px)}
+  #askCard{flex:0 1 auto}
+}
+
+/* making change: the till shrinks and scrolls, "Give change" never leaves */
+#changeBox{display:none;flex-direction:column;gap:6px;min-height:0;flex:1 1 auto;overflow:hidden;
+  background:var(--chip);border:1.6px solid var(--chipEdge);border-radius:22px;padding:9px;
+  box-shadow:0 6px 0 rgba(42,26,6,.09)}
 #changeBox.on{display:flex}
-#paidLine{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:800;font-size:14px;
-  background:#08101f;border:2px solid var(--edge);border-radius:10px;padding:4px 8px;flex:0 0 auto}
-#paidLine b{color:var(--gold)}
+#paidLine{display:flex;align-items:center;justify-content:space-between;gap:7px;font-size:14px;
+  background:#fff;border:1.6px solid var(--cardEdge);border-radius:13px;padding:5px 11px;flex:0 0 auto;color:var(--ink)}
+/* the round close button floats over this row's right-hand end, so the row
+   keeps a lane clear for it and "Paid" is never hidden behind it */
+#app.serving #paneServe.chg #paidLine{padding-right:50px}
+#paidLine b{color:#1393C2}
 #till{display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px;justify-content:center;
-  background:linear-gradient(180deg,#123049,#0a1c2c);
-  border:2px solid #1d4a63;border-radius:12px;padding:5px;flex:1 1 auto;min-height:52px;overflow-y:auto}
-.tbtn{background:none;padding:0;min-width:46px;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:10px}
+  background:linear-gradient(180deg,var(--wat1),var(--wat2));
+  border:1.8px solid var(--out);border-radius:16px;padding:6px;flex:1 1 auto;min-height:52px;overflow-y:auto}
+.tbtn{background:none;padding:0;min-width:46px;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:12px}
 .tbtn:active{transform:scale(.92)}
-#tray{min-height:54px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;background:#08101f;
-  border:2px dashed #33527f;border-radius:12px;padding:4px;flex:0 0 auto}
-#tray.empty::before{content:"Tap money in the till to hand it back";font-size:12px;color:var(--dim);font-weight:700}
+#tray{min-height:52px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;
+  background:#fff;border:2px dashed var(--pathEdge);border-radius:16px;padding:5px;flex:0 0 auto}
+#tray.empty::before{content:"Tap money in the till to hand it back";font-size:12px;color:var(--sub)}
 #tray .tc{position:relative;background:none;padding:0;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
-#tray .cnt{position:absolute;right:-3px;top:-3px;background:var(--blue);color:#06121b;border-radius:999px;padding:0 5px;font-weight:900;font-size:12px;line-height:17px}
-#handLine{text-align:center;font-weight:800;font-size:15px;flex:0 0 auto}
-#handLine b{color:var(--gold)}
-#chBtns{display:flex;gap:7px;flex:0 0 auto}
+#tray .cnt{position:absolute;right:-3px;top:-3px;background:#1393C2;color:#fff;border-radius:999px;padding:0 6px;font-size:12px;line-height:18px}
+#handLine{text-align:center;font-size:15px;flex:0 0 auto;color:var(--ink)}
+#handLine b{color:#1393C2}
+#chBtns{display:flex;gap:8px;flex:0 0 auto}
 
 /* money pieces */
-.coin{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-weight:900;flex:0 0 auto;
-  font-family:"Trebuchet MS",sans-serif;box-shadow:0 3px 0 rgba(0,0,0,.45),inset 0 -3px 0 rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.4)}
-.coin.gold{background:radial-gradient(circle at 35% 30%,#fff3b0,#ffd23f 45%,#b8860d);color:#5a3f02;border:2px solid #a3830f}
-.coin.silver{background:radial-gradient(circle at 35% 30%,#ffffff,#c9d2dc 50%,#7d8a97);color:#1f2a33;border:2px solid #7d8a97}
-.bill{display:inline-flex;align-items:center;justify-content:center;border-radius:5px;font-weight:900;flex:0 0 auto;
-  box-shadow:0 3px 0 rgba(0,0,0,.45);font-family:"Trebuchet MS",sans-serif;
-  background:linear-gradient(180deg,#cfe8c4,#8fbf7a);color:#1c3a14;border:2px solid #4f7a3f}
+.coin{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:0 0 auto;
+  font-family:var(--ui);box-shadow:0 3px 0 rgba(42,26,6,.30),inset 0 -3px 0 rgba(0,0,0,.14),inset 0 2px 0 rgba(255,255,255,.55)}
+.coin.gold{background:radial-gradient(circle at 35% 30%,#FFF2B8,var(--coin) 45%,#D08E0A);color:#6B4A00;border:2px solid var(--coinEdge)}
+.coin.silver{background:radial-gradient(circle at 35% 30%,#ffffff,#DDE4EA 50%,#A4B0BB);color:#3A4854;border:2px solid #A4B0BB}
+.bill{display:inline-flex;align-items:center;justify-content:center;border-radius:6px;flex:0 0 auto;
+  box-shadow:0 3px 0 rgba(42,26,6,.28);font-family:var(--ui);
+  background:linear-gradient(180deg,#D8F3C8,#9ED486);color:#1F4A16;border:2px solid #4F8A3C}
 
 /* ---------- the buy lists ---------- */
-.list{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px;-webkit-overflow-scrolling:touch}
-.row{display:flex;align-items:center;gap:8px;background:#0d1a30;border:2px solid var(--edge);border-radius:12px;
-  padding:6px 8px;min-height:52px;flex:0 0 auto}
+#paneList{background:var(--chip);border:1.6px solid var(--chipEdge);border-radius:22px;padding:9px;
+  max-width:620px;width:100%;margin:0 auto;box-shadow:0 6px 0 rgba(42,26,6,.09),0 10px 20px rgba(42,26,6,.13)}
+.list{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px;-webkit-overflow-scrolling:touch}
+.row{display:flex;align-items:center;gap:9px;background:#fff;border:1.6px solid var(--cardEdge);border-radius:16px;
+  padding:7px 10px;min-height:52px;flex:0 0 auto;box-shadow:0 3px 0 rgba(42,26,6,.09)}
 .row .ic{font-size:26px;line-height:1;flex:0 0 auto}
 .row .txt{flex:1;min-width:0;line-height:1.2}
-.row .nm{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .sub{font-size:11px;color:var(--dim);font-weight:700}
-.row .sub .tag{color:var(--teal)}
-.row.own{border-color:#1d6b3f;background:#07190f}
-.row.own .sub{color:var(--good)}
-.row.poor{opacity:.72}
-.buy{background:var(--good);color:#04180d;font-weight:900;font-size:13px;border-radius:10px;min-height:42px;min-width:64px;
-  padding:4px 9px;box-shadow:0 3px 0 #1c7a45;flex:0 0 auto;text-align:center;line-height:1.15}
-.buy:active{transform:translateY(2px);box-shadow:0 1px 0 #1c7a45}
-.buy.short{background:#2a3a55;color:var(--gold);box-shadow:0 3px 0 #16233a}
-.buy.short:active{box-shadow:0 1px 0 #16233a}
-.buy.no{background:#2a3a55;color:var(--dim);box-shadow:0 3px 0 #16233a}
-.qty{display:flex;align-items:center;gap:4px;flex:0 0 auto}
-.qty button{width:32px;height:38px;border-radius:9px;background:#1c2f4f;font-size:19px;font-weight:900;box-shadow:0 3px 0 #0a1424}
-.qty button:active{transform:translateY(2px);box-shadow:0 1px 0 #0a1424}
-.qty .n{min-width:22px;text-align:center;font-weight:900;font-size:16px;color:var(--gold)}
-.head{font-size:12px;font-weight:900;color:var(--dim);letter-spacing:1px;padding:2px 2px 0;flex:0 0 auto}
+.row .nm{font-size:14.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .sub{font-size:11px;color:var(--sub)}
+.row .sub .tag{color:#1393C2}
+.row.own{border-color:rgba(31,168,92,.45);background:#EFFBF3}
+.row.own .sub{color:#1C8A4A}
+.row.poor{opacity:.74}
+.buy{background:var(--btn);color:var(--btnInk);font-size:14px;border-radius:14px;min-height:42px;min-width:70px;
+  padding:5px 11px;border:1.5px solid var(--out);flex:0 0 auto;text-align:center;line-height:1.15;
+  box-shadow:0 5px 0 var(--btnBase),inset 0 4px 0 rgba(255,255,255,.34)}
+.buy:active{transform:translateY(3px);box-shadow:0 2px 0 var(--btnBase),inset 0 4px 0 rgba(255,255,255,.12)}
+.buy.short,.buy.no{background:#E9EDF2;color:#78848F;box-shadow:0 5px 0 rgba(60,45,25,.22),inset 0 4px 0 rgba(255,255,255,.3)}
+.buy.short:active,.buy.no:active{box-shadow:0 2px 0 rgba(60,45,25,.22)}
+.qty{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.qty button{width:34px;height:38px;border-radius:12px;background:#fff;color:var(--btnInk);font-size:19px;
+  border:1.5px solid var(--out);box-shadow:0 4px 0 rgba(60,45,25,.24)}
+.qty button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(60,45,25,.24)}
+.qty .n{min-width:24px;text-align:center;font-size:16px;color:var(--ink)}
+.head{font-size:11px;color:var(--sub);letter-spacing:1.3px;padding:2px 2px 0;flex:0 0 auto}
 
 /* ---------- overlays ---------- */
-.screen{position:fixed;inset:0;background:rgba(5,10,20,.96);display:none;flex-direction:column;
-  align-items:center;justify-content:center;text-align:center;padding:16px;z-index:20;overflow:auto}
+.screen{position:fixed;inset:0;background:linear-gradient(160deg,var(--sand1),var(--sand2) 55%,var(--sand3));
+  display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  padding:16px;z-index:20;overflow:auto;color:var(--ink)}
 .screen.on{display:flex}
-.screen h1{font-size:clamp(24px,5.6vw,42px);margin:0 0 6px;color:var(--gold)}
-.screen p{margin:4px 0;font-size:clamp(13px,2.5vw,17px);color:var(--dim);line-height:1.45;max-width:660px}
-.big{font-size:56px;line-height:1;margin-bottom:4px}
-.bigbtn{background:var(--blue);color:#06121b;font-size:20px;font-weight:800;padding:13px 24px;border-radius:14px;
-  margin:12px 6px 0;box-shadow:0 5px 0 #1d6f99;min-height:52px}
-.bigbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #1d6f99}
-.bigbtn.gold{background:var(--gold);color:#1a1405;box-shadow:0 5px 0 #a3830f}
-.bigbtn.gold:active{box-shadow:0 2px 0 #a3830f}
-.stats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;max-width:700px}
-.stat{background:#132340;border:2px solid var(--edge);border-radius:12px;padding:6px 12px;font-weight:800;font-size:15px;min-width:96px}
-.stat small{display:block;font-size:11px;color:var(--dim);font-weight:700}
-.stat b{color:var(--good)}
+.screen h1{font-size:clamp(23px,5.4vw,40px);margin:0 0 6px;color:var(--btnInk)}
+.screen p{margin:4px 0;font-size:clamp(13px,2.5vw,17px);color:#6B5128;line-height:1.45;max-width:660px}
+.screen b{color:#1393C2}
+.big{font-size:54px;line-height:1;margin-bottom:4px}
+.bigbtn{background:var(--white);color:var(--btnInk);font-size:19px;padding:13px 26px;border-radius:19px;
+  margin:12px 6px 0;min-height:52px;border:1.5px solid var(--out);
+  box-shadow:0 7px 0 var(--whiteBase),inset 0 5px 0 rgba(255,255,255,.34)}
+.bigbtn:active{transform:translateY(4px);box-shadow:0 3px 0 var(--whiteBase)}
+.bigbtn.gold{background:var(--btn);box-shadow:0 7px 0 var(--btnBase),inset 0 5px 0 rgba(255,255,255,.34)}
+.bigbtn.gold:active{box-shadow:0 3px 0 var(--btnBase)}
+.stats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px;max-width:700px}
+.stat{background:var(--chip);border:1.6px solid var(--chipEdge);border-radius:16px;padding:7px 14px;
+  font-size:15px;min-width:96px;color:var(--ink);box-shadow:0 4px 0 rgba(42,26,6,.10)}
+.stat small{display:block;font-size:11px;color:var(--sub)}
+.stat b{color:#1C8A4A}
 
 /* =====================================================================
-   COLLECTION CARDS. The grade ladder is the one already shipped in
-   pokesudoku.html and the vocabulary is the same: Normal, Shiny, Full
-   Art, Gold, and three copies of one grade become one of the next. A
-   duplicate is never a disappointment, it is fuel.
+   COLLECTION CARDS. Same grade ladder as pokesudoku.html, repainted for
+   the sunny park: cream cards on sand, not slate on navy.
    ===================================================================== */
-.g1{border-color:#6be7ff !important;
-    box-shadow:0 0 0 2px rgba(107,231,255,.45),0 0 16px rgba(107,231,255,.45) !important}
-.g2{border-width:5px !important;border-color:#c86bff !important;
-    box-shadow:0 0 0 3px rgba(200,107,255,.3),0 0 20px rgba(200,107,255,.45) !important}
-.g3{border-color:var(--gold) !important;
-    box-shadow:0 0 0 3px rgba(255,210,63,.5),0 0 26px rgba(255,210,63,.6) !important;
-    background-image:linear-gradient(135deg,rgba(255,210,63,.26),rgba(255,210,63,0) 46%,rgba(255,210,63,.3))}
+.g1{border-color:#2FC4D8 !important;
+    box-shadow:0 3px 0 rgba(42,26,6,.10),0 0 0 2px rgba(47,196,216,.40),0 0 16px rgba(47,196,216,.40) !important}
+.g2{border-width:4px !important;border-color:#A06BFF !important;
+    box-shadow:0 3px 0 rgba(42,26,6,.10),0 0 0 3px rgba(160,107,255,.26),0 0 20px rgba(160,107,255,.38) !important}
+.g3{border-color:var(--coinEdge) !important;
+    box-shadow:0 3px 0 rgba(42,26,6,.10),0 0 0 3px rgba(255,201,40,.5),0 0 24px rgba(255,201,40,.55) !important;
+    background-image:linear-gradient(135deg,rgba(255,201,40,.30),rgba(255,201,40,0) 46%,rgba(255,201,40,.34))}
 .g1::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
-  background-image:radial-gradient(rgba(255,255,255,.9) 1px,transparent 1.5px);
-  background-size:20px 20px;opacity:.55;animation:sparkle 2.4s linear infinite}
+  background-image:radial-gradient(rgba(255,255,255,.95) 1px,transparent 1.5px);
+  background-size:20px 20px;opacity:.6;animation:sparkle 2.4s linear infinite}
 @keyframes sparkle{to{background-position:20px 20px}}
 @media (prefers-reduced-motion:reduce){ .g1::before{animation:none} }
 
@@ -226,40 +338,40 @@ a{color:var(--blue)}
 #upOv .flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;
   transition:transform .7s cubic-bezier(.3,1.3,.5,1)}
 #upOv .card.open .flip{transform:rotateY(180deg)}
-#upOv .face{position:absolute;inset:0;border-radius:13px;overflow:hidden;display:flex;flex-direction:column;
+#upOv .face{position:absolute;inset:0;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:3px;backface-visibility:hidden;-webkit-backface-visibility:hidden;
-  border:3px solid #3c4c5a;background:#243039}
-#upOv .face.bk{background:radial-gradient(circle at 50% 36%,#2e6a8a 0%,#0d1a26 74%);border-color:#4f7d99}
+  border:3px solid var(--cardEdge);background:#fff;box-shadow:0 5px 0 rgba(42,26,6,.12)}
+#upOv .face.bk{background:linear-gradient(170deg,var(--wat1),var(--wat2) 55%,var(--wat3));border-color:rgba(52,36,14,.22)}
 #upOv .card:not(.open):active .flip{transform:scale(.96)}
 #upOv .face.fr{transform:rotateY(180deg)}
 #upOv .face .e{font-size:58px;line-height:1;position:relative;z-index:1}
-#upOv .face .n{font-size:15px;font-weight:900;color:#eef3f8;position:relative;z-index:1}
-#upOv .face .gd{font-size:11px;font-weight:900;letter-spacing:.8px;color:#aebcc9;position:relative;z-index:1}
-#upOv .face .vl{font-size:13px;font-weight:900;color:var(--gold);position:relative;z-index:1}
-#upOv .face .newtag{position:absolute;top:6px;left:6px;z-index:3;background:var(--good);color:#06121b;
-  font-size:10px;font-weight:900;letter-spacing:1px;border-radius:6px;padding:2px 6px}
+#upOv .face .n{font-size:15px;color:var(--ink);position:relative;z-index:1}
+#upOv .face .gd{font-size:11px;letter-spacing:.8px;color:var(--sub);position:relative;z-index:1}
+#upOv .face .vl{font-size:13px;color:#B07A00;position:relative;z-index:1}
+#upOv .face .newtag{position:absolute;top:6px;left:6px;z-index:3;background:var(--good);color:#06321b;
+  font-size:10px;letter-spacing:1px;border-radius:8px;padding:2px 7px}
 #upOv .face .uptag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;
-  background:var(--gold);color:#1a1405;font-size:10px;font-weight:900;letter-spacing:.6px;border-radius:6px;padding:2px 7px}
-#upOv .tap{font-size:11px;font-weight:800;color:#aebcc9;letter-spacing:1.5px;margin-top:8px}
-#upMsg{font-size:15px;font-weight:800;color:#cfd8e0;min-height:20px;margin-top:6px}
-#upMsg .up{color:var(--gold)} #upMsg .nw{color:var(--good)}
+  background:var(--coin);color:var(--btnInk);font-size:10px;letter-spacing:.6px;border-radius:8px;padding:2px 8px}
+#upOv .tap{font-size:11px;color:#fff;letter-spacing:1.5px;margin-top:8px;text-shadow:0 1px 3px rgba(42,26,6,.5)}
+#upMsg{font-size:15px;color:#6B5128;min-height:20px;margin-top:6px}
+#upMsg .up{color:#B07A00} #upMsg .nw{color:#1C8A4A}
 
 /* the binder grid */
-#binder{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:660px;margin:6px auto 0}
-.bc{position:relative;overflow:hidden;width:92px;background:#243039;border:2px solid #33424f;border-radius:12px;
-  padding:5px 3px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 3px 0 #111820}
+#binder{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:660px;margin:6px auto 0}
+.bc{position:relative;overflow:hidden;width:94px;background:#fff;border:1.6px solid var(--cardEdge);border-radius:16px;
+  padding:6px 3px 7px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 3px 0 rgba(42,26,6,.12)}
 .bc .e{font-size:30px;line-height:1;position:relative;z-index:1}
-.bc .n{font-size:11px;font-weight:800;color:#dfe7ee;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;z-index:1}
-.bc .gd{font-size:9px;font-weight:900;letter-spacing:.5px;color:#9fb0c0;position:relative;z-index:1}
-.bc.g1 .gd{color:#6be7ff} .bc.g2 .gd{color:#c86bff} .bc.g3 .gd{color:var(--gold)}
-.bc .nx{font-size:9px;font-weight:800;color:var(--dim);position:relative;z-index:1}
-.bc .cnt{position:absolute;top:2px;right:3px;z-index:3;font-size:11px;font-weight:900;line-height:1;
-  color:#0c1117;background:var(--gold);border-radius:6px;padding:2px 5px}
-.bc.un{background:#161e25;border-color:#26313a}
-.bc.un .e{filter:brightness(0);opacity:.75}
-.bc.un .n{color:#56636e;letter-spacing:2px}
-@media (max-height:440px){
-  .bc{width:74px;padding:3px 2px 4px}
+.bc .n{font-size:11px;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;z-index:1}
+.bc .gd{font-size:9px;letter-spacing:.5px;color:var(--sub);position:relative;z-index:1}
+.bc.g1 .gd{color:#1193A8} .bc.g2 .gd{color:#7B3FD6} .bc.g3 .gd{color:#B07A00}
+.bc .nx{font-size:9px;color:var(--sub);position:relative;z-index:1}
+.bc .cnt{position:absolute;top:3px;right:4px;z-index:3;font-size:11px;line-height:1;
+  color:var(--btnInk);background:var(--coin);border-radius:8px;padding:2px 6px}
+.bc.un{background:#F3EBD9;border-color:rgba(52,36,14,.16)}
+.bc.un .e{filter:brightness(0);opacity:.30}
+.bc.un .n{color:#A99780;letter-spacing:2px}
+@media (max-height:460px){
+  .bc{width:76px;padding:3px 2px 5px}
   .bc .e{font-size:22px}
   .bc .n{font-size:10px}
   #upOv .card{width:104px;height:148px;margin-top:4px}
@@ -269,47 +381,56 @@ a{color:var(--blue)}
 }
 
 /* ---------- phone held sideways ---------- */
-@media (max-height:440px){
-  #hud{font-size:12px;padding:3px 10px;gap:7px}
-  #coinBox{font-size:11px}
-  #muteBtn,#quitBtn{height:30px;min-width:44px;font-size:13px}
-  #sheet{padding:0 6px 5px}
-  #sheetCard{padding:5px 7px 6px;gap:4px;border-radius:12px;max-width:520px}
-  #sheetTitle{font-size:13px}
-  #sheetClose{height:28px;min-width:34px}
-  #hintBtn{font-size:11px;padding:4px 6px;min-height:30px}
-  .pane{gap:4px}
-  #ask{font-size:12px;padding:4px 6px;line-height:1.25;max-height:54px;min-height:38px}
-  #msg{font-size:11px;min-height:0;max-height:28px;line-height:1.22}
+@media (max-height:460px){
+  #hud{padding:6px 8px 0;gap:6px}
+  .chip{min-height:30px;font-size:15px;padding:4px 10px 4px 6px;gap:5px}
+  .chip .val{font-size:13.5px} .chip .lab{font-size:8.5px}
+  .rnd{width:33px;height:30px;font-size:13px}
+  #toasts{top:46px}
+  .toast{min-height:33px;font-size:17px;padding:4px 13px 4px 9px}
+  #bubble{top:44px;font-size:12.5px;padding:6px 11px;border-radius:15px}
+  #sheetCard{padding:7px;gap:6px}
+  #sheetTitle{font-size:13px;padding:4px 11px}
+  #sheetClose{width:33px;height:30px}
+  #askCard{padding:7px 11px 9px;border-radius:18px;gap:4px}
+  #askCard::after{left:28px;bottom:-17px;border-left-width:18px;border-bottom-width:18px}
+  #ask{font-size:clamp(15px,3.1vh,26px);line-height:1.15}
+  #msg{font-size:11px;max-height:26px}
+  #stepTitle{font-size:10px}
   #helpLink{font-size:11px}
-  #stepTitle{font-size:12px}
-  #display{min-height:32px;font-size:21px;border-width:2px}
-  #display.wait{font-size:12px}
-  #pad{gap:5px;grid-template-columns:repeat(4,1fr)}
-  #pad button{height:38px;font-size:20px;border-radius:10px}
-  #pad button.zero{order:1} #pad button.back{order:2} #pad button.ok{order:3}
-  #paidLine{font-size:12px;padding:3px 6px}
-  #till{gap:4px;padding:4px;min-height:46px}
+  #display{min-height:40px;font-size:24px;border-radius:12px;min-width:84px}
+  #typeIt{font-size:12px}
+  #slotRow{gap:9px}
+  #display.wait{font-size:11.5px}
+  #hintBtn{font-size:14px;padding:5px 12px;min-height:36px;border-radius:14px;
+    box-shadow:0 5px 0 var(--btnBase),inset 0 3px 0 rgba(255,255,255,.34)}
+  #numBox{padding:7px;gap:6px;border-radius:19px}
+  #pad{gap:6px}
+  #pad button{min-height:36px;font-size:18px;border-radius:13px;
+    box-shadow:0 5px 0 rgba(60,45,25,.28),inset 0 3px 0 rgba(255,255,255,.34)}
+  #changeBox{padding:7px;gap:5px;border-radius:18px}
+  #paidLine{font-size:12px;padding:4px 8px}
+  #till{gap:4px;padding:5px;min-height:46px}
   .tbtn{min-width:38px;min-height:38px}
   #tray .tc{min-width:38px;min-height:38px}
-  #tray{min-height:42px;padding:2px;gap:2px}
+  #tray{min-height:42px;padding:3px;gap:3px}
   #tray.empty::before{font-size:11px}
   #handLine{font-size:13px}
-  /* sideways phone: the step title and the Tickets/Paid line already carry
-     every number, so the long question box gives its room to the till */
-  #paneServe.chg #ask, #paneServe.chg #msg{display:none}
-  .row{min-height:46px;padding:4px 6px;gap:6px}
+  /* sideways: the step line and the Paid row already carry every number,
+     so the long question gives its room to the till */
+  #paneServe.chg #askCard{display:none}
+  #paneList{padding:7px;border-radius:18px}
+  .row{min-height:46px;padding:5px 8px;gap:7px}
   .row .ic{font-size:21px}
-  .row .nm{font-size:12px} .row .sub{font-size:10px}
-  .buy{min-height:38px;font-size:12px;min-width:58px}
-  .qty button{height:34px;width:29px;font-size:17px}
-  #bubble{font-size:12px;padding:4px 8px}
+  .row .nm{font-size:12.5px} .row .sub{font-size:10px}
+  .buy{min-height:38px;font-size:12.5px;min-width:62px}
+  .qty button{height:34px;width:30px;font-size:17px}
   .big{font-size:30px}
-  .bigbtn{font-size:16px;padding:9px 16px;min-height:44px;margin-top:8px}
-  .screen{padding:8px}
+  .bigbtn{font-size:16px;padding:10px 18px;min-height:44px;margin-top:8px}
+  .screen{padding:10px}
   .screen h1{font-size:22px;margin-bottom:2px}
   .screen p{font-size:12px;margin:2px 0}
-  .stat{padding:4px 9px;font-size:13px;min-width:82px}
+  .stat{padding:5px 10px;font-size:13px;min-width:82px}
   .stat small{font-size:10px}
 }
 </style>
@@ -317,21 +438,26 @@ a{color:var(--blue)}
 <body>
 
 <div id="app">
-  <div id="hud">
-    <span id="moneyBox">&#x1F4B5; $45</span>
-    <span id="fishBox">&#x1F41F; 0/0</span>
-    <span id="coinBox">&#x1FA99; 0</span>
-    <span class="sp"></span>
-    <span id="lvlBox"></span>
-    <button id="quitBtn" title="Start over" aria-label="Start over">&#x2716;</button>
-    <button id="muteBtn" title="Sound on or off" aria-label="Sound on or off">&#x1F50A;</button>
-  </div>
-
   <div id="world">
     <canvas id="parkCanvas"></canvas>
+
+    <!-- HUD: the Part 3 chip kit. Money, fish, arcade coins and the park
+         level on the left; the brain level, mute and start-over on the
+         right. The money toast drops in underneath, never over them. -->
+    <div id="hud">
+      <span class="chip" id="moneyBox"><svg width="23" height="23" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="11" fill="#FFC928" stroke="#F0A81E" stroke-width="2.6"/><circle r="6.8" fill="#F0A81E" opacity=".40"/><text y="5.4" font-size="14" font-weight="800" fill="#6B4A00" text-anchor="middle" font-family="'Baloo 2',Trebuchet MS,sans-serif">$</text></svg><span class="val">$45</span></span>
+      <span class="chip" id="fishBox"><svg width="30" height="20" viewBox="-16 -10 32 20" aria-hidden="true"><path d="M-7 0C-7-5-3-8 2-8C8-8 12-4 13 0C12 4 8 8 2 8C-3 8-7 5-7 0Z" fill="#FF9F3C" stroke="#D97B1E" stroke-width="1.8"/><path d="M-7 0L-13-6C-14-7-15-6-15-4L-14 0L-15 4C-15 6-14 7-13 6Z" fill="#FFD9A8" stroke="#D97B1E" stroke-width="1.6"/><circle cx="7" cy="-2" r="2" fill="#fff"/><circle cx="7.6" cy="-2" r="1" fill="#2B3440"/></svg><span class="val">0/0</span></span>
+      <span class="chip" id="coinBox"><svg width="23" height="23" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="11" fill="#C58BFF" stroke="#9A5FE0" stroke-width="2.6"/><path d="M0-6.6L1.7-2.3L6.3-2L2.8.9L3.9 5.3L0 2.9L-3.9 5.3L-2.8.9L-6.3-2L-1.7-2.3Z" fill="#fff" opacity=".95"/></svg><span class="val">0</span></span>
+      <span class="chip" id="starBadge"><svg width="23" height="23" viewBox="-12 -12 24 24" aria-hidden="true"><path d="M0-10.5L2.8-3.6L10.2-3.1L4.5 1.6L6.3 8.8L0 4.8L-6.3 8.8L-4.5 1.6L-10.2-3.1L-2.8-3.6Z" fill="#FFC928" stroke="#F0A81E" stroke-width="2.2" stroke-linejoin="round"/></svg><span class="val">1</span></span>
+      <span class="sp"></span>
+      <span class="chip stack" id="lvlBox"><svg width="24" height="24" viewBox="-12 -12 24 24" aria-hidden="true"><path d="M-2-11c-6-2-11 2-10 7c-3 2-3 7 1 9c1 4 6 6 9 3V-11Z" fill="#FF8FB1" stroke="#D9628C" stroke-width="2"/><path d="M2-11c6-2 11 2 10 7c3 2 3 7-1 9c-1 4-6 6-9 3V-11Z" fill="#FFA8C4" stroke="#D9628C" stroke-width="2"/><path d="M-4-4q4 2 0 5M5-5q-4 3 0 6" fill="none" stroke="#D9628C" stroke-width="1.7" stroke-linecap="round"/></svg><span><span class="lab">BRAIN LEVEL</span><span class="val">3</span></span></span>
+      <button class="rnd" id="muteBtn" title="Sound on or off" aria-label="Sound on or off">&#x1F50A;</button>
+      <button class="rnd" id="quitBtn" title="Start over" aria-label="Start over">&#x2716;</button>
+    </div>
+
+    <div id="toasts" aria-live="polite"></div>
     <div id="bubble" class="hide"></div>
     <div id="sceneTag"></div>
-    <div id="starBadge">&#x2B50; 1</div>
 
   <!-- THE SHEET: every maths panel and every buy list opens in here, and it
        only opens because he walked somewhere. -->
@@ -343,25 +469,35 @@ a{color:var(--blue)}
       </div>
       <div id="sheetBody">
 
-        <!-- SERVE / BUY / GOAL: the maths -->
+        <!-- SERVE / BUY / GOAL: the maths. The Part 4 ticket desk screen. -->
         <div class="pane on" id="paneServe">
-          <div id="stepTitle"><span id="stepName">A visitor is coming</span><span class="sp"></span><button id="hintBtn">&#x1F4A1; Hint <span id="hintPrice">&#x1FA99;2</span><span class="need hide" id="hintNeed"></span></button></div>
-          <div id="ask">Walk to the ticket desk.</div>
-          <div id="msg"></div>
-          <a id="helpLink" href="subtract-helper.html" target="_blank" rel="noopener">&#x2796; Stuck taking away? Open the subtracting helper</a>
-          <div id="numBox">
-            <div id="display" class="wait">Waiting for a visitor</div>
-            <div id="pad" class="off"></div>
-          </div>
-          <div id="changeBox">
-            <div id="paidLine"><span>Tickets <b id="plTotal">$0</b></span><span>Paid <b id="plPaid">$0</b></span></div>
-            <div id="till"></div>
-            <div id="handLine">In your hand: <b id="handAmt">$0</b></div>
-            <div id="tray" class="empty"></div>
-            <div id="chBtns">
-              <button class="buy no" id="clearBtn" style="flex:1">&#x21A9;&#xFE0E; Take back</button>
-              <button class="buy" id="giveBtn" style="flex:1">Give change &#x2713;</button>
+          <div id="serveLeft">
+            <div id="askCard">
+              <div id="stepTitle"><svg width="17" height="17" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="11" fill="#C58BFF" stroke="#9A5FE0" stroke-width="2.6"/><path d="M0-6.6L1.7-2.3L6.3-2L2.8.9L3.9 5.3L0 2.9L-3.9 5.3L-2.8.9L-6.3-2L-1.7-2.3Z" fill="#fff" opacity=".95"/></svg><span id="stepName">A VISITOR IS COMING</span><span class="sp"></span></div>
+              <div id="ask">Walk to the ticket desk.</div>
+              <div id="slotRow">
+                <div id="display" class="wait">Waiting for a visitor</div>
+                <span id="typeIt">TYPE IT &#8594;</span>
+              </div>
+              <div id="msg"></div>
+              <a id="helpLink" href="subtract-helper.html" target="_blank" rel="noopener">&#x2796; Stuck taking away? Open the subtracting helper</a>
             </div>
+            <div id="changeBox">
+              <div id="paidLine"><span>Tickets <b id="plTotal">$0</b></span><span>Paid <b id="plPaid">$0</b></span></div>
+              <div id="till"></div>
+              <div id="handLine">In your hand: <b id="handAmt">$0</b></div>
+              <div id="tray" class="empty"></div>
+              <div id="chBtns">
+                <button class="buy no" id="clearBtn" style="flex:1">&#x21A9;&#xFE0E; Take back</button>
+                <button class="buy" id="giveBtn" style="flex:1">Give change &#x2713;</button>
+              </div>
+            </div>
+            <div id="serveFoot">
+              <button id="hintBtn"><svg width="19" height="19" viewBox="-12 -13 24 26" aria-hidden="true"><path d="M0-12a9 9 0 0 1 5 16v3h-10v-3A9 9 0 0 1 0-12Z" fill="#FFC928" stroke="#4A3100" stroke-width="2.2"/><path d="M-4 8h8M-3 12h6" stroke="#4A3100" stroke-width="2.4" stroke-linecap="round"/></svg>Hint<span class="need" id="hintNeed" title="A hint costs 2 arcade coins">2</span></button>
+            </div>
+          </div>
+          <div id="numBox">
+            <div id="pad" class="off"></div>
           </div>
         </div>
 
@@ -377,9 +513,9 @@ a{color:var(--blue)}
   </div><!-- /#world -->
 
   <div id="dock">
-    <button id="dockCards" type="button">&#x1F5C2;&#xFE0F;<small>COLLECTION</small></button>
-    <button id="dockPlay" class="on" type="button">&#x25B6;&#xFE0F;<small>PLAY</small></button>
-    <button id="dockSecret" class="lock" type="button">&#x1F512;<small>SECRET</small></button>
+    <button id="dockCards" type="button"><svg width="22" height="24" viewBox="-12 -13 24 26" aria-hidden="true"><path d="M-8 -10H1A3 3 0 0 1 4 -7V7A3 3 0 0 1 1 10H-8A3 3 0 0 1 -11 7V-7A3 3 0 0 1 -8 -10Z" fill="#1393C2" opacity=".55" transform="rotate(-12)"/><path d="M-5 -11H5A3 3 0 0 1 8 -8V8A3 3 0 0 1 5 11H-5A3 3 0 0 1 -8 8V-8A3 3 0 0 1 -5 -11Z" fill="#1393C2" stroke="#1393C2" stroke-width="2"/><path d="M-4-5h8M-4 0h8M-4 5h5" stroke="#fff" stroke-width="2" opacity=".9" stroke-linecap="round"/></svg>Collection</button>
+    <button id="dockPlay" class="on" type="button"><svg width="30" height="30" viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13" fill="none" stroke="#4A3100" stroke-width="3"/><path d="M-4.5-7L8 0L-4.5 7Z" fill="#4A3100"/></svg>Play</button>
+    <button id="dockSecret" class="lock" type="button"><svg width="26" height="24" viewBox="-14 -13 28 26" aria-hidden="true"><path d="M-13 11V2a13 13 0 0 1 26 0v9Z" fill="#9A5FE0" opacity=".35"/><path d="M-13 11V2a13 13 0 0 1 26 0v9" fill="none" stroke="#9A5FE0" stroke-width="3" stroke-linejoin="round"/><path d="M-5 11V6a5 5 0 0 1 10 0v5Z" fill="#9A5FE0"/></svg>Grotto</button>
   </div>
 
 </div>
@@ -892,14 +1028,21 @@ function save(){ if (SAVE_OFF) return; lsSet(KEY, JSON.stringify(S)); }
    is a real door he walks to and not a menu item.
    ===================================================================== */
 const MAP = {
-  ROOM_W: 640, ROOM_H: 430,
-  WALL: 90,                 /* the gap between two rooms: wall + doorway */
-  DOOR_H: 150,              /* how tall the doorway is */
-  MARGIN: 26,               /* how close to a wall he can stand */
-  PLOT_TOP: 44, PLOT_H: 160, PLOT_GAP: 22,
-  DESK: { x: 44, y: 296, w: 158, h: 96 },       /* room 0 only, in room-local units */
-  PODIUM: { x: 398, y: 344, r: 56 },            /* room 0 only */
-  SECRET: { w: 640, h: 470 }
+  /* The park is far bigger than any phone screen, in BOTH directions, so
+     the camera always has somewhere to go and the ground always runs off
+     all four edges. The old 640x430 room was smaller than a landscape
+     viewport, which is exactly why the game looked like a boxed room. */
+  ROOM_W: 1180, ROOM_H: 1120,
+  WALL: 150,                /* the gap between two areas: stone arch + door */
+  DOOR_H: 260,              /* how tall the doorway is */
+  MARGIN: 40,               /* how close to the edge he can stand */
+  /* one tank is a FIXED size, about three and a half times his own height,
+     the proportion the mockup uses. The row of them is centred in the area,
+     so a two-slot area is not two enormous tanks stretched to fit. */
+  PLOT_W: 250, PLOT_TOP: 470, PLOT_H: 243, PLOT_GAP: 40,
+  DESK: { x: 118, y: 620, w: 150, h: 120 },     /* room 0 only, in room-local units */
+  PODIUM: { x: 980, y: 730, r: 70 },            /* room 0 only */
+  SECRET: { w: 1180, h: 900 }
 };
 const DOOR_MID = MAP.ROOM_H * 0.62;
 const DOOR_LO = DOOR_MID - MAP.DOOR_H / 2, DOOR_HI = DOOR_MID + MAP.DOOR_H / 2;
@@ -910,10 +1053,11 @@ const clampN = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
 
 /* the tank plots in one room, in room-local coordinates */
 function plotsOf(i){
-  const rm = ROOMS[i], n = rm.slots, g = MAP.PLOT_GAP;
-  const w = (MAP.ROOM_W - g * (n + 1)) / n;
+  const rm = ROOMS[i], n = rm.slots, g = MAP.PLOT_GAP, w = MAP.PLOT_W;
+  const run = n * w + (n - 1) * g;
+  const x0 = (MAP.ROOM_W - run) / 2;
   const out = [];
-  for (let s = 0; s < n; s++) out.push({ x: g + s * (w + g), y: MAP.PLOT_TOP, w: w, h: MAP.PLOT_H, slot: s, room: i });
+  for (let s = 0; s < n; s++) out.push({ x: x0 + s * (w + g), y: MAP.PLOT_TOP, w: w, h: MAP.PLOT_H, slot: s, room: i });
   return out;
 }
 /* which tank (index into S.tanks) is standing in room i slot s, or -1 */
@@ -964,7 +1108,12 @@ function standable(x, y){
   if (x < worldLeft() || x > worldRight()) return false;
   const g = inGap(x);
   if (g >= 0) return y >= DOOR_LO && y <= DOOR_HI;
-  return y >= MAP.MARGIN && y <= MAP.ROOM_H - MAP.MARGIN;
+  if (y < MAP.MARGIN || y > MAP.ROOM_H - MAP.MARGIN) return false;
+  /* a tank is a real object now that it is drawn as one: he walks round it,
+     not through it. If a tank is ever built on top of him he is never trapped,
+     because moving OUT of a solid is always allowed. */
+  if (solidHit(x, y) && !solidHit(P.x, P.y)) return false;
+  return true;
 }
 
 /* ---------- live (not saved) ---------- */
@@ -989,7 +1138,7 @@ const V = {
   showing: null         /* the card on screen in the LEVEL UP overlay */
 };
 /* the hero, in world units. Nothing here is money and nothing here is time. */
-const P = { x: rx0(0) + 534, y: MAP.ROOM_H - 44, face: 1, walk: 0, sx: 0, sy: 0 };
+const P = { x: rx0(0) + 560, y: 846, face: 1, walk: 0, sx: 0, sy: 0 };
 function later(fn, ms){ clearTimeout(V.timer); V.timer = setTimeout(() => { V.timer = null; fn(); }, ms); }
 const GOOD_SFX = ["13-got-em","40-noice","48-ez","62-toasty","12-sheesh","33-hey-thats-pretty-good"];
 const BAD_SFX  = ["01-oof","10-bruh","61-say-what","67-ba-dun-dun"];
@@ -1056,12 +1205,56 @@ const money = n => "$" + Math.round(n).toLocaleString("en-US");
 
 function flashMoney(cls){ const b = $("moneyBox"); if (!b) return; b.classList.remove("spend","earn"); void b.offsetWidth; b.classList.add(cls); }
 
+/* ---------------------------------------------------------------------
+   THE MONEY TOAST (Part 3 kit). Every change to AQUARIUM money pops at
+   the top right and fades. Green and rising for money in, red and
+   falling for money out. It floats over the park: it is position:absolute
+   inside #world, so it can never shift the layout, and it sits under the
+   HUD row so it can never cover the brain chip, the mute and start-over
+   buttons or the park-level star. The HUD keeps the running TOTAL; the
+   toast only ever shows the CHANGE.
+
+   Several in a row stack downward, newest at the top, and the queue is
+   capped so a fast run of buys can never paper over the park.
+   --------------------------------------------------------------------- */
+const TOAST_MAX = 4;
+/* the HUD wraps to two rows on a narrow phone, so everything that must sit
+   UNDER it is measured off it rather than guessed at */
+function toastTop(){
+  const hud = $("hud"); if (!hud) return;
+  const h = hud.offsetHeight;
+  const lay = $("toasts"); if (lay) lay.style.top = (h + 6) + "px";
+  const card = $("sheetCard"); if (card) card.style.paddingTop = (h + 4) + "px";
+  /* in the serve step the close button floats in the corner, so it is moved
+     clear of the HUD by hand rather than left to collide with it */
+  const head = $("sheetHead"); if (head) head.style.top = (h + 4) + "px";
+  const bub = $("bubble"); if (bub) bub.style.top = (h + 4) + "px";
+}
+window.addEventListener("resize", toastTop);
+window.addEventListener("orientationchange", toastTop);
+function moneyToast(n, up){
+  n = Math.round(n);
+  if (!n) return;
+  const lay = $("toasts"); if (!lay) return;
+  toastTop();
+  while (lay.children.length >= TOAST_MAX) lay.removeChild(lay.firstChild);
+  const el = document.createElement("div");
+  el.className = "toast " + (up ? "up" : "dn");
+  el.innerHTML = (up
+      ? '<svg width="15" height="17" viewBox="-9 -10 18 20" aria-hidden="true"><path d="M0-9L7 1H3v7h-6V1H-7Z" fill="#fff" opacity=".96"/></svg>'
+      : '<svg width="15" height="17" viewBox="-9 -10 18 20" aria-hidden="true"><path d="M0 9L7-1H3v-7h-6v7H-7Z" fill="#fff" opacity=".96"/></svg>')
+    + (up ? "+" : "\u2212") + money(Math.abs(n)).replace("$", "$");
+  /* it removes ITSELF when its own animation ends. No timer, no clock. */
+  el.addEventListener("animationend", function(){ if (el.parentNode) el.parentNode.removeChild(el); });
+  lay.appendChild(el);
+}
+
 /* AQUARIUM dollars. Never touches the arcade wallet. */
 function earn(n, why){
   n = Math.max(0, Math.round(n));
   if (!n) return 0;
   S.money += n; S.earned += n;
-  save(); flashMoney("earn"); paintHud();
+  save(); flashMoney("earn"); paintHud(); moneyToast(n, true);
   return n;
 }
 /* Always checked for affordability by the caller FIRST: this refuses rather
@@ -1070,7 +1263,7 @@ function pay(n, why){
   n = Math.max(0, Math.round(n));
   if (n > S.money) return false;
   S.money -= n; S.spent += n;
-  save(); flashMoney("spend"); paintHud();
+  save(); flashMoney("spend"); paintHud(); moneyToast(n, false);
   return true;
 }
 
@@ -1093,19 +1286,33 @@ function paintDock(){
   const open = secretOpen();
   sec.classList.toggle("lock", !open);
   sec.classList.toggle("on", V.where === "secret");
-  sec.innerHTML = open
-    ? "\u{1F311}<small>GROTTO</small>"
-    : "\u{1F512}<small>⭐" + SECRET_AT + "</small>";
+  const arch = '<svg width="26" height="24" viewBox="-14 -13 28 26" aria-hidden="true">' +
+    '<path d="M-13 11V2a13 13 0 0 1 26 0v9Z" fill="#9A5FE0" opacity=".35"/>' +
+    '<path d="M-13 11V2a13 13 0 0 1 26 0v9" fill="none" stroke="#9A5FE0" stroke-width="3" stroke-linejoin="round"/>' +
+    '<path d="M-5 11V6a5 5 0 0 1 10 0v5Z" fill="#9A5FE0"/></svg>';
+  const lock = '<svg width="24" height="24" viewBox="-12 -13 24 26" aria-hidden="true">' +
+    '<path d="M-7-2v-4a7 7 0 0 1 14 0v4" fill="none" stroke="#8A7C68" stroke-width="3.2" stroke-linecap="round"/>' +
+    '<path d="M-9 -3H9A3 3 0 0 1 12 0V9A3 3 0 0 1 9 12H-9A3 3 0 0 1 -12 9V0A3 3 0 0 1 -9 -3Z" fill="#FFC928" stroke="#F0A81E" stroke-width="2.4"/>' +
+    '<circle cy="3.5" r="2.6" fill="#90592A"/></svg>';
+  sec.innerHTML = open ? (arch + "Grotto")
+                       : (lock + "Level " + SECRET_AT);
   sec.title = open ? "The Midnight Grotto" : "Opens at park level " + SECRET_AT;
 }
+/* every chip keeps its drawn icon and only its .val text is rewritten */
+function chipVal(id, s){ const e = $(id); if (!e) return; const v = e.querySelector(".val"); if (v) v.textContent = s; }
 function paintHud(){
-  $("moneyBox").innerHTML = "\u{1F4B5} " + money(S.money);
-  $("fishBox").innerHTML = "\u{1F41F} " + S.fish.length + "/" + capacityOf(S);
-  $("coinBox").innerHTML = "\u{1FA99} " + coinsNow();
-  const sb = $("starBadge"); if (sb) sb.innerHTML = "⭐ " + S.plevel;
+  chipVal("moneyBox", money(S.money));
+  chipVal("fishBox", S.fish.length + "/" + capacityOf(S));
+  chipVal("coinBox", String(coinsNow()));
+  chipVal("starBadge", String(S.plevel));
   const lb = $("lvlBox");
-  if (hasBrain()){ try { const p = Brain.progress(); lb.textContent = "\u{1F9E0} L" + p.level + " " + p.name; } catch (e) { lb.textContent = ""; } }
-  else lb.textContent = "";
+  if (lb){
+    let txt = "", show = false;
+    if (hasBrain()){ try { const p = Brain.progress(); txt = p.level + "  ·  " + p.name; show = true; } catch (e) { } }
+    chipVal("lvlBox", txt);
+    lb.style.display = show ? "" : "none";
+  }
+  toastTop();
   paintDock();
   paintHintBtn();
 }
@@ -1117,9 +1324,12 @@ function paintHintBtn(){
   b.setAttribute("aria-disabled", ok ? "false" : "true");
   const nd = $("hintNeed");
   if (nd){
-    if (ok){ nd.classList.add("hide"); nd.textContent = ""; }
-    else { nd.textContent = "need " + short + " more"; nd.classList.remove("hide"); }
+    nd.classList.remove("hide");
+    nd.textContent = String(COST_HINT);
+    nd.title = ok ? ("A hint costs " + COST_HINT + " arcade coins")
+                  : ("A hint costs " + COST_HINT + " arcade coins and you need " + short + " more");
   }
+  b.title = nd ? nd.title : "";
 }
 function hintDenied(){
   const b = $("hintBtn");
@@ -1189,16 +1399,23 @@ function currentQuestion(){
 function showPane(name){
   $("paneServe").classList.toggle("on", name === "serve");
   $("paneList").classList.toggle("on", name === "list");
+  /* the serve step is the Part 4 question screen: it owns the whole screen,
+     so the bottom bar steps out of its way and the title bar collapses to a
+     single round close button in the corner */
+  const app = $("app");
+  if (app) app.classList.toggle("serving", name === "serve");
 }
 function sheetOn(){ return !!V.sheet; }
 function openSheet(spec){
   V.sheet = spec;
   $("sheet").classList.add("on");
+  const app = $("app"); if (app) app.classList.add("sheeting");
   repaintSheet();
 }
 function closeSheet(){
   V.sheet = null;
   $("sheet").classList.remove("on");
+  const app = $("app"); if (app) app.classList.remove("sheeting", "serving");
   say("");
 }
 function isServeStep(){ return V.step === "bill" || V.step === "rate" || V.step === "change"; }
@@ -1407,7 +1624,8 @@ function nextVisitor(){
   const ticket = ticketFor(S, L);
   /* every 4th visitor asks a "how many fish" question instead of a bill */
   const isRate = (S.servedAll % 4) === 3;
-  const c = { e: v.e, n: v.n, group: group, ticket: ticket, kind: isRate ? "rate" : "bill" };
+  const c = { e: v.e, n: v.n, group: group, ticket: ticket, kind: isRate ? "rate" : "bill",
+              pal: Math.floor(Math.random() * 6) };
   if (isRate){
     c.rate = rateQuestion(S, L);
     c.bill = c.rate.a * c.rate.b;          /* the answer he types */
@@ -1441,22 +1659,24 @@ function paintServe(){
   const c = V.cust;
   const sn = $("stepName"), ask = $("ask"), d = $("display"), pad = $("pad");
   $("helpLink").classList.remove("on");
+  const ti = $("typeIt"); if (ti) ti.style.display = "none";
   if (!c || V.step === "idle"){
     sn.textContent = "The gates are open";
-    ask.innerHTML = "Tap <b>Next visitor</b> to bring the next group in.";
+    ask.innerHTML = '<span class="note">Walk to the ticket desk and the next group comes in.</span>';
     d.className = "wait"; d.textContent = "Waiting for a visitor";
     pad.classList.add("off");
     return;
   }
   if (V.step === "bill"){
     const b = band(brainLevel());
-    sn.textContent = "1. Ring up the tickets";
+    sn.textContent = "Visitor wants a ticket";
     /* the sum goes FIRST: on a phone held sideways the box shows two lines,
        and the thing he has to work out must never be the line that scrolls */
-    ask.innerHTML = (b.add
-        ? "<b>" + Array.from({length:c.group}, () => money(c.ticket)).join(" + ") + " = ?</b>"
-        : "<b>" + c.group + " × " + c.ticket + " = ?</b>")
-      + "<br>" + c.group + " tickets at " + money(c.ticket) + " each, for " + c.n.toLowerCase() + ".";
+    ask.innerHTML = '<span class="sum">' + (b.add
+        ? Array.from({length:c.group}, () => money(c.ticket)).join(" + ") + " = ?"
+        : c.group + " × " + c.ticket + " = ?")
+      + '</span><span class="note">' + c.group + " tickets at " + money(c.ticket) +
+        " each, for " + c.n.toLowerCase() + ".</span>";
     padOn(); showTyped();
     $("helpLink").href = "multiply-helper.html";
     $("helpLink").innerHTML = "✖️ Stuck on the times? Open the multiplying helper";
@@ -1465,7 +1685,7 @@ function paintServe(){
   }
   if (V.step === "rate"){
     sn.textContent = "A question at the gate";
-    ask.innerHTML = c.rate.text;
+    ask.innerHTML = '<span class="sum">' + c.rate.text + "</span>";
     padOn(); showTyped();
     $("helpLink").href = "multiply-helper.html";
     $("helpLink").innerHTML = "✖️ Stuck on the times? Open the multiplying helper";
@@ -1473,9 +1693,10 @@ function paintServe(){
     return;
   }
   if (V.step === "change"){
-    sn.textContent = "2. Give the change";
-    ask.innerHTML = "<b>" + money(c.note) + " − " + money(c.bill) + " = ?</b><br>" +
-                    "They handed you " + money(c.note) + " for a " + money(c.bill) + " ticket bill. Give the change back.";
+    sn.textContent = "Give the change back";
+    ask.innerHTML = '<span class="sum">' + money(c.note) + " − " + money(c.bill) + " = ?</span>" +
+                    '<span class="note">They handed you ' + money(c.note) + " for a " + money(c.bill) +
+                    " ticket bill. Give the change back.</span>";
     $("helpLink").href = "subtract-helper.html";
     $("helpLink").innerHTML = "➖ Stuck taking away? Open the subtracting helper";
     if (V.wrong >= 1) $("helpLink").classList.add("on");
@@ -1483,7 +1704,7 @@ function paintServe(){
   }
   if (V.step === "buy" || V.step === "goal"){
     sn.textContent = V.pend.title;
-    ask.innerHTML = V.pend.text;
+    ask.innerHTML = '<span class="sum">' + V.pend.text + "</span>";
     padOn(); showTyped();
     $("helpLink").href = V.step === "goal" ? "subtract-helper.html" : "multiply-helper.html";
     $("helpLink").innerHTML = V.step === "goal"
@@ -1493,7 +1714,10 @@ function paintServe(){
   }
 }
 
-function padOn(){ $("pad").classList.remove("off"); }
+function padOn(){
+  $("pad").classList.remove("off");
+  const ti = $("typeIt"); if (ti) ti.style.display = "";
+}
 function showTyped(){
   const d = $("display");
   if (V.typed === ""){ d.className = "wait"; d.textContent = "Tap the numbers"; }
@@ -1523,8 +1747,15 @@ function bubble(who, what){
   const keys = ["1","2","3","4","5","6","7","8","9"];
   keys.forEach(k => { const b = document.createElement("button"); b.textContent = k; b.onclick = () => press(k); pad.appendChild(b); });
   const z = document.createElement("button"); z.textContent = "0"; z.className = "zero"; z.onclick = () => press("0"); pad.appendChild(z);
-  const bk = document.createElement("button"); bk.textContent = "⌫"; bk.className = "back"; bk.onclick = () => press("back"); pad.appendChild(bk);
-  const ok = document.createElement("button"); ok.textContent = "✓"; ok.className = "ok"; ok.onclick = () => press("ok"); pad.appendChild(ok);
+  const bk = document.createElement("button");
+  bk.innerHTML = '<svg width="30" height="22" viewBox="-16 -11 32 22" aria-hidden="true">' +
+    '<path d="M-14 0L-4-10h18v20H-4Z" fill="none" stroke="#27333F" stroke-width="3" stroke-linejoin="round"/>' +
+    '<path d="M0-4l8 8M8-4l-8 8" stroke="#27333F" stroke-width="3" stroke-linecap="round"/></svg>';
+  bk.className = "back"; bk.setAttribute("aria-label", "delete"); bk.onclick = () => press("back"); pad.appendChild(bk);
+  const ok = document.createElement("button");
+  ok.innerHTML = '<svg width="30" height="22" viewBox="-15 -11 30 22" aria-hidden="true">' +
+    '<path d="M-10 1l6 7 13-15" fill="none" stroke="#fff" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  ok.className = "ok"; ok.setAttribute("aria-label", "that is my answer"); ok.onclick = () => press("ok"); pad.appendChild(ok);
 })();
 
 function press(k){
@@ -1590,7 +1821,7 @@ function wrongAnswer(q, got){
 /* ---------- making change ---------- */
 /* a phone held sideways leaves the till about 90px: the money is drawn
    smaller there so all seven pieces stay on screen without scrolling */
-function pieceSize(){ return window.innerHeight < 440 ? 26 : 38; }
+function pieceSize(){ return window.innerHeight < 460 ? 26 : 38; }
 function buildTill(){
   const till = $("till");
   till.innerHTML = "";
@@ -2072,10 +2303,10 @@ function drawHeroSprite(g, X, Y, u, id, o){
         nextAction() is the single gate for that, and the ticket desk is
         always a legal answer because serving is free and always pays.
    ===================================================================== */
-const SPEED = 268;                /* world units per second */
+const SPEED = 350;                /* world units per second */
 const PLOT_BODY = 0.70;           /* the top 70% of a plot is the tank, and solid */
-const APRON = 62;                 /* the standing pad in front of a plot */
-const CAM = { x: 0, y: 0, z: 1, vw: 1, vh: 1 };
+const APRON = 118;                /* the standing pad in front of a plot */
+const CAM = { x: 0, y: 0, z: 1, vw: 1, vh: 1, live: 0 };
 
 function plotBodyBottom(){ return MAP.PLOT_TOP + MAP.PLOT_H * PLOT_BODY; }
 /* the solid footprint of every plot in every room he owns */
@@ -2354,8 +2585,9 @@ function step(dt){
   }
   if (V.where === "park") S.room = clampN(roomAtX(P.x), 0, S.rooms - 1);
   const mag = Math.sqrt(dx*dx + dy*dy);
-  if (mag <= 0.001){ P.walk = 0; return; }
+  if (mag <= 0.001){ P.walk = 0; P.sx = 0; P.sy = 0; return; }
   if (mag > 1){ dx /= mag; dy /= mag; }
+  P.sx = dx * SPEED; P.sy = dy * SPEED;   /* decoration only: the camera lead */
   const sp = SPEED * dt;
   const nx = P.x + dx * sp, ny = P.y + dy * sp;
   if (standable(nx, P.y)) P.x = nx;
@@ -2390,8 +2622,62 @@ function triggers(){
    DRAWING. Everything below is decoration: it reads state and never
    writes it, and it never touches money.
    ===================================================================== */
+/* =====================================================================
+   SUNNY REEF RENDERER
+   ---------------------------------------------------------------------
+   Every shape, fill, gradient and shadow below is read off the approved
+   mockup (mockups/aquarium-mockups.html, direction A "SUNNY REEF"). The
+   park is drawn, never spelled: there is no emoji anywhere in the world
+   layer. Emoji survive only in HUD chips and in the collection binder.
+
+   THE THREE RULES THIS BLOCK IS STILL HELD TO
+     1. Walking earns nothing. Nothing in here touches S.money.
+     2. A plot always says what could go on it and what that costs, as a
+        silhouette and a floating price bubble. No tooltip, no tutorial.
+     3. The chevron trail may ONLY point at something he can do RIGHT NOW.
+   ===================================================================== */
+const ART = {
+  sand1:"#FBE6B4", sand2:"#F1D28B", sand3:"#DCB667", speck:"#C49C51",
+  grass1:"#8BD962", grass2:"#3F9C31", grassDk:"#2F7C27", grassLine:"#62C244",
+  wat1:"#7CF0E4", wat2:"#33C9DC", wat3:"#0A6E9C", foam:"#DFFCFB",
+  wood1:"#E0A664", wood2:"#90592A", wood3:"#BE803F",
+  st1:"#CFC3AC", st2:"#AFA08A", st3:"#8A7C68",
+  path1:"#FFF4DA", path2:"#F6E3BB", pathEdge:"#E2C793",
+  out:"rgba(52,36,14,.30)", shade:"#2a1a06",
+  coin:"#FFC928", coinEdge:"#F0A81E",
+  ink:"#2B3440", sub:"#9aa6b4", card:"#FFFFFF", cardEdge:"rgba(40,60,80,.14)",
+  UI:"'Baloo 2','Trebuchet MS',system-ui,sans-serif"
+};
+/* the fish palettes the mockup swims: body plus its pale fin colour */
+const FISH_PAL = [
+  ["#FF9F3C","#FFD9A8"], ["#7FD0FF","#E2F6FF"], ["#FF6F91","#FFD3DE"],
+  ["#FFD93D","#FFF2B8"], ["#C58BFF","#E6DEFF"], ["#4ADE80","#D6FBE2"]
+];
+/* the visitors. Shirt, its shade, skin, hair, trousers, and an optional cap. */
+const PEOPLE_PAL = [
+  { sh:"#FF7E9D", tr:"#E05477", sk:"#8E5A3C", hr:"#2B1F17", lg:"#5B4A78" },
+  { sh:"#FFD93D", tr:"#E8B321", sk:"#F6D3AE", hr:"#8A5A2B", lg:"#3B6B4A" },
+  { sh:"#A78BFA", tr:"#8468E8", sk:"#C98C62", hr:"#1F1710", lg:"#2F4A6B" },
+  { sh:"#4ADE80", tr:"#1FA85C", sk:"#F0C49B", hr:"#4A3524", lg:"#3B4A6B" },
+  { sh:"#2FA8E0", tr:"#1C7FB4", sk:"#F6D3AE", hr:"#2B1F17", lg:"#5B4A78" },
+  { sh:"#FF9F6E", tr:"#D9683C", sk:"#8E5A3C", hr:"#1F1710", lg:"#2F4A6B" }
+];
+
+/* a small deterministic generator, so a room's sand, planting and rocks
+   are in the same place every time the tile is rebuilt */
+function rngOf(seed){
+  let a = (seed | 0) + 0x6D2B79F5;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
 function roundRect(g, x, y, w, h, r){
   r = Math.min(r, w/2, h/2);
+  if (!(r > 0)) r = 0;
   g.beginPath();
   g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
   g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
@@ -2399,34 +2685,1195 @@ function roundRect(g, x, y, w, h, r){
   g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y);
   g.closePath();
 }
-/* a floating price tag: the number, and whether he can pay it today */
-function priceTag(g, x, y, amount, afford, icon){
-  const label = (icon ? icon + " " : "") + money(amount);
-  g.font = "900 20px 'Trebuchet MS',sans-serif";
-  const w = Math.max(56, g.measureText(label).width + 20), h = 27;
-  const bx = x - w/2, by = y - h;
-  g.fillStyle = "rgba(6,12,26,.88)";
-  roundRect(g, bx, by, w, h, 9); g.fill();
-  g.lineWidth = 2.5;
-  g.strokeStyle = afford ? "#ffd23f" : "#5a6b85";
-  roundRect(g, bx, by, w, h, 9); g.stroke();
-  g.beginPath(); g.moveTo(x - 6, by + h); g.lineTo(x + 6, by + h); g.lineTo(x, by + h + 8); g.closePath();
-  g.fillStyle = "rgba(6,12,26,.88)"; g.fill();
-  g.fillStyle = afford ? "#ffd23f" : "#8ba0bd";
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillText(label, x, by + h/2 + 1);
+function rr(g, x, y, w, h, r, fill, stroke, lw){
+  roundRect(g, x, y, w, h, r);
+  if (fill){ g.fillStyle = fill; g.fill(); }
+  if (stroke){ g.strokeStyle = stroke; g.lineWidth = lw || 1.6; g.lineJoin = "round"; g.stroke(); }
 }
-/* an emoji drawn as a dark shadow of itself: what COULD go here */
-function ghostGlyph(g, ch, x, y, size, alpha){
-  g.save();
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = size + "px serif";
-  g.globalAlpha = alpha;
-  try { g.filter = "brightness(0) saturate(0)"; } catch (e) { }
-  g.fillText(ch, x, y);
-  try { g.filter = "none"; } catch (e) { }
+/* the mockup's soft blurred drop shadow, built from three rings so it is
+   identical on every engine and never needs a canvas filter */
+function softShadow(g, cx, cy, rx, ry, alpha){
+  const a = alpha === undefined ? 0.17 : alpha;
+  for (let i = 0; i < 3; i++){
+    const k = 1 + i * 0.18;
+    g.globalAlpha = a * (1 - i * 0.28);
+    g.fillStyle = ART.shade;
+    g.beginPath(); g.ellipse(cx, cy, rx * k, ry * k, 0, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+}
+
+/* ---------------------------------------------------------------------
+   The three repeating textures, built once into tiny offscreen canvases
+   and reused as patterns: water scales, grass tufts, pier planks.
+   --------------------------------------------------------------------- */
+const PAT = (function(){
+  const cache = {};
+  function make(key, w, h, draw){
+    if (cache[key]) return cache[key];
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const x = c.getContext("2d");
+    if (x) draw(x);
+    cache[key] = c;
+    return c;
+  }
+  return {
+    scale: function(g){
+      const c = make("scale", 26, 15, function(x){
+        x.lineWidth = 1.8; x.strokeStyle = ART.foam;
+        x.globalAlpha = 0.22;
+        x.beginPath(); x.moveTo(-13,15); x.quadraticCurveTo(0,2,13,15);
+        x.moveTo(13,15); x.quadraticCurveTo(26,2,39,15); x.stroke();
+        x.globalAlpha = 0.15;
+        x.beginPath(); x.moveTo(0,7.5); x.quadraticCurveTo(13,-5,26,7.5); x.stroke();
+      });
+      try { return g.createPattern(c, "repeat"); } catch (e) { return null; }
+    },
+    grass: function(g){
+      const c = make("grass", 29, 23, function(x){
+        x.lineCap = "round"; x.strokeStyle = ART.grass1;
+        x.globalAlpha = 0.30; x.lineWidth = 2.2;
+        x.beginPath(); x.moveTo(4,18); x.quadraticCurveTo(6,12,4,9); x.stroke();
+        x.globalAlpha = 0.18; x.lineWidth = 1.8;
+        x.beginPath(); x.moveTo(14,18); x.quadraticCurveTo(12,13,14,10); x.stroke();
+      });
+      try { return g.createPattern(c, "repeat"); } catch (e) { return null; }
+    },
+    plank: function(g){
+      const c = make("plank", 100, 15, function(x){
+        x.fillStyle = ART.wood3; x.fillRect(0,0,100,15);
+        x.globalAlpha = 0.7; x.fillStyle = ART.wood2; x.fillRect(0,13,100,2);
+      });
+      try { return g.createPattern(c, "repeat"); } catch (e) { return null; }
+    }
+  };
+})();
+function waterGrad(g, y0, y1){
+  const w = g.createLinearGradient(0, y0, 0, y1);
+  w.addColorStop(0, ART.wat1); w.addColorStop(0.45, ART.wat2); w.addColorStop(1, ART.wat3);
+  return w;
+}
+function woodGrad(g, y0, y1){
+  const w = g.createLinearGradient(0, y0, 0, y1);
+  w.addColorStop(0, ART.wood1); w.addColorStop(1, ART.wood2);
+  return w;
+}
+function grassGrad(g, x0, y0, y1){
+  const w = g.createLinearGradient(x0, y0, x0 + (y1 - y0) * 0.2, y1);
+  w.addColorStop(0, ART.grass1); w.addColorStop(1, ART.grass2);
+  return w;
+}
+
+/* ---------------------------------------------------------------------
+   THE PROPS. Each one is the mockup's own path list, drawn at an origin
+   and a scale so it can be dropped anywhere in the park.
+   --------------------------------------------------------------------- */
+function palmTree(g, x, y, k){
+  g.save(); g.translate(x, y); g.scale(k, k);
+  softShadow(g, 2, 2, 26, 8);
+  g.beginPath();
+  g.moveTo(-7, 0); g.quadraticCurveTo(-5, -46, -19, -74);
+  g.quadraticCurveTo(-1, -52, 1, 0); g.closePath();
+  g.fillStyle = ART.wood3; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.32; g.stroke();
+  g.strokeStyle = ART.wood2; g.lineWidth = 2.2; g.globalAlpha = 0.7;
+  [[-11,-30,-4,-30],[-14,-48,-7,-48],[-16,-64,-10,-64]].forEach(function(s){
+    g.beginPath(); g.moveTo(s[0], s[1]); g.quadraticCurveTo((s[0]+s[2])/2, s[1]+4, s[2], s[3]); g.stroke();
+  });
+  g.globalAlpha = 1;
+  g.translate(-19, -76);
+  const rots = [-168, -135, -100, -62, -24, 10];
+  rots.forEach(function(deg, i){
+    const long = (i % 2) === 1;
+    const L = long ? 62 : 52, M = long ? 34.1 : 28.6;
+    g.save(); g.rotate(deg * Math.PI / 180);
+    g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(M, -18, L, -4);
+    g.quadraticCurveTo(L/2, 7, 0, 0); g.closePath();
+    g.fillStyle = long ? ART.grass1 : ART.grass2; g.fill();
+    g.strokeStyle = ART.out; g.lineWidth = 0.99; g.stroke();
+    g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(M, -12, L - 4, -4);
+    g.strokeStyle = ART.grassDk; g.lineWidth = 2; g.globalAlpha = 0.55; g.stroke(); g.globalAlpha = 1;
+    g.restore();
+  });
+  g.fillStyle = ART.wood2; g.strokeStyle = ART.out; g.lineWidth = 0.83;
+  g.beginPath(); g.arc(4, 6, 6, 0, 7); g.fill(); g.stroke();
+  g.beginPath(); g.arc(-7, 9, 5, 0, 7); g.fill(); g.stroke();
   g.restore();
 }
+function bush(g, x, y, k){
+  g.save(); g.translate(x, y); g.scale(k, k);
+  softShadow(g, 0, 3, 27, 8);
+  rr(g, -18, -18, 36, 22, 6, woodGrad(g, -18, 4), ART.out, 1.32);
+  g.strokeStyle = ART.wood1; g.lineWidth = 4; g.globalAlpha = 0.7;
+  g.beginPath(); g.moveTo(-24,-18); g.lineTo(24,-18); g.stroke(); g.globalAlpha = 1;
+  [[-11,-26,13,ART.grassLine],[10,-24,11,ART.grass2],[0,-34,11,ART.grass1]].forEach(function(c){
+    g.beginPath(); g.arc(c[0], c[1], c[2], 0, 7);
+    g.fillStyle = c[3]; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.21; g.stroke();
+  });
+  [[-14,-33,3.4,"#FF7E9D"],[7,-31,3.4,"#FFE066"],[2,-40,3.2,"#FF7E9D"]].forEach(function(c){
+    g.beginPath(); g.arc(c[0], c[1], c[2], 0, 7); g.fillStyle = c[3]; g.fill();
+  });
+  g.restore();
+}
+function rock(g, x, y, k, seed){
+  const r = rngOf(seed | 0);
+  g.save(); g.translate(x, y); g.scale(k, k);
+  softShadow(g, 2, 4, 24, 7);
+  g.beginPath();
+  const n = 9;
+  for (let i = 0; i < n; i++){
+    const a = (i / n) * Math.PI * 2;
+    const rad = 17 + r() * 8;
+    const px = Math.cos(a) * rad, py = Math.sin(a) * rad * 0.52 - 8;
+    if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.closePath();
+  g.fillStyle = ART.st2; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.32; g.lineJoin = "round"; g.stroke();
+  g.globalAlpha = 0.85; g.fillStyle = ART.st1;
+  g.beginPath(); g.ellipse(-5, -13, 11, 5, -0.2, 0, 7); g.fill(); g.globalAlpha = 1;
+  g.restore();
+}
+function starfish(g, x, y, k, col, rot, squash){
+  g.save(); g.translate(x, y); g.rotate((rot || 0) * Math.PI / 180); g.scale(k, k * (squash || 0.62));
+  g.beginPath();
+  for (let i = 0; i < 10; i++){
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    const rad = (i % 2 === 0) ? 15 : 6;
+    const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
+    if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.closePath();
+  g.fillStyle = col || "#FF8E6E"; g.fill();
+  g.strokeStyle = ART.out; g.lineWidth = 1.1; g.lineJoin = "round"; g.stroke();
+  g.globalAlpha = 0.55; g.fillStyle = "#fff";
+  g.beginPath(); g.arc(0, 0, 2.4, 0, 7); g.fill();
+  g.globalAlpha = 0.4; g.beginPath(); g.arc(0, -8, 1.6, 0, 7); g.fill();
+  g.globalAlpha = 1; g.restore();
+}
+function shell(g, x, y, k, rot){
+  g.save(); g.translate(x, y); g.rotate((rot || 0) * Math.PI / 180); g.scale(k, k);
+  g.beginPath(); g.moveTo(0,0);
+  g.ellipse(-11, 2, 13, 11, 0, -0.5, 2.3);
+  g.quadraticCurveTo(-14, -13, 0, 0); g.closePath();
+  g.fillStyle = "#FFE2EC"; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 0.88; g.stroke();
+  g.strokeStyle = "#E8A6BC"; g.lineWidth = 1.5; g.globalAlpha = 0.8;
+  g.beginPath(); g.moveTo(-1,0); g.lineTo(-18,1); g.moveTo(-1,0); g.lineTo(-15,-5); g.moveTo(-1,0); g.lineTo(-9,-9);
+  g.stroke(); g.globalAlpha = 1; g.restore();
+}
+function coralSprig(g, x, y, k, col){
+  g.save(); g.translate(x, y); g.scale(k, k);
+  g.beginPath();
+  g.moveTo(0,0); g.quadraticCurveTo(-3,-14,-10,-18);
+  g.quadraticCurveTo(-4,-19,-3,-13); g.quadraticCurveTo(-1,-22,0,-25);
+  g.quadraticCurveTo(2,-21,3,-12); g.quadraticCurveTo(5,-19,11,-18);
+  g.quadraticCurveTo(3,-13,0,0); g.closePath();
+  g.fillStyle = col || "#FF7E9D"; g.fill();
+  g.strokeStyle = ART.out; g.lineWidth = 0.99; g.lineJoin = "round"; g.stroke();
+  g.restore();
+}
+function seaweed(g, x, baseY, h, k){
+  const w = 8 * k;
+  g.beginPath();
+  g.moveTo(x, baseY);
+  g.quadraticCurveTo(x - w, baseY - h / 2, x, baseY - h);
+  g.quadraticCurveTo(x + w, baseY - h / 2, x, baseY);
+  g.closePath();
+  g.globalAlpha = 0.88; g.fillStyle = ART.grass2; g.fill();
+  g.globalAlpha = 1; g.strokeStyle = ART.out; g.lineWidth = 0.66; g.stroke();
+  g.beginPath(); g.moveTo(x + w, baseY);
+  g.quadraticCurveTo(x + w + 7 * k, baseY - h * 0.5, x + w + 1, baseY - h * 0.84);
+  g.strokeStyle = ART.grassLine; g.lineWidth = 3.6 * k; g.lineCap = "round";
+  g.globalAlpha = 0.9; g.stroke(); g.globalAlpha = 1;
+}
+function ropeRun(g, pts){
+  for (let i = 0; i < pts.length - 1; i++){
+    const a = pts[i], b = pts[i + 1];
+    g.beginPath(); g.moveTo(a.x, a.y);
+    g.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 + 13, b.x, b.y);
+    g.strokeStyle = ART.wood1; g.lineWidth = 3.4; g.lineCap = "round"; g.stroke();
+  }
+  pts.forEach(function(p){
+    g.globalAlpha = 0.17; g.fillStyle = ART.shade;
+    g.beginPath(); g.ellipse(p.x, p.y + 17, 6, 3, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+    rr(g, p.x - 3.4, p.y - 5, 6.8, 22, 3, ART.wood3, ART.out, 0.99);
+    g.beginPath(); g.arc(p.x, p.y - 6, 4.4, 0, 7);
+    g.fillStyle = ART.wood1; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 0.99; g.stroke();
+  });
+}
+function pier(g, x, y, w, rotDeg){
+  g.save(); g.translate(x, y); g.rotate((rotDeg || 0) * Math.PI / 180);
+  const h = 44;
+  softShadow(g, w / 2, h + 8, w / 2, 10);
+  roundRect(g, 0, 0, w, h, 8);
+  const p = PAT.plank(g);
+  g.fillStyle = p || ART.wood3; g.fill();
+  g.strokeStyle = ART.out; g.lineWidth = 1.65; g.stroke();
+  g.strokeStyle = ART.wood2; g.lineWidth = 2.2; g.globalAlpha = 0.55;
+  for (let k = 14; k < w; k += 26){ g.beginPath(); g.moveTo(k, 2); g.lineTo(k, h - 2); g.stroke(); }
+  g.globalAlpha = 0.6; g.lineWidth = 5;
+  g.beginPath(); g.moveTo(0, h - 7); g.lineTo(w, h - 7); g.stroke(); g.globalAlpha = 1;
+  [14, w - 24].forEach(function(px){ rr(g, px, h - 4, 7, 20, 4, ART.wood2, ART.out, 1.1); });
+  g.restore();
+}
+function lilyPond(g, cx, cy, rx, ry, seed){
+  const r = rngOf(seed | 0);
+  g.save();
+  g.globalAlpha = 0.5; g.fillStyle = ART.speck;
+  g.beginPath(); g.ellipse(cx, cy, rx + 6, ry + 6, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+  g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, 7);
+  g.fillStyle = waterGrad(g, cy - ry, cy + ry); g.fill();
+  g.strokeStyle = ART.out; g.lineWidth = 1.32; g.stroke();
+  g.save(); g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, 7); g.clip();
+  const pat = PAT.scale(g);
+  if (pat){ g.globalAlpha = 0.7; g.fillStyle = pat; g.fillRect(cx - rx, cy - ry, rx * 2, ry * 2); g.globalAlpha = 1; }
+  const n = 6;
+  for (let i = 0; i < n; i++){
+    const a = r() * Math.PI * 2, d = 0.25 + r() * 0.6;
+    const px = cx + Math.cos(a) * rx * d, py = cy + Math.sin(a) * ry * d;
+    const k = 0.75 + r() * 0.5;
+    g.save(); g.translate(px, py); g.scale(k, k);
+    g.beginPath(); g.ellipse(0, 0, 15, 11, 0, 0, 7);
+    g.fillStyle = ART.grassLine; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 0.99; g.stroke();
+    g.strokeStyle = ART.grassDk; g.globalAlpha = 0.4; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(0,0); g.lineTo(13,-5); g.stroke();
+    g.globalAlpha = 0.3; g.lineWidth = 1.6;
+    g.beginPath(); g.moveTo(0,0); g.lineTo(-13,4); g.moveTo(0,0); g.lineTo(2,10); g.stroke();
+    g.globalAlpha = 1;
+    if (i % 2 === 0){
+      g.beginPath(); g.arc(-2, -4, 5, 0, 7); g.fillStyle = "#FFF4FA"; g.fill();
+      g.strokeStyle = ART.out; g.lineWidth = 0.77; g.stroke();
+      g.beginPath(); g.arc(-2, -4, 2.2, 0, 7); g.fillStyle = "#FFD966"; g.fill();
+    }
+    g.restore();
+  }
+  g.restore();
+  g.restore();
+}
+/* a stone path: edge, cream fill, pale centre line. Three strokes, exactly
+   the way the mockup lays its walkways down. */
+function stonePath(g, pts, w, cap){
+  if (pts.length < 2) return;
+  function run(width, col, alpha){
+    g.globalAlpha = alpha === undefined ? 1 : alpha;
+    g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+    g.strokeStyle = col; g.lineWidth = width; g.lineCap = cap || "round"; g.lineJoin = "round"; g.stroke();
+    g.globalAlpha = 1;
+  }
+  run(w + 12, ART.pathEdge);
+  run(w, ART.path1);
+  run(w * 0.72, ART.path2, 0.55);
+}
+
+/* a drawn fish, the mockup's own outline */
+function drawFish(g, x, y, k, pal, flip, rot){
+  const c = FISH_PAL[pal % FISH_PAL.length];
+  g.save(); g.translate(x, y);
+  if (rot) g.rotate(rot);
+  g.scale(flip ? -k : k, k);
+  g.lineJoin = "round"; g.lineCap = "round";
+  g.beginPath();
+  g.moveTo(-24,1); g.bezierCurveTo(-24,-9,-15,-16,-3,-16);
+  g.bezierCurveTo(11,-16,22,-8,26,1);
+  g.bezierCurveTo(22,9,11,16,-3,16);
+  g.bezierCurveTo(-15,16,-24,10,-24,1); g.closePath();
+  g.fillStyle = c[0]; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.04; g.stroke();
+  g.beginPath();
+  g.moveTo(-23,1); g.lineTo(-39,-12); g.bezierCurveTo(-43,-15,-45,-12,-44,-8);
+  g.lineTo(-41,1); g.lineTo(-44,10); g.bezierCurveTo(-45,14,-43,16,-39,13); g.closePath();
+  g.fillStyle = c[1]; g.fill(); g.lineWidth = 0.94; g.stroke();
+  g.beginPath(); g.moveTo(-3,-15); g.bezierCurveTo(2,-26,11,-25,13,-16); g.closePath();
+  g.fill(); g.lineWidth = 0.77; g.stroke();
+  g.beginPath(); g.moveTo(-1,14); g.bezierCurveTo(3,22,11,21,12,14); g.closePath();
+  g.fill(); g.lineWidth = 0.66; g.stroke();
+  g.strokeStyle = c[1]; g.globalAlpha = 0.62; g.lineWidth = 5.5;
+  g.beginPath(); g.moveTo(-9,-12); g.bezierCurveTo(-6,-3,-6,4,-10,12); g.stroke();
+  g.globalAlpha = 0.40; g.lineWidth = 4.2;
+  g.beginPath(); g.moveTo(-17,-9); g.bezierCurveTo(-14,-3,-14,3,-18,9); g.stroke();
+  g.globalAlpha = 1;
+  g.beginPath(); g.arc(15,-4,4.6,0,7); g.fillStyle = "#fff"; g.fill();
+  g.strokeStyle = ART.out; g.lineWidth = 0.61; g.stroke();
+  g.beginPath(); g.arc(16.4,-4,2.2,0,7); g.fillStyle = "#1b2430"; g.fill();
+  g.globalAlpha = 0.45; g.strokeStyle = "#1b2430"; g.lineWidth = 1.6;
+  g.beginPath(); g.moveTo(24,-4); g.quadraticCurveTo(28,-1,24,2); g.stroke();
+  g.globalAlpha = 1;
+  g.restore();
+}
+/* the same outline filled flat: what COULD swim here */
+function ghostFish(g, x, y, k, alpha){
+  g.save(); g.translate(x, y); g.scale(k, k);
+  g.globalAlpha = alpha === undefined ? 0.38 : alpha;
+  g.fillStyle = "#1d2b38";
+  g.beginPath();
+  g.moveTo(-24,1); g.bezierCurveTo(-24,-9,-15,-16,-3,-16);
+  g.bezierCurveTo(11,-16,22,-8,26,1);
+  g.bezierCurveTo(22,9,11,16,-3,16);
+  g.bezierCurveTo(-15,16,-24,10,-24,1); g.closePath(); g.fill();
+  g.beginPath();
+  g.moveTo(-23,1); g.lineTo(-39,-12); g.bezierCurveTo(-43,-15,-45,-12,-44,-8);
+  g.lineTo(-41,1); g.lineTo(-44,10); g.bezierCurveTo(-45,14,-43,16,-39,13); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(-3,-15); g.bezierCurveTo(2,-26,11,-25,13,-16); g.closePath(); g.fill();
+  g.globalAlpha = 1; g.restore();
+}
+/* a gold coin, the HUD and price-bubble icon */
+function coinIcon(g, x, y, r){
+  g.beginPath(); g.arc(x, y, r, 0, 7);
+  g.fillStyle = ART.coin; g.fill();
+  g.strokeStyle = ART.coinEdge; g.lineWidth = r * 0.24; g.stroke();
+  g.globalAlpha = 0.5; g.beginPath(); g.arc(x, y, r * 0.5, 0, 7); g.fillStyle = ART.coinEdge; g.fill();
+  g.globalAlpha = 1;
+}
+/* THE PRICE BUBBLE (Part 3 kit): a white rounded pill with a pointer
+   underneath, a small grey caption and the price with its coin. */
+function priceBubble(g, x, y, label, amount, afford){
+  const txt = money(amount);
+  g.font = "800 17px " + ART.UI;
+  const tw = g.measureText(txt).width;
+  g.font = "800 10.5px " + ART.UI;
+  const lw = g.measureText(label).width;
+  const w = Math.max(72, Math.max(lw + 26, tw + 46));
+  const h = 46, bx = x - w / 2, by = y - h;
+  softShadow(g, x, by + h + 2, w * 0.38, 6, 0.136);
+  roundRect(g, bx, by, w, h, h / 2);
+  g.fillStyle = ART.card; g.fill();
+  g.strokeStyle = ART.cardEdge; g.lineWidth = 1.6; g.stroke();
+  g.beginPath(); g.moveTo(x - 8, by + h - 1); g.lineTo(x + 8, by + h - 1); g.lineTo(x, by + h + 11);
+  g.closePath(); g.fillStyle = ART.card; g.fill();
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.font = "800 10.5px " + ART.UI; g.fillStyle = ART.sub;
+  g.fillText(label, x, by + 17);
+  const cx = bx + 16;
+  coinIcon(g, cx, by + 31, 8);
+  g.font = "800 17px " + ART.UI;
+  g.fillStyle = afford ? ART.ink : "#A2AEB9";
+  g.textAlign = "left";
+  g.fillText(txt, cx + 12, by + 37);
+  if (!afford){
+    g.globalAlpha = 0.22; roundRect(g, bx, by, w, h, h / 2);
+    g.fillStyle = "#6B7684"; g.fill(); g.globalAlpha = 1;
+  }
+  g.textAlign = "center";
+}
+/* ---------------------------------------------------------------------
+   A VISITOR. Drawn, never an emoji: legs, shoes, body, arms, head, hair,
+   eyes, a smile and blush, exactly the little person in the mockup.
+   --------------------------------------------------------------------- */
+function drawPerson(g, x, y, k, pal, walk, hop, cap){
+  const p = PEOPLE_PAL[pal % PEOPLE_PAL.length];
+  const sw = Math.sin(walk) * 9, sw2 = Math.sin(walk + Math.PI) * 9;
+  g.save(); g.translate(x, y - (hop || 0)); g.scale(k, k);
+  g.globalAlpha = 0.22; g.fillStyle = ART.shade;
+  g.beginPath(); g.ellipse(0, 1 + (hop || 0) / k, 19, 6.5, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+  g.lineCap = "round"; g.lineJoin = "round";
+  g.strokeStyle = p.lg; g.lineWidth = 10;
+  g.beginPath(); g.moveTo(-7,-24); g.lineTo(-7 + sw, -2); g.stroke();
+  g.beginPath(); g.moveTo(7,-24); g.lineTo(7 + sw2, -3); g.stroke();
+  [[-7 + sw, -1], [7 + sw2, -2]].forEach(function(s){
+    g.beginPath(); g.ellipse(s[0], s[1], 7, 3.8, 0, 0, 7);
+    g.fillStyle = "#F2F4F8"; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 0.77; g.stroke();
+  });
+  rr(g, -15, -56, 30, 34, 13, p.sh, ART.out, 1.32);
+  g.globalAlpha = 0.9; g.fillStyle = p.tr; g.fillRect(-15, -34, 30, 12);
+  g.strokeStyle = p.tr; g.lineWidth = 4; g.globalAlpha = 0.55;
+  g.beginPath(); g.moveTo(-15,-44); g.bezierCurveTo(-9,-40,9,-40,15,-44); g.stroke();
+  g.globalAlpha = 1;
+  g.strokeStyle = p.sk; g.lineWidth = 8.5;
+  g.beginPath(); g.moveTo(14,-52); g.lineTo(20 - sw, -32); g.stroke();
+  g.beginPath(); g.moveTo(-14,-52); g.lineTo(-21 - sw2, -33); g.stroke();
+  g.beginPath(); g.arc(0, -70, 15, 0, 7);
+  g.fillStyle = p.sk; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.21; g.stroke();
+  g.beginPath(); g.moveTo(-15,-72); g.arc(0, -72, 15, Math.PI, 0);
+  g.bezierCurveTo(11,-78,5,-75,0,-79); g.bezierCurveTo(-4,-75,-9,-77,-15,-72); g.closePath();
+  g.fillStyle = p.hr; g.fill(); g.lineWidth = 0.99; g.stroke();
+  if (cap){
+    g.beginPath(); g.moveTo(-17,-76); g.quadraticCurveTo(0,-92,17,-76); g.closePath();
+    g.fillStyle = cap; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 0.99; g.stroke();
+    g.beginPath(); g.ellipse(0,-76,20,4,0,0,7); g.fill(); g.stroke();
+  }
+  g.fillStyle = "#2a2430";
+  g.beginPath(); g.arc(-5.4,-69,2.3,0,7); g.fill();
+  g.beginPath(); g.arc(5.4,-69,2.3,0,7); g.fill();
+  g.strokeStyle = "#2a2430"; g.lineWidth = 1.9;
+  g.beginPath(); g.moveTo(-4,-62); g.quadraticCurveTo(0,-58.6,4,-62); g.stroke();
+  g.globalAlpha = 0.45; g.fillStyle = "#ff8a8a";
+  g.beginPath(); g.ellipse(-11,-64,3.4,2.2,0,0,7); g.fill();
+  g.beginPath(); g.ellipse(11,-64,3.4,2.2,0,0,7); g.fill();
+  g.globalAlpha = 1;
+  g.restore();
+}
+
+/* =====================================================================
+   THE CROWD. Visitors walk in from the park gate, queue at the ticket
+   desk and walk out again. Cosmetic from end to end: this list is never
+   saved, never read by the economy, and moving it earns nothing. Its
+   size follows crowd-pull, which is itself only ever a count of fish.
+   ===================================================================== */
+const CROWD = { list: [], seed: 1, spawn: 0 };
+function queueSpot(i){
+  const d = MAP.DESK, ox = rx0(0);
+  return { x: ox + d.x + d.w + 56 + i * 52, y: d.y + d.h - 16 + (i % 2) * 20 };
+}
+function crowdWant(){
+  const pull = drawOf(S);
+  return Math.max(2, Math.min(6, 2 + Math.floor(pull / 35)));
+}
+function crowdAdd(){
+  const r = rngOf(CROWD.seed++ * 9176 + CROWD.list.length);
+  const d = MAP.DESK, ox = rx0(0);
+  CROWD.list.push({
+    x: ox - 120 - r() * 200, y: d.y + d.h + 36 + r() * 40,
+    pal: Math.floor(r() * PEOPLE_PAL.length), k: 0.50 + r() * 0.12,
+    ph: r() * 6.28, out: false, walk: 0
+  });
+}
+function crowdStep(dt){
+  if (V.where !== "park"){ return; }
+  dt = Math.max(0, Math.min(0.05, dt));
+  const want = crowdWant();
+  const live = CROWD.list.filter(function(p){ return !p.out; });
+  CROWD.spawn += dt;
+  if (live.length < want && CROWD.spawn > 1.3){ CROWD.spawn = 0; crowdAdd(); }
+  if (live.length > want && live.length){ live[0].out = true; }
+  const ox = rx0(0), leave = ox + MAP.ROOM_W + 260;
+  let qi = 0;
+  for (let i = CROWD.list.length - 1; i >= 0; i--){
+    const p = CROWD.list[i];
+    let tx, ty;
+    if (p.out){ tx = leave; ty = p.y; }
+    else { const q = queueSpot(qi++); tx = q.x; ty = q.y; }
+    const dx = tx - p.x, dy = ty - p.y;
+    const m = Math.sqrt(dx*dx + dy*dy);
+    const sp = 118 * dt;
+    if (m > 2){
+      const mv = Math.min(sp, m);
+      p.x += dx / m * mv; p.y += dy / m * mv;
+      p.walk += mv * 0.13;
+      p.face = dx < 0 ? -1 : 1;
+    }
+    if (p.out && p.x > leave - 6) CROWD.list.splice(i, 1);
+  }
+  if (CROWD.list.length > 12) CROWD.list.splice(0, CROWD.list.length - 12);
+}
+function drawCrowd(g, t){
+  const cheer = performance.now() < V.cheerUntil;
+  CROWD.list.forEach(function(p, i){
+    const hop = cheer && !p.out ? Math.abs(Math.sin(t / 150 + i)) * 11 : 0;
+    drawPerson(g, p.x, p.y, p.k, p.pal, p.walk, hop, null);
+  });
+}
+
+/* =====================================================================
+   THE AQUARIUM TANK. One continuous unit, never two stacked boxes: a
+   wood frame with an overhanging top rim and a base plinth, a sand bed
+   inside with coral and starfish on it, seaweed, a bubble stream, the
+   foam line at the surface and two diagonal glass gleams.
+   ===================================================================== */
+function drawTankUnit(g, x, y, w, h, t, fishList, room, seedN, freeSpace){
+  const seed = seedN | 0;
+  const r = rngOf(seed);
+  softShadow(g, x + w / 2, y + h + 8, w * 0.46, 12);
+  /* wood carcass */
+  rr(g, x, y, w, h, 20, woodGrad(g, y, y + h), ART.out, 1.76);
+  /* the glass box */
+  const gx = x + 12, gy = y + 13, gw = w - 24, gh = h - 26;
+  roundRect(g, gx, gy, gw, gh, 14);
+  g.fillStyle = waterGrad(g, gy, gy + gh); g.fill();
+  g.save();
+  roundRect(g, gx, gy, gw, gh, 14); g.clip();
+  const pat = PAT.scale(g);
+  if (pat){ g.globalAlpha = 0.8; g.fillStyle = pat; g.fillRect(gx, gy, gw, gh * 0.45); g.globalAlpha = 1; }
+  /* the sand bed, with its pale crest line */
+  const bedY = gy + gh - gh * 0.17;
+  g.beginPath(); g.moveTo(gx, bedY);
+  g.quadraticCurveTo(gx + gw * 0.28, bedY - 11, gx + gw * 0.52, bedY - 3);
+  g.quadraticCurveTo(gx + gw * 0.80, bedY + 6, gx + gw, bedY - 1);
+  g.lineTo(gx + gw, gy + gh); g.lineTo(gx, gy + gh); g.closePath();
+  g.fillStyle = ART.sand2; g.fill();
+  g.beginPath(); g.moveTo(gx, bedY + 5);
+  g.quadraticCurveTo(gx + gw * 0.28, bedY - 6, gx + gw * 0.52, bedY + 2);
+  g.strokeStyle = ART.sand1; g.lineWidth = 3; g.globalAlpha = 0.6; g.stroke(); g.globalAlpha = 1;
+  /* things living on the bed */
+  coralSprig(g, gx + gw * 0.17, bedY + 4, gh / 150, "#FF7E9D");
+  const lumps = [[0.72, 8, "#C58BFF"], [0.80, 6, "#A06BFF"], [0.65, 5, "#FFB36E"]];
+  lumps.forEach(function(L){
+    g.beginPath(); g.arc(gx + gw * L[0], bedY + 7, L[1] * (gh / 150), 0, 7);
+    g.fillStyle = L[2]; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 0.72; g.stroke();
+  });
+  starfish(g, gx + gw * 0.42, bedY + 11, gh / 240, "#FF8E6E", 18, 0.5);
+  /* seaweed, five blades at a steady rhythm with a lazy sway */
+  for (let k = 0; k < 5; k++){
+    const sx = gx + gw * (0.10 + k * 0.19) + Math.sin(t / 900 + k) * 2.5;
+    seaweed(g, sx, gy + gh, gh * (0.30 + r() * 0.25), gh / 150);
+  }
+  /* the fish actually in this tank */
+  const cap = Math.max(1, fishList.length);
+  const fk = Math.max(0.26, Math.min(gh * 0.0085, gw / (cap * 54)));
+  fishList.forEach(function(f, k){
+    const lanes = Math.min(4, Math.max(2, Math.ceil(fishList.length / 2)));
+    const lane = (k % lanes) + 1;
+    const ly = gy + (gh * 0.70) * (lane / (lanes + 1)) + 8;
+    const phase = (t / (1500 + (k * 211) % 900)) + k * 1.7;
+    const pr = (Math.sin(phase) + 1) / 2;
+    const span = Math.max(20, gw - 90 * fk);
+    const fx = gx + 46 * fk + pr * span;
+    drawFish(g, fx, ly, fk, (FISH_BY[f.k] ? FISH_BY[f.k].idx : k), Math.cos(phase) < 0, Math.sin(phase * 2) * 0.09);
+  });
+  /* what could still swim in here */
+  if (freeSpace > 0) ghostFish(g, gx + gw * 0.72, gy + gh * 0.42, Math.max(0.42, fk * 1.1), 0.34);
+  /* the bubble stream */
+  g.globalAlpha = 0.55; g.fillStyle = "#fff";
+  for (let k = 0; k < 4; k++){
+    const bx = gx + gw * 0.90 + Math.sin(t / 500 + k * 2) * 4;
+    const by = gy + gh - ((t / 7 + k * 180) % (gh - 10)) - 6;
+    g.beginPath(); g.arc(bx, by, 2.8 + (k % 3) * 0.8, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+  /* the foam surface */
+  g.beginPath(); g.moveTo(gx, gy + 16);
+  g.quadraticCurveTo(gx + gw * 0.25, gy + 27, gx + gw * 0.5, gy + 16);
+  g.quadraticCurveTo(gx + gw * 0.75, gy + 5, gx + gw, gy + 16);
+  g.lineTo(gx + gw, gy); g.lineTo(gx, gy); g.closePath();
+  g.globalAlpha = 0.8; g.fillStyle = ART.foam; g.fill();
+  g.globalAlpha = 0.55; g.strokeStyle = ART.foam; g.lineWidth = 2.6;
+  g.beginPath(); g.moveTo(gx, gy + 25);
+  g.quadraticCurveTo(gx + gw * 0.25, gy + 35, gx + gw * 0.5, gy + 25);
+  g.quadraticCurveTo(gx + gw * 0.75, gy + 15, gx + gw, gy + 25); g.stroke();
+  g.globalAlpha = 1;
+  /* the two glass gleams */
+  g.globalAlpha = 0.15; g.fillStyle = "#fff";
+  g.beginPath(); g.moveTo(gx + gw * 0.12, gy + gh); g.lineTo(gx + gw * 0.40, gy);
+  g.lineTo(gx + gw * 0.48, gy); g.lineTo(gx + gw * 0.20, gy + gh); g.closePath(); g.fill();
+  g.globalAlpha = 0.10;
+  g.beginPath(); g.moveTo(gx + gw * 0.30, gy + gh); g.lineTo(gx + gw * 0.58, gy);
+  g.lineTo(gx + gw * 0.62, gy); g.lineTo(gx + gw * 0.34, gy + gh); g.closePath(); g.fill();
+  g.globalAlpha = 0.30; g.fillStyle = ART.wat3;
+  g.beginPath(); g.ellipse(gx + gw / 2, gy + gh + 6, gw * 0.56, 22, 0, 0, 7); g.fill();
+  g.globalAlpha = 1;
+  g.restore();
+  /* the inner frame edge */
+  roundRect(g, gx, gy, gw, gh, 14);
+  g.globalAlpha = 0.55; g.strokeStyle = ART.wood2; g.lineWidth = 3.4; g.stroke(); g.globalAlpha = 1;
+  /* the overhanging top rim */
+  rr(g, x - 7, y - 10, w + 14, 23, 9, ART.wood1, ART.out, 1.32);
+  g.globalAlpha = 0.30; rr(g, x - 7, y - 10, w + 14, 8, 4, "#ffffff"); g.globalAlpha = 1;
+  g.globalAlpha = 0.45; rr(g, x - 4, y + 11, w + 8, 4, 2, ART.wood2); g.globalAlpha = 1;
+  /* the base plinth */
+  rr(g, x + 5, y + h - 4, w - 10, 16, 7, ART.wood2, ART.out, 1.21);
+  g.globalAlpha = 0.55; rr(g, x + 1, y + h - 4, w - 2, 6, 3, ART.wood1); g.globalAlpha = 1;
+  /* the two corner posts */
+  g.globalAlpha = 0.9; g.fillStyle = ART.wood3;
+  roundRect(g, x + 4, y + 14, 9, h - 30, 4); g.fill();
+  roundRect(g, x + w - 13, y + 14, 9, h - 30, 4); g.fill();
+  g.globalAlpha = 1;
+}
+
+/* an empty plot: tan ground panel, dashed white outline, a dark fish
+   silhouette of what would live here, and the price above it */
+function drawEmptyPlot(g, x, y, w, h, price, afford){
+  g.globalAlpha = 0.55; g.fillStyle = ART.speck;
+  roundRect(g, x - 3, y - 3, w + 6, h + 6, 22); g.fill(); g.globalAlpha = 1;
+  g.globalAlpha = 0.72; g.fillStyle = ART.sand3;
+  roundRect(g, x, y, w, h, 20); g.fill(); g.globalAlpha = 1;
+  g.save();
+  g.setLineDash([14, 10]);
+  g.globalAlpha = 0.85; g.strokeStyle = "#ffffff"; g.lineWidth = 3.2;
+  roundRect(g, x + 4, y + 4, w - 8, h - 8, 17); g.stroke();
+  g.restore();
+  ghostFish(g, x + w * 0.5, y + h * 0.48, Math.min(h / 48, w / 78), 0.38);
+  g.globalAlpha = 0.6; g.strokeStyle = ART.speck; g.lineWidth = 5; g.lineCap = "round";
+  g.beginPath(); g.moveTo(x + w * 0.34, y + h - 18); g.lineTo(x + w * 0.66, y + h - 18); g.stroke();
+  g.globalAlpha = 1;
+  priceBubble(g, x + w * 0.5, y - 16, "NEW TANK", price, afford);
+}
+
+function drawPlot(g, ox, p, i, t){
+  const bx = ox + p.x, by = p.y, bw = p.w, bh = MAP.PLOT_H * PLOT_BODY;
+  const ti = tankAt(i, p.slot);
+  if (ti < 0){
+    const gt = ghostTankFor();
+    const tc = priceOf(gt.cost, S);
+    drawEmptyPlot(g, bx, by, bw, bh, tc, tc <= S.money);
+    return;
+  }
+  const tk = S.tanks[ti], td = TANK_BY[tk.t] || TANKS[0];
+  const mine = [];
+  for (let k = 0; k < S.fish.length; k++) if (S.fish[k].t === ti) mine.push(S.fish[k]);
+  const free = Math.max(0, td.hold - mine.length);
+  drawTankUnit(g, bx, by, bw, bh, t, mine, i, i * 97 + p.slot * 13, free);
+  if (free > 0){
+    const gf = ghostFishFor();
+    const fc = priceOf(gf.cost, S);
+    priceBubble(g, bx + bw * 0.5, by - 24, "+" + free + " SPACE", fc, fc <= S.money);
+  } else {
+    const up = biggerThan(ti);
+    if (up.length){
+      let want = up[0];
+      for (let k = up.length - 1; k >= 0; k--){ if (priceOf(up[k].cost, S) <= S.money){ want = up[k]; break; } }
+      const uc = priceOf(want.cost, S);
+      priceBubble(g, bx + bw * 0.5, by - 24, "BIGGER TANK", uc, uc <= S.money);
+    } else {
+      priceBubble(g, bx + bw * 0.5, by - 24, "FULL", 0, true);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   THE GROUND. Sand, speckle, grass masses, paths, planting, rocks and
+   rope barriers for one room are the SAME every frame, so they are
+   painted once into an offscreen tile and blitted after that. Three
+   tiles are kept, which is one more than can ever be on screen at once.
+   --------------------------------------------------------------------- */
+const TILE = { pad: 40, cache: {}, order: [] };
+function tileBox(i){
+  return { x: rx0(i) - TILE.pad, y: -TILE.pad,
+           w: MAP.ROOM_W + MAP.WALL + TILE.pad * 2, h: MAP.ROOM_H + TILE.pad * 2 };
+}
+function buildTile(i){
+  const b = tileBox(i);
+  const c = document.createElement("canvas");
+  c.width = Math.round(b.w); c.height = Math.round(b.h);
+  const g = c.getContext("2d");
+  if (!g) return c;
+  g.translate(-b.x, -b.y);
+  const ox = rx0(i), W = MAP.ROOM_W, H = MAP.ROOM_H;
+  const r = rngOf(i * 7919 + 17);
+
+  /* 1. the sand */
+  const sand = g.createLinearGradient(b.x, b.y, b.x + b.w * 0.25, b.y + b.h);
+  sand.addColorStop(0, ART.sand1); sand.addColorStop(0.55, ART.sand2); sand.addColorStop(1, ART.sand3);
+  g.fillStyle = sand; g.fillRect(b.x, b.y, b.w, b.h);
+  /* 2. its speckle, then the soft pale drifts over the top */
+  g.fillStyle = ART.speck;
+  for (let k = 0; k < 420; k++){
+    g.globalAlpha = 0.13 + r() * 0.22;
+    g.beginPath();
+    g.ellipse(b.x + r() * b.w, b.y + r() * b.h, 2 + r() * 6, 1 + r() * 2.4, 0, 0, 7);
+    g.fill();
+  }
+  g.fillStyle = ART.sand1;
+  for (let k = 0; k < 52; k++){
+    g.globalAlpha = 0.12 + r() * 0.17;
+    g.beginPath();
+    g.ellipse(b.x + r() * b.w, b.y + r() * b.h, 14 + r() * 34, 7 + r() * 14, 0, 0, 7);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+
+  /* 3. the grass masses, running off every edge the way the mockup does */
+  const gp = PAT.grass(g);
+  function grassBlob(pts){
+    function trace(dy){
+      g.beginPath(); g.moveTo(pts[0][0] + ox, pts[0][1] + dy);
+      for (let k = 1; k < pts.length; k++){
+        const p = pts[k];
+        if (p.length === 4) g.quadraticCurveTo(p[0] + ox, p[1] + dy, p[2] + ox, p[3] + dy);
+        else g.lineTo(p[0] + ox, p[1] + dy);
+      }
+      g.closePath();
+    }
+    trace(5); g.globalAlpha = 0.35; g.fillStyle = ART.speck; g.fill(); g.globalAlpha = 1;
+    trace(0);
+    g.fillStyle = grassGrad(g, ox, 240, 820); g.fill();
+    g.strokeStyle = ART.out; g.lineWidth = 1.54; g.lineJoin = "round"; g.stroke();
+    if (gp){ trace(0); g.fillStyle = gp; g.fill(); }
+  }
+  /* the corner masses, which run off every edge the way the mockup does */
+  grassBlob([[-140,-120],[560,-120],[540,210,410,340],[240,476,-40,440],[-140,400]]);
+  grassBlob([[720,-120],[1420,-120],[1420,370],[1190,452,950,376],[736,286]]);
+  grassBlob([[-140,930],[220,906,390,1026],[480,1134,490,1280],[-140,1280]]);
+  grassBlob([[1420,1280],[1420,946],[1170,910,990,990],[876,1066,866,1280]]);
+  /* and the planting beds inside the park, so there is green on every screen */
+  grassBlob([[286,436],[560,414,700,448],[840,482,790,544],[700,600,470,584],[300,564,286,496]]);
+  grassBlob([[896,566],[1120,542,1206,598],[1296,654,1206,704],[1060,752,926,704],[854,634,896,590]]);
+  grassBlob([[46,606],[236,586,304,642],[372,698,286,746],[166,790,82,738],[6,656,46,626]]);
+  grassBlob([[470,962],[700,944,800,992],[900,1042,800,1088],[640,1132,520,1070],[420,1008,470,978]]);
+
+  /* 4. the lily pond, up in the top-left planting */
+  lilyPond(g, ox + 196, 300, 168, 62, i * 31 + 5);
+
+  /* 5. the stone walkways: one long spine, a branch up to the tanks and
+        a branch down to the desk and the podium */
+  /* the branches go up first with square ends, so the spine laid over the
+     top of them reads as one continuous walkway and not a row of pills */
+  stonePath(g, [{x:ox + 445, y:890}, {x:ox + 445, y:MAP.PLOT_TOP + 184}], 58, "butt");
+  stonePath(g, [{x:ox + 735, y:890}, {x:ox + 735, y:MAP.PLOT_TOP + 184}], 58, "butt");
+  stonePath(g, [{x:ox + 193, y:890}, {x:ox + 193, y:MAP.DESK.y + 96}], 64, "butt");
+  stonePath(g, [{x:ox + 980, y:890}, {x:ox + 980, y:MAP.PODIUM.y + 26}], 64, "butt");
+  stonePath(g, [{x:ox - 240, y:DOOR_MID}, {x:ox + 60, y:DOOR_MID + 14},
+                {x:ox + 230, y:830}, {x:ox + 620, y:852}, {x:ox + 980, y:830},
+                {x:ox + 1130, y:DOOR_MID + 14}, {x:ox + 1400, y:DOOR_MID}], 104);
+
+  /* 6. the rope barriers along the spine */
+  ropeRun(g, [0,1,2,3].map(function(k){ return { x: ox + 260 + k * 110, y: 926 }; }));
+  ropeRun(g, [0,1,2,3].map(function(k){ return { x: ox + 760 + k * 110, y: 912 }; }));
+  ropeRun(g, [0,1,2].map(function(k){ return { x: ox + 120 + k * 110, y: MAP.PLOT_TOP - 54 }; }));
+
+  /* 7. the planting, the rocks, the shells and the starfish */
+  palmTree(g, ox + 612, 382, 0.86);
+  palmTree(g, ox + 72, 486, 1.00);
+  palmTree(g, ox + 1112, 498, 0.94);
+  palmTree(g, ox + 316, 1006, 0.95);
+  palmTree(g, ox + 1046, 1030, 0.88);
+  palmTree(g, ox + 912, 286, 0.80);
+  palmTree(g, ox + 404, 300, 0.74);
+  bush(g, ox + 566, 962, 0.84);
+  bush(g, ox + 300, 812, 0.78);
+  bush(g, ox + 1038, 390, 0.80);
+  bush(g, ox + 836, 946, 0.72);
+  bush(g, ox + 86, 742, 0.70);
+  pier(g, ox + 626, 1016, 300, -5);
+  for (let k = 0; k < 9; k++){
+    rock(g, ox + 60 + r() * (W - 120), 120 + r() * (H - 180), 0.52 + r() * 0.55, i * 13 + k);
+  }
+  const starCols = ["#FF8E6E", "#FFB36E", "#FF9F6E", "#C58BFF"];
+  for (let k = 0; k < 7; k++){
+    starfish(g, ox + 50 + r() * (W - 100), 150 + r() * (H - 220),
+             0.9 + r() * 0.5, starCols[k % starCols.length], r() * 360, 0.55 + r() * 0.2);
+  }
+  for (let k = 0; k < 5; k++){
+    shell(g, ox + 60 + r() * (W - 120), 160 + r() * (H - 240), 0.8 + r() * 0.5, r() * 360);
+  }
+  for (let k = 0; k < 4; k++){
+    coralSprig(g, ox + 70 + r() * (W - 140), 200 + r() * (H - 300), 0.9 + r() * 0.5,
+               ["#FF7E9D","#C58BFF","#FF9F6E"][k % 3]);
+  }
+  /* 8. three flat stepping stones near the podium */
+  [0,1,2].forEach(function(k){
+    g.beginPath(); g.ellipse(ox + 862 + k * 46, 806 + k * 4, 17, 9, 0, 0, 7);
+    g.fillStyle = ART.st1; g.fill(); g.strokeStyle = ART.st3; g.lineWidth = 1.6; g.stroke();
+  });
+  return c;
+}
+function tileFor(i){
+  const key = "r" + i;
+  if (TILE.cache[key]) return TILE.cache[key];
+  const c = buildTile(i);
+  TILE.cache[key] = c;
+  TILE.order.push(key);
+  while (TILE.order.length > 3){
+    const drop = TILE.order.shift();
+    delete TILE.cache[drop];
+  }
+  return c;
+}
+function tilesDrop(){ TILE.cache = {}; TILE.order = []; }
+
+function drawRoom(g, i, t, view){
+  const b = tileBox(i);
+  if (b.x > view.x1 || b.x + b.w < view.x0) return;      /* culled: off camera */
+  const c = tileFor(i);
+  g.drawImage(c, b.x, b.y);
+  /* the tanks sit on top of the ground, and only the ones on screen */
+  const ox = rx0(i);
+  plotsOf(i).forEach(function(p){
+    if (ox + p.x > view.x1 + 40 || ox + p.x + p.w < view.x0 - 40) return;
+    drawPlot(g, ox, p, i, t);
+  });
+  /* the night-lights upgrade washes the room warm */
+  if (S.up.lights){
+    const gl = g.createRadialGradient(ox + MAP.ROOM_W/2, 420, 40, ox + MAP.ROOM_W/2, 420, MAP.ROOM_W*0.8);
+    gl.addColorStop(0, "rgba(255,201,40,.20)"); gl.addColorStop(1, "rgba(255,201,40,0)");
+    g.fillStyle = gl; g.fillRect(ox - 40, -40, MAP.ROOM_W + 80, MAP.ROOM_H + 80);
+  }
+  /* the room's own name, lettered on the sand above its tanks */
+  g.save();
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.font = "800 30px " + ART.UI;
+  g.globalAlpha = 0.34; g.fillStyle = "#8A6A2E";
+  g.fillText(ROOMS[i].name.toUpperCase(), ox + MAP.ROOM_W / 2, MAP.PLOT_TOP - 82);
+  g.restore();
+}
+
+/* THE TICKET DESK: striped awning, white TICKETS board, wood counter,
+   a till and a ticket roll. Drawn, every bit of it. */
+function drawDesk(g, t){
+  const d = MAP.DESK, ox = rx0(0);
+  const cx = ox + d.x + d.w / 2, by = d.y + d.h;
+  const k = 0.98;              /* its TICKETS board is a little over one hero wide */
+  g.save(); g.translate(cx, by); g.scale(k, k);
+  softShadow(g, 0, 8, 76, 16);
+  /* the board on top */
+  rr(g, -52, -96, 104, 46, 10, ART.wood2, ART.out, 1.65);
+  rr(g, -49, -91, 98, 36, 7, "#FFFFFF");
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.font = "800 20px " + ART.UI; g.fillStyle = ART.ink;
+  g.fillText("TICKETS", 0, -66);
+  [-44, 44].forEach(function(sx){
+    g.beginPath(); g.arc(sx, -73, 8, 0, 7);
+    g.fillStyle = ART.coin; g.fill(); g.strokeStyle = ART.coinEdge; g.lineWidth = 2; g.stroke();
+  });
+  /* the red and white awning */
+  g.save(); g.translate(0, -44);
+  g.beginPath(); g.moveTo(-62,-6); g.lineTo(62,-6); g.lineTo(62,2);
+  g.ellipse(0, 2, 62, 20, 0, 0, Math.PI); g.lineTo(-62,-6); g.closePath();
+  g.save(); g.clip();
+  for (let s = -62; s < 70; s += 18){
+    g.fillStyle = ((s + 62) / 18) % 2 ? "#FF5E5E" : "#FFFFFF";
+    g.beginPath(); g.moveTo(s, -8); g.lineTo(s + 10, 26); g.lineTo(s + 20, 26); g.lineTo(s + 10, -8);
+    g.closePath(); g.fill();
+  }
+  g.globalAlpha = 0.5; g.fillStyle = "#E0E6EC"; g.fillRect(-62, -6, 124, 6); g.globalAlpha = 1;
+  g.restore();
+  g.beginPath(); g.moveTo(-62,-6); g.lineTo(62,-6); g.lineTo(62,2);
+  g.ellipse(0, 2, 62, 20, 0, 0, Math.PI); g.lineTo(-62,-6); g.closePath();
+  g.strokeStyle = ART.out; g.lineWidth = 1.65; g.stroke();
+  g.restore();
+  /* the counter */
+  rr(g, -48, -28, 96, 36, 8, woodGrad(g, -28, 8), ART.out, 1.65);
+  rr(g, -54, -32, 108, 12, 6, ART.wood1, ART.out, 1.65);
+  g.strokeStyle = ART.wood2; g.lineWidth = 2.4; g.globalAlpha = 0.6;
+  [-40,-14,12,38].forEach(function(px){ g.beginPath(); g.moveTo(px,-20); g.lineTo(px,4); g.stroke(); });
+  g.globalAlpha = 1;
+  /* the till, and the ticket roll */
+  rr(g, 16, -48, 26, 17, 4, ART.st1, ART.out, 1.21);
+  rr(g, 20, -44, 18, 9, 2, ART.wat2, ART.out, 0.88);
+  g.beginPath(); g.arc(-30,-39,9,0,7);
+  g.fillStyle = "#FFF3D6"; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.21; g.stroke();
+  g.beginPath(); g.moveTo(-36,-39); g.lineTo(-24,-39);
+  g.strokeStyle = "#E8B93B"; g.lineWidth = 2.6; g.stroke();
+  g.beginPath(); g.moveTo(-39,-34); g.quadraticCurveTo(-30,-27,-21,-34);
+  g.fillStyle = "#FFF3D6"; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.1; g.stroke();
+  /* the big sign upgrade hangs over the booth */
+  if (S.up.sign){
+    const A = HERO_ART[HERO] || HERO_ART.knight;
+    rr(g, -104, -142, 208, 34, 8, ART.wood2, ART.out, 1.65);
+    rr(g, -100, -138, 200, 26, 6, "#FFF4DA");
+    g.textAlign = "center"; g.font = "800 18px " + ART.UI; g.fillStyle = "#8A6A2E";
+    g.fillText((A.name.replace(/^The /, "") + "'S AQUARIUM").toUpperCase(), 0, -118);
+  }
+  g.restore();
+  /* the gift shop stall */
+  if (S.up.gift){
+    const sx = ox + MAP.ROOM_W * 0.30, sy = MAP.DESK.y + MAP.DESK.h + 112;
+    softShadow(g, sx, sy + 6, 58, 12);
+    rr(g, sx - 52, sy - 46, 104, 46, 10, woodGrad(g, sy - 46, sy), ART.out, 1.65);
+    rr(g, sx - 58, sy - 56, 116, 14, 7, "#FF7E9D", ART.out, 1.4);
+    g.textAlign = "center"; g.font = "800 17px " + ART.UI; g.fillStyle = "#FFF4DA";
+    g.fillText("GIFTS", sx, sy - 20);
+  }
+  /* the group standing at the till right now */
+  if (V.cust && V.step !== "idle"){
+    const cheer = performance.now() < V.cheerUntil;
+    const hop = cheer ? Math.abs(Math.sin(t/130)) * 16 : Math.sin(t/700) * 3;
+    const px = ox + d.x + d.w + 50, py = d.y + d.h + 4;
+    drawPerson(g, px, py, 0.62, (V.cust.pal || 0), t / 900, hop, null);
+    const label = "x" + V.cust.group;
+    g.font = "800 20px " + ART.UI;
+    const w = g.measureText(label).width + 26;
+    roundRect(g, px - w/2, py + 16, w, 30, 15);
+    g.fillStyle = ART.card; g.fill();
+    g.strokeStyle = ART.cardEdge; g.lineWidth = 1.6; g.stroke();
+    g.textAlign = "center"; g.textBaseline = "alphabetic";
+    g.fillStyle = ART.ink; g.fillText(label, px, py + 37);
+  }
+}
+
+/* THE UPGRADE PODIUM: a stone drum with a glowing gold sunburst on it */
+function drawPodium(g, t){
+  const pd = MAP.PODIUM, ox = rx0(0);
+  const cx = ox + pd.x, cy = pd.y;
+  const ready = UPGRADES.some(function(u){ return !S.up[u.id] && priceOf(u.cost, S) <= S.money; });
+  const k = pd.r / 60;
+  g.save(); g.translate(cx, cy); g.scale(k, k);
+  softShadow(g, 0, 10, 62, 14);
+  g.beginPath(); g.ellipse(0, 0, 40, 14, 0, 0, 7);
+  g.fillStyle = ART.st3; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.43; g.stroke();
+  g.beginPath(); g.moveTo(-32,-26); g.lineTo(32,-26); g.lineTo(32,0);
+  g.ellipse(0, 0, 32, 12, 0, 0, Math.PI); g.lineTo(-32,-26); g.closePath();
+  g.fillStyle = ART.st2; g.fill(); g.stroke();
+  g.beginPath(); g.ellipse(0,-26,32,12,0,0,7);
+  g.fillStyle = ART.st1; g.fill(); g.stroke();
+  g.globalAlpha = 0.45; g.beginPath(); g.ellipse(0,-27,22,8,0,0,7);
+  g.fillStyle = ART.st3; g.fill(); g.globalAlpha = 1;
+  /* the glow, brighter when there is actually something to build */
+  const pulse = ready ? (0.72 + 0.28 * Math.abs(Math.sin(t/420))) : 0.42;
+  const gl = g.createRadialGradient(0,-68,2,0,-68,62);
+  gl.addColorStop(0, "rgba(255,255,255,.85)");
+  gl.addColorStop(0.55, "rgba(255,201,40,.45)");
+  gl.addColorStop(1, "rgba(255,201,40,0)");
+  g.globalAlpha = pulse; g.fillStyle = gl;
+  g.beginPath(); g.ellipse(0,-68,62,58,0,0,7); g.fill(); g.globalAlpha = 1;
+  /* the sunburst */
+  g.save(); g.translate(0, -66); g.rotate(t / 4200);
+  g.beginPath();
+  for (let i = 0; i < 24; i++){
+    const a = (i / 24) * Math.PI * 2;
+    const rad = (i % 2 === 0) ? 21 : 16;
+    const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
+    if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.closePath();
+  g.fillStyle = ART.coin; g.fill(); g.strokeStyle = ART.coinEdge; g.lineWidth = 2.4; g.lineJoin = "round"; g.stroke();
+  g.restore();
+  g.beginPath(); g.arc(0,-66,9.5,0,7);
+  g.fillStyle = "#FFFFFF"; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.1; g.stroke();
+  g.beginPath(); g.moveTo(0,-72); g.lineTo(6,-65); g.lineTo(2.4,-65); g.lineTo(2.4,-60);
+  g.lineTo(-2.4,-60); g.lineTo(-2.4,-65); g.lineTo(-6,-65); g.closePath();
+  g.fillStyle = ART.coinEdge; g.fill();
+  /* sparkles */
+  g.globalAlpha = 0.9; g.fillStyle = "#fff";
+  [[-44,-89],[42,-93],[-52,-37],[50,-43]].forEach(function(s, i){
+    const w = 7 + Math.sin(t/300 + i) * 2;
+    g.beginPath();
+    g.moveTo(s[0], s[1] - w); g.lineTo(s[0] + 1.8, s[1] - 1.8); g.lineTo(s[0] + w, s[1]);
+    g.lineTo(s[0] + 1.8, s[1] + 1.8); g.lineTo(s[0], s[1] + w); g.lineTo(s[0] - 1.8, s[1] + 1.8);
+    g.lineTo(s[0] - w, s[1]); g.lineTo(s[0] - 1.8, s[1] - 1.8); g.closePath(); g.fill();
+  });
+  g.globalAlpha = 1;
+  g.restore();
+  /* what the next upgrade costs */
+  let next = null;
+  for (let i = 0; i < UPGRADES.length; i++){ if (!S.up[UPGRADES[i].id]){ next = UPGRADES[i]; break; } }
+  if (next){
+    const c = priceOf(next.cost, S);
+    priceBubble(g, cx, cy - pd.r * 1.9, "UPGRADE", c, c <= S.money);
+  }
+}
+
+/* THE DOOR TO THE NEXT AREA: stone pillars, an arch, a planked wood door
+   and a gold lock while it is shut. */
+function drawGaps(g, t){
+  for (let i = 0; i < S.rooms; i++){
+    if (i >= ROOMS.length - 1) break;
+    const gx = rx1(i), open = (i + 1) < S.rooms;
+    const cx = gx + MAP.WALL / 2, by = DOOR_HI + 10;
+    const k = 0.95;              /* its arch is about half as wide as the gap */
+    g.save(); g.translate(cx, by); g.scale(k, k);
+    softShadow(g, 0, 8, 62, 14);
+    rr(g, -54, -26, 108, 30, 8, ART.st3, ART.out, 1.65);
+    g.beginPath(); g.moveTo(-66,-136); g.quadraticCurveTo(0,-176,66,-136); g.closePath();
+    g.fillStyle = ART.st2; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.65; g.stroke();
+    if (open){
+      /* it is open: the sand path runs straight through */
+      rr(g, -30, -128, 60, 104, 6, ART.path1, ART.out, 1.4);
+      g.globalAlpha = 0.55; rr(g, -24, -124, 48, 96, 5, ART.path2); g.globalAlpha = 1;
+    } else {
+      rr(g, -30, -128, 60, 104, 6, woodGrad(g, -128, -24), ART.out, 1.65);
+      g.strokeStyle = ART.wood2; g.lineWidth = 3; g.globalAlpha = 0.65;
+      [-18,0,18].forEach(function(px){ g.beginPath(); g.moveTo(px,-128); g.lineTo(px,-24); g.stroke(); });
+      g.strokeStyle = ART.wood1; g.lineWidth = 6; g.globalAlpha = 0.8;
+      [-98,-56].forEach(function(py){ g.beginPath(); g.moveTo(-30,py); g.lineTo(30,py); g.stroke(); });
+      g.globalAlpha = 1;
+      g.save(); g.translate(0,-74);
+      g.beginPath(); g.arc(0,-9,11,Math.PI,0);
+      g.strokeStyle = ART.st3; g.lineWidth = 6.5; g.lineCap = "round"; g.stroke();
+      rr(g, -16, -10, 32, 26, 6, ART.coin, ART.coinEdge, 2.6);
+      g.beginPath(); g.arc(0,1,4.2,0,7); g.fillStyle = ART.wood2; g.fill();
+      g.beginPath(); g.moveTo(0,2); g.lineTo(0,9);
+      g.strokeStyle = ART.wood2; g.lineWidth = 3.4; g.stroke();
+      g.restore();
+    }
+    /* the two pillars */
+    [[-62,-36],[36,62]].forEach(function(px){
+      rr(g, px[0], -136, px[1] - px[0], 112, 8, ART.st2, ART.out, 1.65);
+      g.globalAlpha = 0.8;
+      rr(g, px[0] + 4, -132, 10, 104, 5, ART.st1);
+      g.globalAlpha = 1;
+    });
+    g.restore();
+    if (!open){
+      const rm = ROOMS[i + 1], rc = priceOf(rm.cost, S);
+      /* right above the arch, where he can read it as he walks up to it */
+      priceBubble(g, cx, by - 176 * k - 12, "LOCKED", rc, rc <= S.money);
+    }
+  }
+}
+
+/* THE CHEVRON TRAIL. Still gated by nextAction(), which never names
+   anything he cannot do right now. */
+function drawTrail(g, t){
+  if (V.where !== "park" || frozen()) return;
+  const a = nextAction();
+  const pts = trailPts(a);
+  const total = pathLen(pts);
+  function ring(tp){
+    g.save();
+    g.globalAlpha = 0.35 + 0.40 * Math.abs(Math.sin(t/300));
+    g.strokeStyle = ART.coin; g.lineWidth = 7;
+    g.beginPath(); g.ellipse(tp.x, tp.y, 62, 28, 0, 0, 7); g.stroke();
+    g.globalAlpha = 0.55 + 0.30 * Math.abs(Math.sin(t/300));
+    g.strokeStyle = ART.coinEdge; g.lineWidth = 2.4;
+    g.beginPath(); g.ellipse(tp.x, tp.y, 62, 28, 0, 0, 7); g.stroke();
+    g.restore();
+  }
+  if (total < 56){ ring(targetPoint(a)); return; }
+  const CH = 86, SKIP = 86;
+  const phase = (t / 11) % CH;
+  g.save();
+  g.lineJoin = "round"; g.lineCap = "round";
+  let n = 0;
+  for (let d = SKIP + phase; d < total - 30 && n < 40; d += CH, n++){
+    const pt = alongPath(pts, d);
+    if (!pt) break;
+    const fade = Math.min(1, (total - d) / 240);
+    g.globalAlpha = 0.45 + 0.47 * fade;
+    g.save();
+    g.translate(pt.x, pt.y); g.rotate(Math.atan2(pt.uy, pt.ux)); g.scale(1.45, 1.45);
+    g.beginPath();
+    g.moveTo(-16,-11); g.lineTo(0,0); g.lineTo(-16,11); g.lineTo(-9,11); g.lineTo(7,0); g.lineTo(-9,-11);
+    g.closePath();
+    g.fillStyle = ART.coin; g.fill();
+    g.strokeStyle = ART.coinEdge; g.lineWidth = 2; g.stroke();
+    g.restore();
+  }
+  g.restore();
+  ring(targetPoint(a));
+}
+
+/* the secret area. No maths in here at all: it is the reward. */
+function drawGrotto(g, t){
+  const w = MAP.SECRET.w, h = MAP.SECRET.h;
+  const bg = g.createLinearGradient(0, 0, w * 0.2, h);
+  bg.addColorStop(0, ART.wat1); bg.addColorStop(0.45, ART.wat2); bg.addColorStop(1, ART.wat3);
+  g.fillStyle = bg; g.fillRect(-60, -60, w + 120, h + 120);
+  const pat = PAT.scale(g);
+  if (pat){ g.globalAlpha = 0.5; g.fillStyle = pat; g.fillRect(-60, -60, w + 120, h + 120); g.globalAlpha = 1; }
+  /* a sand floor with planting on it */
+  g.beginPath(); g.moveTo(-60, h - 150);
+  g.quadraticCurveTo(w * 0.3, h - 200, w * 0.62, h - 150);
+  g.quadraticCurveTo(w * 0.86, h - 112, w + 60, h - 148);
+  g.lineTo(w + 60, h + 60); g.lineTo(-60, h + 60); g.closePath();
+  g.fillStyle = ART.sand2; g.fill();
+  g.strokeStyle = ART.sand1; g.lineWidth = 5; g.globalAlpha = 0.55; g.stroke(); g.globalAlpha = 1;
+  for (let k = 0; k < 12; k++) seaweed(g, 60 + k * (w / 12), h - 130, 120 + (k % 4) * 46, 1.5);
+  for (let k = 0; k < 6; k++) coralSprig(g, 110 + k * (w / 6), h - 126, 1.9, ["#FF7E9D","#C58BFF","#FF9F6E"][k % 3]);
+  for (let k = 0; k < 5; k++) rock(g, 90 + k * (w / 5), h - 112, 1.3, k * 9 + 3);
+  /* sun shafts from the surface */
+  g.globalAlpha = 0.14; g.fillStyle = "#fff";
+  for (let k = 0; k < 5; k++){
+    const sx = 60 + k * (w / 5);
+    g.beginPath(); g.moveTo(sx, -60); g.lineTo(sx + 72, -60); g.lineTo(sx + 150, h);
+    g.lineTo(sx + 44, h); g.closePath(); g.fill();
+  }
+  g.globalAlpha = 1;
+  g.textAlign = "center"; g.textBaseline = "top";
+  g.font = "800 34px " + ART.UI; g.fillStyle = "#FFFFFF";
+  g.fillText("THE MIDNIGHT GROTTO", w/2, 32);
+  g.font = "800 17px " + ART.UI; g.fillStyle = "rgba(255,255,255,.85)";
+  g.fillText("Every fish on your cards swims free in here. Nothing to work out.", w/2, 76);
+  const held = FISH.filter(function(f){ return cardCount(f.id) > 0; });
+  if (!held.length){
+    g.font = "800 20px " + ART.UI; g.fillStyle = "rgba(255,255,255,.9)";
+    g.fillText("Win a card and its fish will appear here.", w/2, h * 0.46);
+  }
+  const LANES = 5;
+  held.forEach(function(f, k){
+    const gd = cardGrade(f.id);
+    const lane = k % LANES;
+    const yy = 150 + lane * ((h - 320) / (LANES - 1));
+    const phase = t / 1800 + Math.floor(k / LANES) * Math.PI + (k % LANES) * 0.37;
+    const pr = (Math.sin(phase) + 1) / 2;
+    const xx = 90 + pr * (w - 180);
+    if (gd >= 1){
+      const gl = g.createRadialGradient(xx, yy, 2, xx, yy, 64);
+      gl.addColorStop(0, gd >= 3 ? "rgba(255,201,40,.45)" : (gd >= 2 ? "rgba(197,139,255,.42)" : "rgba(223,252,251,.5)"));
+      gl.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gl; g.beginPath(); g.arc(xx, yy, 64, 0, 7); g.fill();
+    }
+    drawFish(g, xx, yy, 1.15, f.idx, Math.cos(phase) < 0, Math.sin(phase*2) * 0.08);
+    const label = f.n + "  x" + cardCount(f.id);
+    g.font = "800 14px " + ART.UI;
+    g.textAlign = "center"; g.textBaseline = "alphabetic";
+    const lw = g.measureText(label).width + 20;
+    roundRect(g, xx - lw/2, yy + 28, lw, 24, 12);
+    g.fillStyle = ART.card; g.fill();
+    g.strokeStyle = ART.cardEdge; g.lineWidth = 1.4; g.stroke();
+    g.fillStyle = gd >= 3 ? "#B07A00" : (gd >= 2 ? "#7B3FD6" : (gd >= 1 ? "#1193A8" : ART.sub));
+    g.fillText(label, xx, yy + 45);
+  });
+}
+
+/* =====================================================================
+   THE CAMERA. It follows him smoothly and leads a little the way he is
+   walking, so the park ahead is the part he can see. It is clamped to
+   the park's own edges, so he can never be shown blank ground: the park
+   always runs off all four sides of the screen.
+   ===================================================================== */
+const VIEW_SHORT = 452;            /* world units across the short edge */
+const CAM_LEAD = 150;              /* how far ahead of him the camera looks */
+const CAM_RISE = 130;               /* and how far ABOVE him it sits, so he stands
+                                      low in the frame with the park he is walking
+                                      into spread out in front of him */
+const CAM_EASE = 6.2;              /* how quickly it catches up, per second */
+function camBounds(){
+  if (V.where === "secret") return { L: -30, R: MAP.SECRET.w + 30, T: -30, B: MAP.SECRET.h + 30 };
+  return { L: rx0(0) - 70, R: worldRight() + 90, T: -70, B: MAP.ROOM_H + 70 };
+}
+function camUpdate(dt, vw, vh){
+  const b = camBounds();
+  let z = Math.min(vw, vh) / VIEW_SHORT;
+  z = Math.max(z, vw / (b.R - b.L), vh / (b.B - b.T));
+  z = Math.max(0.22, Math.min(3, z));
+  const halfW = vw / (2*z), halfH = vh / (2*z);
+  let tx = P.x + clampN((P.sx || 0) / SPEED, -1, 1) * CAM_LEAD;
+  let ty = P.y - CAM_RISE + clampN((P.sy || 0) / SPEED, -1, 1) * CAM_LEAD * 0.62;
+  if (b.R - b.L <= 2*halfW) tx = (b.L + b.R) / 2; else tx = clampN(tx, b.L + halfW, b.R - halfW);
+  if (b.B - b.T <= 2*halfH) ty = (b.T + b.B) / 2; else ty = clampN(ty, b.T + halfH, b.B - halfH);
+  if (!CAM.live){ CAM.x = tx; CAM.y = ty; CAM.live = 1; }
+  else {
+    const e = 1 - Math.exp(-CAM_EASE * Math.max(0, Math.min(0.08, dt)));
+    CAM.x += (tx - CAM.x) * e;
+    CAM.y += (ty - CAM.y) * e;
+  }
+  /* the smoothing itself must never be allowed to show blank ground */
+  if (b.R - b.L <= 2*halfW) CAM.x = (b.L + b.R) / 2; else CAM.x = clampN(CAM.x, b.L + halfW, b.R - halfW);
+  if (b.B - b.T <= 2*halfH) CAM.y = (b.T + b.B) / 2; else CAM.y = clampN(CAM.y, b.T + halfH, b.B - halfH);
+  CAM.z = z; CAM.vw = vw; CAM.vh = vh;
+}
+
+function paintPark(t, dt){
+  const c = $("parkCanvas"); if (!c) return;
+  const wrap = $("world"); if (!wrap) return;
+  const r = wrap.getBoundingClientRect();
+  const vw = Math.max(60, Math.round(r.width)), vh = Math.max(60, Math.round(r.height));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (c.width !== Math.round(vw*dpr) || c.height !== Math.round(vh*dpr)){ c.width = Math.round(vw*dpr); c.height = Math.round(vh*dpr); }
+  const g = c.getContext("2d"); if (!g) return;
+
+  camUpdate(dt || 0, vw, vh);
+  const z = CAM.z, cx = CAM.x, cy = CAM.y;
+  const view = { x0: cx - vw/(2*z), x1: cx + vw/(2*z), y0: cy - vh/(2*z), y1: cy + vh/(2*z) };
+  const secret = V.where === "secret";
+
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  /* nothing behind the park is ever visible, but it is sand if it were */
+  g.fillStyle = secret ? ART.wat3 : ART.sand2;
+  g.fillRect(0, 0, vw, vh);
+
+  g.save();
+  g.translate(vw/2, vh/2); g.scale(z, z); g.translate(-cx, -cy);
+  g.textBaseline = "alphabetic";
+
+  if (secret){
+    drawGrotto(g, t);
+  } else {
+    for (let i = 0; i < S.rooms; i++) drawRoom(g, i, t, view);
+    drawGaps(g, t);
+    drawDesk(g, t);
+    drawPodium(g, t);
+    drawCrowd(g, t);
+    drawTrail(g, t);
+  }
+
+  /* the hero, with the same soft shadow as everything else in the park */
+  const cheer = performance.now() < V.cheerUntil;
+  const u = 78;
+  const bob = cheer ? -Math.abs(Math.sin(t/130)) * u * 0.16
+                    : (Math.abs(Math.sin(P.walk)) > 0.01 ? -Math.abs(Math.sin(P.walk * 1.6)) * u * 0.07 : Math.sin(t/620) * u * 0.02);
+  softShadow(g, P.x, P.y + 4, u * 0.30, u * 0.11, 0.20);
+  g.save();
+  if (P.face < 0){ g.translate(P.x, 0); g.scale(-1, 1); g.translate(-P.x, 0); }
+  drawHeroSprite(g, P.x, P.y, u, HERO, { bob: bob, fx: P.face * 0.6, fy: 0.3, cheer: cheer });
+  g.restore();
+
+  /* the mockup's warm vignette, in screen space */
+  g.restore();
+  const vg = g.createRadialGradient(vw*0.5, vh*0.42, Math.min(vw,vh)*0.42,
+                                    vw*0.5, vh*0.42, Math.max(vw,vh)*0.78);
+  vg.addColorStop(0, "rgba(138,92,34,0)"); vg.addColorStop(1, "rgba(138,92,34,0.16)");
+  g.fillStyle = vg; g.fillRect(0, 0, vw, vh);
+}
+
 /* the fish a plot could hold next: the dearest he can afford, else the
    cheapest that is unlocked, so the silhouette is never a fish he has no
    route to at all */
@@ -2444,395 +3891,6 @@ function ghostTankFor(){
   let best = null;
   for (let i = TANKS.length - 1; i >= 0; i--){ if (priceOf(TANKS[i].cost, S) <= S.money){ best = TANKS[i]; break; } }
   return best || TANKS[0];
-}
-
-function drawPlot(g, ox, p, i, t){
-  const rm = ROOMS[i];
-  const bx = ox + p.x, by = p.y, bw = p.w, bh = MAP.PLOT_H * PLOT_BODY;
-  const ti = tankAt(i, p.slot);
-
-  /* the standing pad in front of the plot: this is the bit he walks onto */
-  const padTop = by + bh - 10, padH = APRON + 16;
-  g.fillStyle = "rgba(0,0,0,.34)";
-  roundRect(g, bx - 5, padTop + 6, bw + 10, padH, 13); g.fill();
-  g.save();
-  g.globalAlpha = 0.26; g.fillStyle = rm.sand;
-  roundRect(g, bx - 3, padTop, bw + 6, padH, 13); g.fill();
-  g.restore();
-  g.save();
-  g.setLineDash([8, 6]); g.strokeStyle = "rgba(255,255,255,.16)"; g.lineWidth = 2;
-  roundRect(g, bx - 3, padTop, bw + 6, padH, 13); g.stroke();
-  g.restore();
-
-  if (ti < 0){
-    /* EMPTY: a dark silhouette of what goes here, and the price over it */
-    g.fillStyle = "rgba(4,10,20,.62)";
-    roundRect(g, bx, by, bw, bh, 10); g.fill();
-    g.save();
-    g.setLineDash([9, 7]);
-    g.strokeStyle = "rgba(255,210,63,.55)"; g.lineWidth = 3;
-    roundRect(g, bx + 2, by + 2, bw - 4, bh - 4, 10); g.stroke();
-    g.restore();
-    const gt = ghostTankFor();
-    const gf = ghostFishFor();
-    ghostGlyph(g, gt.e, bx + bw * 0.5, by + bh * 0.42, Math.min(bh * 0.52, bw * 0.42), 0.55);
-    ghostGlyph(g, gf.e, bx + bw * 0.5, by + bh * 0.76, Math.min(bh * 0.34, bw * 0.3), 0.40);
-    const tc = priceOf(gt.cost, S);
-    priceTag(g, bx + bw * 0.5, by - 8, tc, tc <= S.money, gt.e);
-    return;
-  }
-
-  const tk = S.tanks[ti], td = TANK_BY[tk.t] || TANKS[0];
-  const mine = [];
-  for (let k = 0; k < S.fish.length; k++) if (S.fish[k].t === ti) mine.push(S.fish[k]);
-  const free = Math.max(0, td.hold - mine.length);
-
-  /* the tank */
-  const wat = g.createLinearGradient(0, by, 0, by + bh);
-  wat.addColorStop(0, rm.water[0]); wat.addColorStop(1, rm.water[1]);
-  roundRect(g, bx, by, bw, bh, 10); g.fillStyle = wat; g.fill();
-  g.save(); roundRect(g, bx, by, bw, bh, 10); g.clip();
-  g.fillStyle = rm.sand; g.fillRect(bx, by + bh - Math.max(6, bh * 0.12), bw, Math.max(6, bh * 0.12));
-  /* the fish, swimming */
-  const cap = td.hold;
-  const size = Math.max(14, Math.min(bh * 0.30, bw / Math.max(2.4, Math.min(cap, 5))));
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = size + "px serif";
-  const lanes = Math.max(1, Math.floor(bh / (size * 0.95)));
-  mine.forEach((f, k) => {
-    const d = FISH_BY[f.k]; if (!d) return;
-    const lane = (k % lanes) + 1;
-    const ly = by + Math.min(bh - size * 0.6, lane * (bh / (lanes + 1)));
-    const span = Math.max(12, bw - size);
-    const phase = (t / (900 + (k * 137) % 700)) + k;
-    const pr = (Math.sin(phase) + 1) / 2;
-    const fx = bx + size * 0.5 + pr * span * 0.92;
-    const dir = Math.cos(phase) >= 0 ? 1 : -1;
-    g.save(); g.translate(fx, ly); g.scale(dir, 1); g.fillText(d.e, 0, 0); g.restore();
-  });
-  /* a ghost of the next fish in the empty water, plus its price above */
-  if (free > 0){
-    const gf = ghostFishFor();
-    ghostGlyph(g, gf.e, bx + bw * 0.5, by + bh * 0.28, size * 1.05, 0.34);
-  }
-  g.restore();
-  /* glass */
-  roundRect(g, bx, by, bw, bh, 10);
-  g.strokeStyle = "rgba(180,225,255,.6)"; g.lineWidth = 3; g.stroke();
-  g.save(); roundRect(g, bx, by, bw, bh, 10); g.clip();
-  g.fillStyle = "rgba(255,255,255,.09)";
-  g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + bw * 0.42, by); g.lineTo(bx, by + bh * 0.7); g.closePath(); g.fill();
-  g.restore();
-  /* label */
-  g.textAlign = "left"; g.textBaseline = "top";
-  g.font = "900 15px 'Trebuchet MS',sans-serif";
-  g.fillStyle = free > 0 ? "#ffd23f" : "#9ff0b8";
-  g.fillText(free > 0 ? ("+" + free + " space") : "full", bx + 8, by + 7);
-  if (free > 0){
-    const gf = ghostFishFor();
-    const fc = priceOf(gf.cost, S);
-    priceTag(g, bx + bw * 0.5, by - 8, fc, fc <= S.money, gf.e);
-  } else {
-    /* full, but never a dead end: the silhouette of the bigger tank that
-       could stand on this plot instead, and what that would cost */
-    const up = biggerThan(ti);
-    if (up.length){
-      let want = up[0];
-      for (let i = up.length - 1; i >= 0; i--){ if (priceOf(up[i].cost, S) <= S.money){ want = up[i]; break; } }
-      ghostGlyph(g, want.e, bx + bw * 0.5, by + bh * 0.30, Math.min(bh * 0.34, bw * 0.24), 0.30);
-      const uc = priceOf(want.cost, S);
-      priceTag(g, bx + bw * 0.5, by - 8, uc, uc <= S.money, want.e);
-    }
-  }
-}
-
-function drawRoom(g, i, t){
-  const ox = rx0(i);
-  /* floor */
-  const fl = g.createLinearGradient(0, 0, 0, MAP.ROOM_H);
-  fl.addColorStop(0, "#132741"); fl.addColorStop(1, "#0a1628");
-  g.fillStyle = fl; g.fillRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H);
-  /* a room tint so each one feels like its own place */
-  g.save(); g.globalAlpha = 0.10; g.fillStyle = ROOMS[i].water[0];
-  g.fillRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H); g.restore();
-  /* floor tiles */
-  g.strokeStyle = "rgba(255,255,255,.035)"; g.lineWidth = 1.5;
-  for (let x = 0; x <= MAP.ROOM_W; x += 64){ g.beginPath(); g.moveTo(ox + x, 0); g.lineTo(ox + x, MAP.ROOM_H); g.stroke(); }
-  for (let y = 0; y <= MAP.ROOM_H; y += 64){ g.beginPath(); g.moveTo(ox, y); g.lineTo(ox + MAP.ROOM_W, y); g.stroke(); }
-  /* night lights */
-  if (S.up.lights){
-    const gl = g.createRadialGradient(ox + MAP.ROOM_W/2, MAP.ROOM_H*0.3, 10, ox + MAP.ROOM_W/2, MAP.ROOM_H*0.3, MAP.ROOM_W*0.75);
-    gl.addColorStop(0, "rgba(79,195,255,.20)"); gl.addColorStop(1, "rgba(79,195,255,0)");
-    g.fillStyle = gl; g.fillRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H);
-  }
-  /* walls */
-  g.strokeStyle = "#08111f"; g.lineWidth = 16;
-  g.strokeRect(ox - 8, -8, MAP.ROOM_W + 16, MAP.ROOM_H + 16);
-  g.strokeStyle = "rgba(79,195,255,.30)"; g.lineWidth = 2.5;
-  g.strokeRect(ox, 0, MAP.ROOM_W, MAP.ROOM_H);
-  /* the room's own name on the back wall */
-  g.textAlign = "center"; g.textBaseline = "top";
-  g.font = "900 19px 'Trebuchet MS',sans-serif";
-  g.fillStyle = "rgba(191,230,255,.42)";
-  g.fillText(ROOMS[i].e + "  " + ROOMS[i].name.toUpperCase(), ox + MAP.ROOM_W/2, 10);
-  /* coral decor along the front wall */
-  if (S.up.coral){
-    g.textAlign = "center"; g.textBaseline = "bottom";
-    g.font = "30px serif";
-    for (let k = 0; k < 7; k++) g.fillText(k % 2 ? "\u{1FAB8}" : "\u{1F33F}", ox + (k + 0.5) * (MAP.ROOM_W/7), MAP.ROOM_H - 6);
-  }
-  /* feeding show bubbles */
-  if (S.up.show){
-    g.fillStyle = "rgba(255,255,255,.18)";
-    for (let k = 0; k < 10; k++){
-      const bx2 = ox + ((k * 137) % (MAP.ROOM_W - 20)) + 10;
-      const by2 = MAP.ROOM_H - ((t/8 + k * 90) % MAP.ROOM_H);
-      g.beginPath(); g.arc(bx2, by2, 3 + (k % 3), 0, 7); g.fill();
-    }
-  }
-  /* the plots */
-  plotsOf(i).forEach(p => drawPlot(g, ox, p, i, t));
-}
-
-function drawDesk(g, t){
-  const d = MAP.DESK, ox = rx0(0);
-  g.fillStyle = "rgba(0,0,0,.35)";
-  roundRect(g, ox + d.x - 5, d.y + 8, d.w + 10, d.h, 12); g.fill();
-  const gr = g.createLinearGradient(0, d.y, 0, d.y + d.h);
-  gr.addColorStop(0, "#39557f"); gr.addColorStop(1, "#1d3050");
-  g.fillStyle = gr; roundRect(g, ox + d.x, d.y, d.w, d.h, 12); g.fill();
-  g.strokeStyle = "#7fd0ff"; g.lineWidth = 3; roundRect(g, ox + d.x, d.y, d.w, d.h, 12); g.stroke();
-  g.fillStyle = "#cfe6ff"; roundRect(g, ox + d.x + 8, d.y + 8, d.w - 16, 16, 6); g.fill();
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = "42px serif"; g.fillText("\u{1F39F}️", ox + d.x + d.w * 0.30, d.y + d.h * 0.62);
-  g.font = "900 17px 'Trebuchet MS',sans-serif"; g.fillStyle = "#ffd23f";
-  g.fillText("TICKETS", ox + d.x + d.w * 0.68, d.y + d.h * 0.62);
-  /* the big sign upgrade hangs over the desk */
-  if (S.up.sign){
-    const A = HERO_ART[HERO] || HERO_ART.knight;
-    const sw = 300, sx = ox + d.x - 40, sy = d.y - 84, sh = 40;
-    g.fillStyle = "#7a5a1a"; roundRect(g, sx, sy, sw, sh, 8); g.fill();
-    g.strokeStyle = "#ffd23f"; g.lineWidth = 3; roundRect(g, sx, sy, sw, sh, 8); g.stroke();
-    g.fillStyle = "#ffd23f"; g.font = "900 22px 'Trebuchet MS',sans-serif";
-    g.textAlign = "center"; g.textBaseline = "middle";
-    g.fillText((A.name.replace(/^The /, "") + "'S AQUARIUM").toUpperCase(), sx + sw/2, sy + sh/2 + 1);
-  }
-  /* the gift shop stall */
-  if (S.up.gift){
-    g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "56px serif"; g.fillText("\u{1F381}", ox + MAP.ROOM_W * 0.86, MAP.ROOM_H - 84);
-    g.font = "900 14px 'Trebuchet MS',sans-serif"; g.fillStyle = "#ffd23f";
-    g.fillText("GIFT SHOP", ox + MAP.ROOM_W * 0.86, MAP.ROOM_H - 44);
-  }
-  /* the visitor group waiting at the till */
-  if (V.cust && V.step !== "idle"){
-    const cheer = performance.now() < V.cheerUntil;
-    const hop = cheer ? Math.abs(Math.sin(t/130)) * 14 : Math.sin(t/700) * 4;
-    g.textAlign = "center"; g.textBaseline = "alphabetic";
-    g.font = "54px serif";
-    g.fillText(V.cust.e, ox + d.x + d.w + 46, d.y + d.h * 0.78 - hop);
-    g.font = "900 16px 'Trebuchet MS',sans-serif"; g.fillStyle = "#bfe6ff";
-    g.fillText("×" + V.cust.group, ox + d.x + d.w + 46, d.y + d.h + 14);
-  }
-}
-function drawPodium(g, t){
-  const pd = MAP.PODIUM, ox = rx0(0);
-  const cx = ox + pd.x, cy = pd.y;
-  const ready = UPGRADES.some(u => !S.up[u.id] && priceOf(u.cost, S) <= S.money);
-  g.fillStyle = "rgba(0,0,0,.35)";
-  g.beginPath(); g.ellipse(cx, cy + 8, pd.r, pd.r * 0.5, 0, 0, 7); g.fill();
-  g.fillStyle = "#17304d";
-  g.beginPath(); g.ellipse(cx, cy, pd.r, pd.r * 0.52, 0, 0, 7); g.fill();
-  /* the green ring, brighter when there is something he can actually build */
-  const pulse = 0.55 + 0.45 * Math.abs(Math.sin(t/420));
-  g.save();
-  g.globalAlpha = ready ? pulse : 0.45;
-  g.strokeStyle = "#3ddc84"; g.lineWidth = 6;
-  g.beginPath(); g.ellipse(cx, cy, pd.r - 4, pd.r * 0.52 - 3, 0, 0, 7); g.stroke();
-  g.restore();
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = "38px serif"; g.fillText("\u{1F6E0}️", cx, cy - 6);
-  g.font = "900 14px 'Trebuchet MS',sans-serif"; g.fillStyle = "#9ff0b8";
-  g.fillText("UPGRADES", cx, cy + pd.r * 0.52 + 12);
-}
-function drawGaps(g, t){
-  for (let i = 0; i < S.rooms; i++){
-    if (i >= ROOMS.length - 1) break;
-    const gx = rx1(i), open = (i + 1) < S.rooms;
-    /* the wall the gap is cut through */
-    g.fillStyle = "#08111f"; g.fillRect(gx, -8, MAP.WALL, MAP.ROOM_H + 16);
-    /* the doorway floor */
-    const fl = g.createLinearGradient(0, DOOR_LO, 0, DOOR_HI);
-    fl.addColorStop(0, "#132741"); fl.addColorStop(1, "#0a1628");
-    g.fillStyle = fl; g.fillRect(gx, DOOR_LO, MAP.WALL, MAP.DOOR_H);
-    g.strokeStyle = "rgba(79,195,255,.35)"; g.lineWidth = 2.5;
-    g.beginPath(); g.moveTo(gx, DOOR_LO); g.lineTo(gx + MAP.WALL, DOOR_LO); g.stroke();
-    g.beginPath(); g.moveTo(gx, DOOR_HI); g.lineTo(gx + MAP.WALL, DOOR_HI); g.stroke();
-    if (open) continue;
-    /* THE LOCKED DOOR, with its price painted on it */
-    const rm = ROOMS[i + 1], rc = priceOf(rm.cost, S), afford = rc <= S.money;
-    const dw = MAP.WALL - 14, dx = gx + 7;
-    g.fillStyle = "#23180c"; roundRect(g, dx, DOOR_LO + 6, dw, MAP.DOOR_H - 12, 8); g.fill();
-    g.strokeStyle = afford ? "#ffd23f" : "#6a5a1f"; g.lineWidth = 4;
-    roundRect(g, dx, DOOR_LO + 6, dw, MAP.DOOR_H - 12, 8); g.stroke();
-    g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "34px serif"; g.fillText(afford ? "\u{1F513}" : "\u{1F512}", gx + MAP.WALL/2, DOOR_MID - 18);
-    ghostGlyph(g, rm.e, gx + MAP.WALL/2, DOOR_MID + 26, 34, 0.55);
-    priceTag(g, gx + MAP.WALL/2, DOOR_LO - 4, rc, afford, rm.e);
-  }
-}
-function drawTrail(g, t){
-  if (V.where !== "park" || frozen()) return;
-  const a = nextAction();
-  const pts = trailPts(a);
-  const total = pathLen(pts);
-  if (total < 40){
-    /* he is already standing on it: ring it and say nothing */
-    const tp = targetPoint(a);
-    g.save();
-    g.strokeStyle = "#ffd23f"; g.lineWidth = 4;
-    g.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(t/300));
-    g.beginPath(); g.ellipse(tp.x, tp.y, 40, 20, 0, 0, 7); g.stroke();
-    g.restore();
-    return;
-  }
-  const CH = 54, SKIP = 58;
-  const phase = (t / 13) % CH;
-  g.save();
-  g.lineCap = "round"; g.lineJoin = "round";
-  let n = 0;
-  for (let d = SKIP + phase; d < total - 16 && n < 44; d += CH, n++){
-    const pt = alongPath(pts, d);
-    if (!pt) break;
-    const fade = Math.min(1, (total - d) / 160);
-    g.globalAlpha = 0.30 + 0.55 * fade;
-    g.strokeStyle = "#ffd23f"; g.lineWidth = 7;
-    const ang = Math.atan2(pt.uy, pt.ux);
-    g.save();
-    g.translate(pt.x, pt.y); g.rotate(ang);
-    g.beginPath(); g.moveTo(-11, -13); g.lineTo(9, 0); g.lineTo(-11, 13); g.stroke();
-    g.restore();
-  }
-  /* the ring on the thing itself */
-  const tp = targetPoint(a);
-  g.globalAlpha = 0.40 + 0.45 * Math.abs(Math.sin(t/300));
-  g.strokeStyle = "#ffd23f"; g.lineWidth = 4;
-  g.beginPath(); g.ellipse(tp.x, tp.y, 40, 20, 0, 0, 7); g.stroke();
-  g.restore();
-}
-/* the secret area. No maths in here at all: it is the reward. */
-function drawGrotto(g, t){
-  const w = MAP.SECRET.w, h = MAP.SECRET.h;
-  const bg = g.createRadialGradient(w/2, h*0.4, 20, w/2, h*0.4, w*0.8);
-  bg.addColorStop(0, "#0d2b3a"); bg.addColorStop(1, "#02070f");
-  g.fillStyle = bg; g.fillRect(0, 0, w, h);
-  g.strokeStyle = "#0a1a24"; g.lineWidth = 18; g.strokeRect(-9, -9, w + 18, h + 18);
-  g.strokeStyle = "rgba(0,245,212,.35)"; g.lineWidth = 3; g.strokeRect(0, 0, w, h);
-  /* bioluminescent blobs */
-  for (let k = 0; k < 16; k++){
-    const bx = ((k * 211) % (w - 40)) + 20;
-    const by = ((k * 137) % (h - 60)) + 30 + Math.sin(t/900 + k) * 10;
-    const rr = 26 + (k % 4) * 10;
-    const gl = g.createRadialGradient(bx, by, 1, bx, by, rr);
-    gl.addColorStop(0, "rgba(0,245,212,.22)"); gl.addColorStop(1, "rgba(0,245,212,0)");
-    g.fillStyle = gl; g.beginPath(); g.arc(bx, by, rr, 0, 7); g.fill();
-  }
-  g.textAlign = "center"; g.textBaseline = "top";
-  g.font = "900 26px 'Trebuchet MS',sans-serif"; g.fillStyle = "#00f5d4";
-  g.fillText("\u{1F311} THE MIDNIGHT GROTTO", w/2, 18);
-  g.font = "900 15px 'Trebuchet MS',sans-serif"; g.fillStyle = "rgba(191,230,255,.65)";
-  g.fillText("Every fish on your cards swims free in here. Nothing to work out.", w/2, 50);
-  /* every species he holds a card for, swimming loose */
-  const held = FISH.filter(f => cardCount(f.id) > 0);
-  if (!held.length){
-    g.font = "900 17px 'Trebuchet MS',sans-serif"; g.fillStyle = "#8ba0bd";
-    g.fillText("Win a card and its fish will appear here.", w/2, h * 0.5);
-  }
-  const LANES = 5;
-  held.forEach((f, k) => {
-    const gd = cardGrade(f.id);
-    const lane = k % LANES;
-    const yy = 104 + lane * ((h - 170) / (LANES - 1));
-    /* every fish gets its own starting point round the lap, so two sharing a
-       lane are always at opposite ends of it and the names never sit on top
-       of each other */
-    const phase = t / 1500 + Math.floor(k / LANES) * Math.PI + (k % LANES) * 0.37;
-    const pr = (Math.sin(phase) + 1) / 2;
-    const xx = 56 + pr * (w - 112);
-    const dir = Math.cos(phase) >= 0 ? 1 : -1;
-    if (gd >= 1){
-      const gl = g.createRadialGradient(xx, yy, 2, xx, yy, 44);
-      gl.addColorStop(0, gd >= 3 ? "rgba(255,210,63,.35)" : (gd >= 2 ? "rgba(200,107,255,.32)" : "rgba(107,231,255,.32)"));
-      gl.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = gl; g.beginPath(); g.arc(xx, yy, 44, 0, 7); g.fill();
-    }
-    g.save();
-    g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "42px serif";
-    g.translate(xx, yy); g.scale(dir, 1); g.fillText(f.e, 0, 0); g.restore();
-    const label = f.n + " ×" + cardCount(f.id);
-    g.font = "900 12px 'Trebuchet MS',sans-serif";
-    g.textAlign = "center"; g.textBaseline = "middle";
-    const lw = g.measureText(label).width + 12;
-    g.fillStyle = "rgba(2,7,15,.78)";
-    roundRect(g, xx - lw/2, yy + 21, lw, 17, 7); g.fill();
-    g.fillStyle = gd >= 3 ? "#ffd23f" : (gd >= 2 ? "#c86bff" : (gd >= 1 ? "#6be7ff" : "#9fb0c0"));
-    g.fillText(label, xx, yy + 30);
-  });
-}
-
-function paintPark(t){
-  const c = $("parkCanvas"); if (!c) return;
-  const wrap = $("world"); if (!wrap) return;
-  const r = wrap.getBoundingClientRect();
-  const vw = Math.max(60, Math.round(r.width)), vh = Math.max(60, Math.round(r.height));
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  if (c.width !== Math.round(vw*dpr) || c.height !== Math.round(vh*dpr)){ c.width = Math.round(vw*dpr); c.height = Math.round(vh*dpr); }
-  const g = c.getContext("2d"); if (!g) return;
-
-  /* the camera: he stays in the middle until the edge of the world stops it */
-  const secret = V.where === "secret";
-  const WH = secret ? MAP.SECRET.h : MAP.ROOM_H;
-  const L = secret ? 0 : (rx0(0) - 30), R = secret ? MAP.SECRET.w : (worldRight() + 30);
-  const T = -30, B = WH + 30;
-  let z = clampN(vh / (WH + 52), 0.42, 1.85);
-  z = Math.min(z, vw / 300);   /* never fewer than 300 world units across */
-  z = Math.max(z, 0.30);
-  const halfW = vw / (2*z), halfH = vh / (2*z);
-  let cx = P.x, cy = P.y;
-  if (R - L <= 2*halfW) cx = (L + R) / 2; else cx = clampN(cx, L + halfW, R - halfW);
-  if (B - T <= 2*halfH) cy = (T + B) / 2; else cy = clampN(cy, T + halfH, B - halfH);
-  CAM.x = cx; CAM.y = cy; CAM.z = z; CAM.vw = vw; CAM.vh = vh;
-
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const sky = g.createLinearGradient(0, 0, 0, vh);
-  sky.addColorStop(0, secret ? "#02060c" : "#06101f"); sky.addColorStop(1, "#02060c");
-  g.fillStyle = sky; g.fillRect(0, 0, vw, vh);
-
-  g.save();
-  g.translate(vw/2, vh/2); g.scale(z, z); g.translate(-cx, -cy);
-
-  if (secret){
-    drawGrotto(g, t);
-  } else {
-    for (let i = 0; i < S.rooms; i++) drawRoom(g, i, t);
-    drawGaps(g, t);
-    drawDesk(g, t);
-    drawPodium(g, t);
-    drawTrail(g, t);
-  }
-
-  /* the hero */
-  const cheer = performance.now() < V.cheerUntil;
-  const u = 74;
-  const bob = cheer ? -Math.abs(Math.sin(t/130)) * u * 0.16
-                    : (Math.abs(Math.sin(P.walk)) > 0.01 ? -Math.abs(Math.sin(P.walk * 1.6)) * u * 0.07 : Math.sin(t/620) * u * 0.02);
-  g.save();
-  if (P.face < 0){ g.translate(P.x, 0); g.scale(-1, 1); g.translate(-P.x, 0); }
-  drawHeroSprite(g, P.x, P.y, u, HERO, { bob: bob, fx: P.face * 0.6, fy: 0.3, cheer: cheer });
-  g.restore();
-
-  g.restore();
 }
 
 function paintSceneTag(){
@@ -2856,7 +3914,8 @@ let lastFrameT = 0, frameN = 0;
     lastFrameT = t;
     if (!frozen()) step(dt);
     triggers();
-    paintPark(t);
+    crowdStep(dt);          /* decoration: the queue walks. It earns nothing. */
+    paintPark(t, dt);
     if ((frameN++ % 10) === 0) paintSceneTag();
   } catch (e) { /* art never breaks the game */ }
   requestAnimationFrame(frame);
@@ -3369,7 +4428,7 @@ window.__AQ = {
   noSave: function(v){ SAVE_OFF = !!v; },
   reset: function(){ const f = freshState(); Object.keys(S).forEach(k => delete S[k]); Object.keys(f).forEach(k => S[k] = f[k]);
     V.cust = null; V.step = "idle"; V.cardQ = []; V.where = "park"; V.firedZone = null;
-    P.x = rx0(0) + 534; P.y = MAP.ROOM_H - 44;
+    P.x = rx0(0) + 560; P.y = 846; CAM.live = 0; CROWD.list.length = 0;
     closeSheet(); save(); paintHud(); paintRooms(); paintServe(); },
 
   /* ---- the park ---- */
