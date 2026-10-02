@@ -108,6 +108,10 @@ a{color:#1393C2}
   line-height:1.3;text-align:center;box-shadow:0 5px 0 rgba(42,26,6,.10),0 8px 18px rgba(42,26,6,.14);
   transition:opacity .25s;pointer-events:none;max-width:520px;margin:0 auto}
 #bubble.hide{opacity:0}
+/* pinned over whoever is talking, tail pointing down at them */
+#bubble.pin{left:0;right:auto;top:0;margin:0;max-width:300px;transition:opacity .25s}
+#bubble.pin::after{content:"";position:absolute;left:var(--tail,50%);bottom:-13px;margin-left:-11px;width:0;height:0;
+  border-left:11px solid transparent;border-right:11px solid transparent;border-top:14px solid var(--card)}
 #bubble .who{display:block;font-size:.70em;color:var(--sub);letter-spacing:.6px}
 #bubble .amt{color:#1C8A4A}
 #sceneTag{position:absolute;right:10px;bottom:74px;z-index:6;font-size:11px;color:#6B5128;
@@ -184,6 +188,9 @@ a{color:#1393C2}
 #ask .sum{display:block;font-size:clamp(23px,5.2vw,44px);color:var(--ink2);line-height:1.1;margin-bottom:2px}
 #ask .note{display:block;font-size:13px;color:var(--sub);line-height:1.3}
 #ask b{color:#1393C2}
+#ask .extra{display:block;color:#1C8A4A;font-weight:800;font-size:14px;animation:extraIn .32s ease-out}
+#ask .extra i{font-style:normal;color:var(--sub);font-weight:600}
+@keyframes extraIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 #slotRow{display:flex;align-items:center;gap:12px;flex:0 0 auto}
 #typeIt{font-size:14px;color:var(--sub);letter-spacing:.4px;white-space:nowrap}
 #paneServe.chg #slotRow,#paneServe.chg #typeIt{display:none}
@@ -227,7 +234,7 @@ a{color:#1393C2}
 #pad button.ok{background:var(--tick);box-shadow:0 6px 0 var(--tickBase),inset 0 4px 0 rgba(255,255,255,.34)}
 #pad button.ok:active{box-shadow:0 1px 0 var(--tickBase),inset 0 4px 0 rgba(255,255,255,.12);background:#3FC973}
 #pad button svg{display:block}
-#pad.off{opacity:.38;pointer-events:none}
+#pad.off{opacity:0;visibility:hidden;pointer-events:none}
 @media (min-aspect-ratio:1/1){
   #paneServe{flex-direction:row;align-items:stretch}
   #numBox{flex:0 0 clamp(210px,31vw,274px)}
@@ -245,10 +252,10 @@ a{color:#1393C2}
    keeps a lane clear for it and "Paid" is never hidden behind it */
 #app.serving #paneServe.chg #paidLine{padding-right:50px}
 #paidLine b{color:#1393C2}
-#till{display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px;justify-content:center;
+#till{display:flex;flex-wrap:wrap;align-content:center;gap:8px;justify-content:center;
   background:linear-gradient(180deg,var(--wat1),var(--wat2));
-  border:1.8px solid var(--out);border-radius:16px;padding:6px;flex:1 1 auto;min-height:52px;overflow-y:auto}
-.tbtn{background:none;padding:0;min-width:46px;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:12px}
+  border:1.8px solid var(--out);border-radius:16px;padding:8px;flex:0 1 auto;min-height:64px;overflow-y:auto}
+.tbtn{background:none;padding:0;min-width:60px;min-height:60px;display:flex;align-items:center;justify-content:center;border-radius:12px}
 .tbtn:active{transform:scale(.92)}
 #tray{min-height:52px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;
   background:#fff;border:2px dashed var(--pathEdge);border-radius:16px;padding:5px;flex:0 0 auto}
@@ -300,6 +307,12 @@ a{color:#1393C2}
   display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   padding:16px;z-index:20;overflow:auto;color:var(--ink)}
 .screen.on{display:flex}
+/* the start screen is a veil over the live park, not a yellow wall */
+#startScreen{background:linear-gradient(180deg,rgba(255,238,190,.58),rgba(255,222,140,.74))}
+#startScreen .startLine{font-size:clamp(15px,2.8vw,20px);color:#4A3100;font-weight:800}
+#startScreen .startHow{background:rgba(255,255,255,.78);border-radius:999px;padding:6px 15px;color:#4A3100;font-weight:800;
+  font-size:clamp(12px,2.2vw,15px)}
+#startScreen .startHow b{color:#1393C2}
 .screen h1{font-size:clamp(23px,5.4vw,40px);margin:0 0 6px;color:var(--btnInk)}
 .screen p{margin:4px 0;font-size:clamp(13px,2.5vw,17px);color:#6B5128;line-height:1.45;max-width:660px}
 .screen b{color:#1393C2}
@@ -447,7 +460,7 @@ a{color:#1393C2}
     <div id="hud">
       <span class="chip" id="moneyBox"><svg width="23" height="23" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="11" fill="#FFC928" stroke="#F0A81E" stroke-width="2.6"/><circle r="6.8" fill="#F0A81E" opacity=".40"/><text y="5.4" font-size="14" font-weight="800" fill="#6B4A00" text-anchor="middle" font-family="'Baloo 2',Trebuchet MS,sans-serif">$</text></svg><span class="val">$45</span></span>
       <span class="chip" id="fishBox"><svg width="30" height="20" viewBox="-16 -10 32 20" aria-hidden="true"><path d="M-7 0C-7-5-3-8 2-8C8-8 12-4 13 0C12 4 8 8 2 8C-3 8-7 5-7 0Z" fill="#FF9F3C" stroke="#D97B1E" stroke-width="1.8"/><path d="M-7 0L-13-6C-14-7-15-6-15-4L-14 0L-15 4C-15 6-14 7-13 6Z" fill="#FFD9A8" stroke="#D97B1E" stroke-width="1.6"/><circle cx="7" cy="-2" r="2" fill="#fff"/><circle cx="7.6" cy="-2" r="1" fill="#2B3440"/></svg><span class="val">0/0</span></span>
-      <span class="chip" id="coinBox"><svg width="23" height="23" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="11" fill="#C58BFF" stroke="#9A5FE0" stroke-width="2.6"/><path d="M0-6.6L1.7-2.3L6.3-2L2.8.9L3.9 5.3L0 2.9L-3.9 5.3L-2.8.9L-6.3-2L-1.7-2.3Z" fill="#fff" opacity=".95"/></svg><span class="val">0</span></span>
+      <span class="chip stack" id="coinBox"><svg width="23" height="23" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="11" fill="#C58BFF" stroke="#9A5FE0" stroke-width="2.6"/><path d="M0-6.6L1.7-2.3L6.3-2L2.8.9L3.9 5.3L0 2.9L-3.9 5.3L-2.8.9L-6.3-2L-1.7-2.3Z" fill="#fff" opacity=".95"/></svg><span><span class="lab">ARCADE COINS</span><span class="val">0</span></span></span>
       <span class="chip" id="starBadge"><svg width="23" height="23" viewBox="-12 -12 24 24" aria-hidden="true"><path d="M0-10.5L2.8-3.6L10.2-3.1L4.5 1.6L6.3 8.8L0 4.8L-6.3 8.8L-4.5 1.6L-10.2-3.1L-2.8-3.6Z" fill="#FFC928" stroke="#F0A81E" stroke-width="2.2" stroke-linejoin="round"/></svg><span class="val">1</span></span>
       <span class="sp"></span>
       <span class="chip stack" id="lvlBox"><svg width="24" height="24" viewBox="-12 -12 24 24" aria-hidden="true"><path d="M-2-11c-6-2-11 2-10 7c-3 2-3 7 1 9c1 4 6 6 9 3V-11Z" fill="#FF8FB1" stroke="#D9628C" stroke-width="2"/><path d="M2-11c6-2 11 2 10 7c3 2 3 7-1 9c-1 4-6 6-9 3V-11Z" fill="#FFA8C4" stroke="#D9628C" stroke-width="2"/><path d="M-4-4q4 2 0 5M5-5q-4 3 0 6" fill="none" stroke="#D9628C" stroke-width="1.7" stroke-linecap="round"/></svg><span><span class="lab">BRAIN LEVEL</span><span class="val">3</span></span></span>
@@ -524,11 +537,9 @@ a{color:#1393C2}
 <div class="screen on" id="startScreen">
   <div class="big">&#x1F41F;</div>
   <h1>AQUARIUM TYCOON</h1>
-  <p>You own the aquarium. <b>Walk</b> around it. Stand on an empty plot to build,
-     stand at the desk to serve the visitors, stand on the podium to upgrade.</p>
-  <p>Every dollar comes from maths you got right. Nothing is earned by waiting or by walking.</p>
-  <p style="color:#bfe6ff;font-weight:800">Move: <b>drag</b> or <b>tap where you want to go</b> &#xB7; arrow keys &#xB7; WASD</p>
-  <p id="heroLine" class="accent" style="font-weight:800;color:#ffd23f"></p>
+  <p class="startLine">Walk around. Serve the visitors. Build the biggest aquarium.</p>
+  <p class="startHow">Move: <b>drag</b> or <b>tap where you want to go</b> &#xB7; arrow keys &#xB7; WASD</p>
+  <p id="heroLine" class="startHow"></p>
   <div class="stats" id="startStats"></div>
   <button class="bigbtn gold" id="startBtn">Open the gates</button>
 </div>
@@ -1251,11 +1262,12 @@ function moneyToast(n, up){
 }
 
 /* AQUARIUM dollars. Never touches the arcade wallet. */
-function earn(n, why){
+function earn(n, why, quiet){
   n = Math.max(0, Math.round(n));
   if (!n) return 0;
   S.money += n; S.earned += n;
-  save(); flashMoney("earn"); paintHud(); moneyToast(n, true);
+  save(); flashMoney("earn"); paintHud();
+  if (!quiet) moneyToast(n, true);                   /* collect() toasts its own parts */
   return n;
 }
 /* Always checked for affordability by the caller FIRST: this refuses rather
@@ -1279,9 +1291,19 @@ function spendCoins(n){ if (!hasWallet()) return 0; try { return Wallet.spend(n,
    Everything else moved into the park itself.
    ===================================================================== */
 function secretOpen(){ return S.plevel >= SECRET_AT; }
+const WALK_ICON = '<svg width="30" height="30" viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13" fill="none" stroke="#4A3100" stroke-width="3"/><path d="M-6 0H6M1-5L6 0L1 5" fill="none" stroke="#4A3100" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const STOP_ICON = '<svg width="30" height="30" viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13" fill="none" stroke="#4A3100" stroke-width="3"/><rect x="-5" y="-5" width="10" height="10" rx="2" fill="#4A3100"/></svg>';
+const BACK_ICON = '<svg width="30" height="30" viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13" fill="none" stroke="#4A3100" stroke-width="3"/><path d="M6 0H-6M-1-5L-6 0L-1 5" fill="none" stroke="#4A3100" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function paintDock(){
   const play = $("dockPlay"), sec = $("dockSecret"), cards = $("dockCards");
-  if (play) play.classList.toggle("on", V.where === "park");
+  if (play){
+    play.classList.toggle("on", V.where === "park");
+    /* it says what it does */
+    if (V.where === "secret") play.innerHTML = BACK_ICON + "Back to the park";
+    else if (V.auto) play.innerHTML = STOP_ICON + "Stop";
+    else play.innerHTML = WALK_ICON + "Walk there";
+    play.title = V.auto ? "Stop walking" : "Walk to the next job";
+  }
   if (cards) cards.classList.toggle("ready", V.cardQ.length > 0);
   if (!sec) return;
   const open = secretOpen();
@@ -1296,7 +1318,7 @@ function paintDock(){
     '<path d="M-9 -3H9A3 3 0 0 1 12 0V9A3 3 0 0 1 9 12H-9A3 3 0 0 1 -12 9V0A3 3 0 0 1 -9 -3Z" fill="#FFC928" stroke="#F0A81E" stroke-width="2.4"/>' +
     '<circle cy="3.5" r="2.6" fill="#90592A"/></svg>';
   sec.innerHTML = open ? (arch + "Grotto")
-                       : (lock + "Level " + SECRET_AT);
+                       : (lock + "Grotto \u2B50" + SECRET_AT);
   sec.title = open ? "The Midnight Grotto" : "Opens at park level " + SECRET_AT;
 }
 /* every chip keeps its drawn icon and only its .val text is rewritten */
@@ -1731,10 +1753,26 @@ function showChange(on){
 }
 function say(t, cls){ const m = $("msg"); m.className = cls || ""; m.textContent = t || ""; }
 let bubbleT = null;
+/* where the bubble points: the group at the till, or him */
+function placeBubble(){
+  const b = $("bubble"); if (!b || b.classList.contains("hide")) return;
+  if (V.where !== "park" || !CAM.live){ b.classList.remove("pin"); b.style.left = b.style.top = ""; return; }
+  let wx, wy;
+  if (V.cust && V.step !== "idle"){ const d = MAP.DESK, ox = rx0(0); wx = ox + d.x + d.w + 50; wy = d.y + d.h + 4 - 60; }
+  else { wx = P.x; wy = P.y - 108; }
+  const px = (wx - CAM.x) * CAM.z + CAM.vw / 2, py = (wy - CAM.y) * CAM.z + CAM.vh / 2;
+  const bw = b.offsetWidth || 220, bh = b.offsetHeight || 50;
+  const left = clampN(px - bw / 2, 6, Math.max(6, CAM.vw - bw - 6));
+  const top = clampN(py - bh - 16, hudInset() + 4, Math.max(6, CAM.vh - bh - dockInset() - 6));
+  b.classList.add("pin");
+  b.style.left = Math.round(left) + "px"; b.style.top = Math.round(top) + "px";
+  b.style.setProperty("--tail", Math.round(clampN(px - left, 20, bw - 20)) + "px");
+}
 function bubble(who, what){
   const b = $("bubble");
   b.innerHTML = '<span class="who">' + who + "</span>" + what;
   b.classList.remove("hide");
+  placeBubble();
   /* it sits over the tanks, and the panel always repeats what the visitor
      wants, so it steps aside after a few seconds. Display only: it moves no
      money and starts nothing. */
@@ -1822,7 +1860,7 @@ function wrongAnswer(q, got){
 /* ---------- making change ---------- */
 /* a phone held sideways leaves the till about 90px: the money is drawn
    smaller there so all seven pieces stay on screen without scrolling */
-function pieceSize(){ return window.innerHeight < 460 ? 26 : 38; }
+function pieceSize(){ return window.innerHeight < 460 ? 36 : 54; }
 function buildTill(){
   const till = $("till");
   till.innerHTML = "";
@@ -1893,7 +1931,7 @@ function collect(){
      still buy the same tickets, so the money is worked out the same way. */
   const r = revenueFor(S, c.group, c.ticket, perfect);
   const total = r.total;
-  earn(total, "aquarium gate");
+  earn(total, "aquarium gate", true);
   /* each fish earned its share of the crowd it pulled in */
   const d = drawOf(S);
   if (d > 0 && S.fish.length){
@@ -1908,12 +1946,33 @@ function collect(){
   checkParkLevel();                 /* a card, if this serve crossed a level */
   V.cheerUntil = performance.now() + 1400;
   Snd.kaching();
+  /* Will, 2026-10-02 (panel): "Maths first, extras drop in after". The
+     sum he just did pays out big and first; then souvenirs, gift shop and
+     the tip land one by one, each with its reason and its own toast, so
+     his sum and his money always match and he can see why fish pay. */
   const bits = ["Tickets " + money(r.bill)];
   if (r.souv) bits.push("Souvenirs " + money(r.souv));
   if (r.gift) bits.push("Gift shop " + money(r.gift));
   if (r.tip)  bits.push("Tips " + money(r.tip));
-  say(bits.join(" · ") + "  =  " + money(total), "good");
-  $("ask").innerHTML = "\u{1F4B0} <b>" + money(total) + "</b> into the till. You now have <b>" + money(S.money) + "</b>.";
+  const extras = [];
+  if (r.souv) extras.push({ n: r.souv, why: "souvenirs \u00B7 your fish pulled the crowd in" });
+  if (r.gift) extras.push({ n: r.gift, why: "gift shop" });
+  if (r.tip)  extras.push({ n: r.tip,  why: "tip \u00B7 no mistakes" });
+  $("ask").innerHTML = '<span class="sum">' + c.group + " \u00D7 " + money(c.ticket) + " = <b>" + money(r.bill) + "</b> \u2713</span>" +
+                       '<span class="note" id="extraLines"></span>';
+  say("", "");
+  moneyToast(r.bill, true);
+  V.toastT = V.toastT || [];
+  V.toastT.forEach(clearTimeout); V.toastT = [];
+  extras.forEach(function(x, i){
+    V.toastT.push(setTimeout(function(){
+      const el = $("extraLines");
+      if (el) el.innerHTML += '<span class="extra">+' + money(x.n) + " <i>" + x.why + "</i></span>";
+      moneyToast(x.n, true); Snd.pop();
+    }, 450 + i * 400));
+  });
+  const settle = extras.length ? 450 + extras.length * 400 : 0;
+  V.toastT.push(setTimeout(function(){ say(bits.join(" · ") + "  =  " + money(total) + ". You now have " + money(S.money) + ".", "good"); }, settle));
   $("display").className = "wait"; $("display").textContent = "Collected " + money(total);
   $("pad").classList.add("off");
   save(); paintHud(); paintRooms(); refreshPanes();
@@ -1921,8 +1980,8 @@ function collect(){
   const cont = (S.servedDay >= PER_DAY)
     ? endDay
     : function(){ $("stepName").textContent = "Next visitor is here"; nextVisitor(); };
-  if (V.cardQ.length){ V.afterCard = cont; later(showNextCard, 950); }
-  else later(cont, 1100);
+  if (V.cardQ.length){ V.afterCard = cont; later(showNextCard, 950 + settle); }
+  else later(cont, 1100 + settle);
 }
 
 /* ---------- end of a "day" (a counter of 8 visitors, never a clock) ---------- */
@@ -2213,9 +2272,120 @@ const LOOK = (function(){
 })();
 function lookHatId(){ try { return (LOOK.hat && LOOK.canDraw()) ? LOOK.hat.id : null; } catch (e) { return null; } }
 
+/* Will, 2026-10-02 sweep: the hero was a tunic with a head, inherited from
+   the dungeon's top-down view, while every visitor had legs, shoes and
+   arms. Now he is drawn the way the visitors are (same skeleton as
+   drawPerson, a size and a half bigger): feet on the ground at (X, Y),
+   legs that swing when he walks, arms that go up when he cheers, his own
+   skin, his own clothes, and his hair painted on top by hero-look.js.
+   Each hero keeps a signature on top of that body so the Knight still
+   reads as the Knight. The shop hat still goes on last. */
+function drawHeroLegs(g, s, sw, sw2, legCol){
+  g.lineCap = "round"; g.lineJoin = "round";
+  g.strokeStyle = legCol; g.lineWidth = 11;
+  g.beginPath(); g.moveTo(-8,-26); g.lineTo(-8 + sw, -3); g.stroke();
+  g.beginPath(); g.moveTo(8,-26); g.lineTo(8 + sw2, -4); g.stroke();
+  [[-8 + sw, -2], [8 + sw2, -3]].forEach(function(f){
+    g.beginPath(); g.ellipse(f[0], f[1], 8, 4.2, 0, 0, 7);
+    g.fillStyle = "#F2F4F8"; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 0.9; g.stroke();
+  });
+}
+function drawHeroPerson(g, X, Y, u, id, o){
+  const A = HERO_ART[id] || HERO_ART.knight;
+  const s = u / 72;                                  /* visitors are ~0.5-0.62 of this skeleton; he is bigger */
+  const moving = !!o.moving;
+  const sw = moving ? Math.sin(o.walk || 0) * 9 : 0, sw2 = moving ? Math.sin((o.walk || 0) + Math.PI) * 9 : 0;
+  const cheer = !!o.cheer;
+  const hatId = lookHatId();
+  const hlHair = HL.hair(id);
+  const legCol = HL.dim(A.body, 0.42);
+  g.save(); g.translate(X, Y + (o.bob || 0)); g.scale(s, s);
+  g.lineCap = "round"; g.lineJoin = "round";
+  drawHeroLegs(g, s, sw, sw2, legCol);
+  /* torso */
+  rr(g, -16, -60, 32, 36, 13, A.body, ART.out, 1.3);
+  g.globalAlpha = 0.9; g.fillStyle = A.trim; g.fillRect(-16, -36, 32, 12);
+  g.strokeStyle = A.trim; g.lineWidth = 4; g.globalAlpha = 0.55;
+  g.beginPath(); g.moveTo(-16,-47); g.bezierCurveTo(-9,-43,9,-43,16,-47); g.stroke();
+  g.globalAlpha = 1;
+  /* signatures that live on the body */
+  if (id === "knight"){
+    g.fillStyle = "#CFDAE6";
+    [-1, 1].forEach(function(k){ g.beginPath(); g.ellipse(k*16, -55, 8, 6, 0, 0, 7); g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1; g.stroke(); });
+    g.fillStyle = A.accent; g.beginPath(); g.moveTo(0,-54); g.lineTo(6,-46); g.lineTo(0,-36); g.lineTo(-6,-46); g.closePath(); g.fill();
+  }
+  if (id === "explorer"){
+    g.strokeStyle = "#6B4A24"; g.lineWidth = 4; g.beginPath(); g.moveTo(-13,-58); g.lineTo(12,-30); g.stroke();
+    g.fillStyle = "#6B4A24"; g.beginPath(); g.ellipse(14,-27,7,5,0,0,7); g.fill();
+  }
+  if (id === "ninja"){ g.fillStyle = A.accent; g.fillRect(-16,-40,32,5); }
+  /* arms: up for a cheer, swinging for a walk */
+  g.strokeStyle = A.skin; g.lineWidth = 9;
+  if (cheer){
+    g.beginPath(); g.moveTo(15,-56); g.lineTo(27,-84); g.stroke();
+    g.beginPath(); g.moveTo(-15,-56); g.lineTo(-27,-84); g.stroke();
+    g.fillStyle = A.skin; g.beginPath(); g.arc(27,-86,5,0,7); g.fill(); g.beginPath(); g.arc(-27,-86,5,0,7); g.fill();
+  } else {
+    g.beginPath(); g.moveTo(15,-56); g.lineTo(21 - sw, -35); g.stroke();
+    g.beginPath(); g.moveTo(-15,-56); g.lineTo(-22 - sw2, -36); g.stroke();
+  }
+  if (id === "wizard"){
+    g.strokeStyle = "#8A5A2B"; g.lineWidth = 4; g.beginPath(); g.moveTo(24,-30); g.lineTo(27,-98); g.stroke();
+    g.fillStyle = A.accent; g.beginPath(); g.arc(27,-102,6,0,7); g.fill();
+  }
+  /* head */
+  const HR = 16, HY = -76;
+  const ex = Math.max(-1, Math.min(1, o.fx || 0)) * 2.2, ey = Math.max(-1, Math.min(1, o.fy || 0)) * 1.4;
+  g.beginPath(); g.arc(0, HY, HR, 0, 7); g.fillStyle = A.skin; g.fill(); g.strokeStyle = ART.out; g.lineWidth = 1.2; g.stroke();
+  if (id === "ninja"){
+    /* mask: a band over the lower face, eyes showing */
+    g.save(); g.beginPath(); g.arc(0, HY, HR, 0, 7); g.clip();
+    g.fillStyle = A.trim; g.fillRect(-HR, HY + 2, HR*2, HR*2); g.restore();
+  }
+  HL.paint(g, 0, HY, HR, id);
+  if (!hatId && !hlHair){
+    /* nothing on his head: the built-in headgear comes back */
+    if (id === "knight"){
+      g.fillStyle = "#CFDAE6"; g.beginPath(); g.arc(0, HY - 1, HR*1.05, Math.PI, 0); g.fill();
+      g.fillRect(-HR*1.05, HY - 1, HR*2.1, 4);
+      g.fillStyle = A.accent;
+      [-1, 1].forEach(function(k){ g.beginPath(); g.moveTo(k*14, HY-8); g.lineTo(k*26, HY-22); g.lineTo(k*16, HY+1); g.closePath(); g.fill(); });
+    } else if (id === "wizard"){
+      g.fillStyle = A.trim; g.beginPath(); g.moveTo(-19, HY-10); g.lineTo(5, HY-44); g.lineTo(19, HY-10); g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(0, HY-10, 24, 6, 0, 0, 7); g.fill();
+      g.fillStyle = A.accent; g.beginPath(); g.arc(2, HY-24, 4, 0, 7); g.fill();
+    } else if (id === "explorer"){
+      g.fillStyle = A.accent; g.beginPath(); g.arc(0, HY - 3, HR*1.02, Math.PI, 0); g.fill();
+      g.fillRect(-HR*1.02, HY - 4, HR*2.04, 4);
+      g.fillStyle = "#54713A"; g.beginPath(); g.ellipse(12, HY - 2, 14, 4, 0, 0, 7); g.fill();
+    }
+  }
+  /* face */
+  g.fillStyle = "#2A2430";
+  g.beginPath(); g.arc(-5.6 + ex, HY + 1 + ey, 2.5, 0, 7); g.fill();
+  g.beginPath(); g.arc(5.6 + ex, HY + 1 + ey, 2.5, 0, 7); g.fill();
+  g.strokeStyle = "#2A2430"; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(-4.5, HY + 8); g.quadraticCurveTo(0, HY + 11.6, 4.5, HY + 8); g.stroke();
+  g.globalAlpha = 0.4; g.fillStyle = "#FF8A8A";
+  g.beginPath(); g.ellipse(-11.5, HY + 6, 3.4, 2.2, 0, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(11.5, HY + 6, 3.4, 2.2, 0, 0, 7); g.fill();
+  g.globalAlpha = 1;
+  g.restore();
+  if (hatId) LOOK.draw(g, hatId, X, Y + (o.bob || 0) + (HY - HR*0.72) * s, HR*2.07*s);
+}
 function drawHeroSprite(g, X, Y, u, id, o){
   o = o || {};
   const A = HERO_ART[id] || HERO_ART.knight;
+  if (HL.human(id)) return drawHeroPerson(g, X, Y, u, id, o);
+  /* BEEP-9 and Lil' Dragon keep their own bodies, now standing on legs
+     with their feet on the ground where everyone else's are. */
+  {
+    const s = u / 72, sw = o.moving ? Math.sin(o.walk || 0) * 8 : 0, sw2 = o.moving ? Math.sin((o.walk || 0) + Math.PI) * 8 : 0;
+    g.save(); g.translate(X, Y + (o.bob || 0)); g.scale(s, s);
+    drawHeroLegs(g, s, sw, sw2, HL.dim(A.body, 0.5));
+    g.restore();
+    Y = Y - u * 0.52;
+  }
   const b = o.bob || 0;
   const ex = Math.max(-1, Math.min(1, o.fx || 0)) * u * 0.06;
   const ey = Math.max(-1, Math.min(1, o.fy || 0)) * u * 0.04;
@@ -2226,8 +2396,6 @@ function drawHeroSprite(g, X, Y, u, id, o){
   /* the hair he picked stands in for the built-in headgear */
   const hlHair = HL.hair(id);
 
-  g.fillStyle = "rgba(0,0,0,.40)";
-  g.beginPath(); g.ellipse(X, Y + u*0.34, u*0.30, u*0.11, 0, 0, 7); g.fill();
 
   if (id === "dragon"){
     g.fillStyle = A.trim;
@@ -2561,6 +2729,7 @@ window.addEventListener("keydown", function(e){
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = keyDir(e); if (!k) return;
   V.keys[k] = 1; V.moveTo = null;
+  if (V.auto){ V.auto = null; paintDock(); }
   if (e.preventDefault) e.preventDefault();
 }, false);
 window.addEventListener("keyup", function(e){
@@ -2582,6 +2751,7 @@ function screenToWorld(x, y){
     if (sheetOn()){ V.gest = null; Snd.tick(); sheetDismiss(); return; }
     V.gest = { sx: x, sy: y, cx: x, cy: y, moved: false };
     V.moveTo = null;
+    if (V.auto){ V.auto = null; paintDock(); }
   }
   function gMove(x, y){
     if (!V.gest) return;
@@ -2653,6 +2823,25 @@ function step(dt){
     if (m < 9){ V.moveTo = null; }
     else { dx = ax / m; dy = ay / m; }
   }
+  /* the Walk button: follow the trail point by point, then let go */
+  if (!dx && !dy && V.auto){
+    const tgt = V.auto.pts[V.auto.i];
+    if (!tgt){ V.auto = null; paintDock(); }
+    else {
+      const ax = tgt.x - P.x, ay = tgt.y - P.y;
+      const m = Math.sqrt(ax*ax + ay*ay);
+      if (m < 9){
+        V.auto.i++;
+        if (V.auto.i >= V.auto.pts.length){ V.auto = null; paintDock(); }
+      } else {
+        dx = ax / m; dy = ay / m;
+        /* a wall he cannot pass: give up rather than jog on the spot */
+        const bx = P.x + dx * SPEED * dt, by = P.y + dy * SPEED * dt;
+        if (!standable(bx, P.y) && !standable(P.x, by)){ if (++V.auto.still > 40){ V.auto = null; paintDock(); } }
+        else V.auto.still = 0;
+      }
+    }
+  }
   if (V.where === "park") S.room = clampN(roomAtX(P.x), 0, S.rooms - 1);
   const mag = Math.sqrt(dx*dx + dy*dy);
   if (mag <= 0.001){ P.walk = 0; P.sx = 0; P.sy = 0; return; }
@@ -2685,6 +2874,9 @@ function triggers(){
   V.firedZone = id;
   if (!z || !z.live) return;
   if (anyScreen() || sheetOn()) return;
+  /* the Walk button: a zone he is only passing through is not his stop */
+  if (V.auto && V.auto.target !== id) return;
+  if (V.auto){ V.auto = null; paintDock(); }       /* he is there: the button goes back to Walk */
   fireZone(z);
 }
 
@@ -3859,7 +4051,13 @@ function drawGrotto(g, t){
    the park's own edges, so he can never be shown blank ground: the park
    always runs off all four sides of the screen.
    ===================================================================== */
-const VIEW_SHORT = 452;            /* world units across the short edge */
+/* Will, 2026-10-02 sweep: "why isn't the world bigger". The rooms were
+   already big; the camera showed a fifth of one. Now a phone held sideways
+   frames one whole room across its width, the way the approved mockup
+   does, and a tablet frames most of its height too. */
+const VIEW_LONG = 1180;            /* world units across the LONG edge: one whole room */
+const VIEW_SHORT = 560;            /* world units across the short edge */
+const VIEW_PORTRAIT = 700;         /* phone held upright: this much park across its width */
 const CAM_LEAD = 150;              /* how far ahead of him the camera looks */
 const CAM_RISE = 130;               /* and how far ABOVE him it sits, so he stands
                                       low in the frame with the park he is walking
@@ -3869,16 +4067,35 @@ function camBounds(){
   if (V.where === "secret") return { L: -30, R: MAP.SECRET.w + 30, T: -30, B: MAP.SECRET.h + 30 };
   return { L: rx0(0) - 70, R: worldRight() + 90, T: -70, B: MAP.ROOM_H + 70 };
 }
+/* how many screen pixels the bottom bar covers. The camera frames the park
+   in the strip ABOVE it, so the desk, the hero and the x7 badge can never
+   sit under a button on a phone. Sand is painted under the bar regardless. */
+function dockInset(){
+  if (V.where !== "park") return 0;
+  const d = $("dock"), w = $("world"); if (!d || !w) return 0;
+  const r = d.getBoundingClientRect(); if (r.height < 1) return 0;
+  return Math.max(0, w.getBoundingClientRect().bottom - r.top);
+}
+/* and the same for the row of chips along the top */
+function hudInset(){
+  const h = $("hud"), w = $("world"); if (!h || !w) return 0;
+  const r = h.getBoundingClientRect(); if (r.height < 1) return 0;
+  return Math.max(0, r.bottom - w.getBoundingClientRect().top);
+}
 function camUpdate(dt, vw, vh){
   const b = camBounds();
-  let z = Math.min(vw, vh) / VIEW_SHORT;
-  z = Math.max(z, vw / (b.R - b.L), vh / (b.B - b.T));
+  const dk = dockInset(), hd = hudInset();
+  const vhE = Math.max(60, vh - dk - hd);            /* the part of the screen he can see */
+  let z = Math.min(vw / VIEW_LONG, vhE / VIEW_SHORT);
+  if (vw < vh) z = Math.max(z, vw / VIEW_PORTRAIT);
+  z = Math.max(z, vw / (b.R - b.L), vhE / (b.B - b.T));
   z = Math.max(0.22, Math.min(3, z));
-  const halfW = vw / (2*z), halfH = vh / (2*z);
+  const halfW = vw / (2*z), halfH = vhE / (2*z);
+  const off = (dk - hd) / (2*z);                     /* canvas centre sits this far below the visible centre */
   let tx = P.x + clampN((P.sx || 0) / SPEED, -1, 1) * CAM_LEAD;
   let ty = P.y - CAM_RISE + clampN((P.sy || 0) / SPEED, -1, 1) * CAM_LEAD * 0.62;
   if (b.R - b.L <= 2*halfW) tx = (b.L + b.R) / 2; else tx = clampN(tx, b.L + halfW, b.R - halfW);
-  if (b.B - b.T <= 2*halfH) ty = (b.T + b.B) / 2; else ty = clampN(ty, b.T + halfH, b.B - halfH);
+  if (b.B - b.T <= 2*halfH) ty = (b.T + b.B) / 2 + off; else ty = clampN(ty, b.T + halfH, b.B - halfH) + off;
   if (!CAM.live){ CAM.x = tx; CAM.y = ty; CAM.live = 1; }
   else {
     const e = 1 - Math.exp(-CAM_EASE * Math.max(0, Math.min(0.08, dt)));
@@ -3887,7 +4104,7 @@ function camUpdate(dt, vw, vh){
   }
   /* the smoothing itself must never be allowed to show blank ground */
   if (b.R - b.L <= 2*halfW) CAM.x = (b.L + b.R) / 2; else CAM.x = clampN(CAM.x, b.L + halfW, b.R - halfW);
-  if (b.B - b.T <= 2*halfH) CAM.y = (b.T + b.B) / 2; else CAM.y = clampN(CAM.y, b.T + halfH, b.B - halfH);
+  if (b.B - b.T <= 2*halfH) CAM.y = (b.T + b.B) / 2 + off; else CAM.y = clampN(CAM.y, b.T + halfH + off, b.B - halfH + off);
   CAM.z = z; CAM.vw = vw; CAM.vh = vh;
 }
 
@@ -3927,13 +4144,14 @@ function paintPark(t, dt){
 
   /* the hero, with the same soft shadow as everything else in the park */
   const cheer = performance.now() < V.cheerUntil;
-  const u = 78;
+  const u = 84;
+  const moving = (P.sx || P.sy) ? true : false;
   const bob = cheer ? -Math.abs(Math.sin(t/130)) * u * 0.16
-                    : (Math.abs(Math.sin(P.walk)) > 0.01 ? -Math.abs(Math.sin(P.walk * 1.6)) * u * 0.07 : Math.sin(t/620) * u * 0.02);
-  softShadow(g, P.x, P.y + 4, u * 0.30, u * 0.11, 0.20);
+                    : (moving ? -Math.abs(Math.sin(P.walk * 1.6)) * u * 0.04 : Math.sin(t/620) * u * 0.015);
+  softShadow(g, P.x, P.y + 2, u * 0.30, u * 0.10, 0.22);
   g.save();
   if (P.face < 0){ g.translate(P.x, 0); g.scale(-1, 1); g.translate(-P.x, 0); }
-  drawHeroSprite(g, P.x, P.y, u, HERO, { bob: bob, fx: P.face * 0.6, fy: 0.3, cheer: cheer });
+  drawHeroSprite(g, P.x, P.y, u, HERO, { bob: bob, fx: P.face * 0.6, fy: 0.3, cheer: cheer, moving: moving, walk: P.walk });
   g.restore();
 
   /* the mockup's warm vignette, in screen space */
@@ -3970,8 +4188,9 @@ function paintSceneTag(){
     return;
   }
   const rm = ROOMS[clampN(roomAtX(P.x), 0, S.rooms - 1)] || ROOMS[0];
+  let nxt = ""; try { nxt = " · next: " + nextAction().what; } catch (e) { nxt = ""; }
   tag.textContent = rm.name + " · day " + S.day + " · visitor " +
-    Math.min(PER_DAY, S.servedDay + 1) + "/" + PER_DAY + " · pull " + drawOf(S);
+    Math.min(PER_DAY, S.servedDay + 1) + "/" + PER_DAY + nxt;
 }
 
 /* the one loop. It moves the hero and draws. It never adds money, it is
@@ -3986,6 +4205,7 @@ let lastFrameT = 0, frameN = 0;
     triggers();
     crowdStep(dt);          /* decoration: the queue walks. It earns nothing. */
     paintPark(t, dt);
+    placeBubble();
     if ((frameN++ % 10) === 0) paintSceneTag();
   } catch (e) { /* art never breaks the game */ }
   requestAnimationFrame(frame);
@@ -4179,7 +4399,7 @@ function goSecret(){
   if (V.where === "secret") return;
   parkPos = { x: P.x, y: P.y };
   V.where = "secret";
-  V.moveTo = null; V.gest = null; V.firedZone = null;
+  V.moveTo = null; V.gest = null; V.firedZone = null; V.auto = null;
   P.x = MAP.SECRET.w * 0.5; P.y = MAP.SECRET.h - 70;
   closeSheet();
   bubble("The Midnight Grotto", "Your fish, swimming free. Nothing to work out in here.");
@@ -4189,7 +4409,7 @@ function goSecret(){
 function goPark(){
   if (V.where !== "secret") return;
   V.where = "park";
-  V.moveTo = null; V.gest = null; V.firedZone = null;
+  V.moveTo = null; V.gest = null; V.firedZone = null; V.auto = null;
   if (parkPos){ P.x = parkPos.x; P.y = parkPos.y; }
   if (!standable(P.x, P.y)){ P.x = rx0(0) + 534; P.y = MAP.ROOM_H - 44; }
   Snd.tick();
@@ -4201,10 +4421,26 @@ function goPark(){
 $("sheetClose").onclick = () => { Snd.tick(); sheetDismiss(); };
 $("hintBtn").onclick    = hint;
 $("dockCards").onclick  = () => { Snd.tick(); openDex(); };
+/* Will, 2026-10-01 (panel): "Make it walk him to the next job". One tap
+   and he walks the chevron trail to whatever nextAction() points at, with
+   the normal movement and the normal zones, so arriving opens the same
+   panel walking there would. A second tap stops him. Any key, drag or tap
+   on the park also takes over, exactly as it would from a tap-to-move. */
+function autoWalkStart(){
+  const a = nextAction();
+  const pts = trailPts(a);
+  if (!pts || pts.length < 2){ V.auto = null; return false; }
+  V.auto = { pts: pts, i: 1, what: a.what, still: 0, target: a.id };
+  V.moveTo = null; V.keys = {}; V.gest = null;
+  return true;
+}
+function autoWalkStop(){ V.auto = null; }
 $("dockPlay").onclick   = () => {
   Snd.tick();
   if (V.where === "secret") goPark();
   else if (sheetOn()) sheetDismiss();
+  else if (V.auto) autoWalkStop();
+  else autoWalkStart();
   paintDock();
 };
 $("dockSecret").onclick = () => {
@@ -4225,7 +4461,7 @@ $("quitBtn").onclick = () => {
   Object.keys(f).forEach(k => S[k] = f[k]);
   save();
   V.cust = null; V.step = "idle"; V.cardQ = []; V.showing = null; V.pend = null; V.resume = null;
-  V.where = "park"; V.firedZone = null; V.moveTo = null; V.gest = null; V.keys = {};
+  V.where = "park"; V.firedZone = null; V.moveTo = null; V.gest = null; V.keys = {}; V.auto = null;
   P.x = rx0(0) + 534; P.y = MAP.ROOM_H - 44; P.face = 1;
   closeSheet();
   paintHud(); paintRooms(); paintServe();

@@ -82,7 +82,10 @@
   /* The old sprites were a pale face in a grey tunic. That stays the
      fallback ONLY for a save that predates this file; the picker opens
      on it and he changes it in two taps. */
-  var DEFAULT = { skin: "#EFC9A0", hair: "fade", hairColor: "#241A14", outfit: "#7A8699" };
+  /* Will, 2026-10-02: Lennon is the default. Brown skin, curly hair, on
+     every device from the first tap, before anyone opens the picker. The
+     picker still changes all of it in two taps. */
+  var DEFAULT = { skin: "#78462A", hair: "curly", hairColor: "#241A14", outfit: "#3D7BD0" };
 
   function clone(o) { var r = {}, k; for (k in o) if (Object.prototype.hasOwnProperty.call(o, k)) r[k] = o[k]; return r; }
   function isHex(v) { return typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v); }
@@ -199,6 +202,13 @@
     }
     ctx.restore();
   }
+
+  /* Seed the save the first time any game loads, so every game's "has he
+     picked a look yet" check is true and he is drawn as himself from the
+     start. A wipe (master reset) clears it; the next load seeds it again. */
+  (function seed(){
+    try { if (!localStorage.getItem(KEY)) localStorage.setItem(KEY, JSON.stringify(clone(DEFAULT))); } catch (e) { /* storage blocked: get() still serves DEFAULT */ }
+  })();
 
   window.HeroLook = {
     KEY: KEY,
