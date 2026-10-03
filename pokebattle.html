@@ -54,11 +54,23 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
 #spotFoe{right:4%;top:14%;width:46%;height:60%}
 #spotMe{left:-6%;top:44%;width:60%;height:70%}
 .mon{position:absolute;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;will-change:transform}
-.mon img{display:block;image-rendering:pixelated;image-rendering:crisp-edges;filter:drop-shadow(0 10px 8px rgba(0,0,0,.45))}
+.mon img{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 #monFoe{right:14%;top:14%;width:26%;height:40%}
-#monFoe img{height:100%;width:auto;max-width:100%;object-fit:contain}
+#monFoe img{height:100%;max-height:260px;width:auto;max-width:100%;object-fit:contain}
 #monMe{left:6%;top:36%;width:36%;height:56%}
-#monMe img{height:100%;width:auto;max-width:100%;object-fit:contain}
+#monMe img{height:100%;max-height:340px;width:auto;max-width:100%;object-fit:contain}
+#fxCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:8}
+.mon.charge{transition:transform .26s cubic-bezier(.3,.9,.4,1)}
+.mon.back{transition:transform .32s ease-out}
+.mon.dodge img{animation:dodge .4s ease-out}
+@keyframes dodge{0%,100%{transform:translateX(0)}40%{transform:translateX(var(--dodge,40px))}}
+#flash{position:absolute;inset:0;pointer-events:none;z-index:7;opacity:0;background:#fff}
+#flash.on{animation:flashOn .35s ease-out}
+@keyframes flashOn{0%{opacity:.75}100%{opacity:0}}
+#banner{position:absolute;left:0;right:0;top:38%;z-index:11;text-align:center;font-family:var(--hd);font-weight:800;font-size:clamp(34px,8vw,72px);color:#fff;
+  -webkit-text-stroke:2px var(--cardEdge);text-shadow:0 6px 0 rgba(0,0,0,.4);pointer-events:none;display:none;letter-spacing:1px}
+#banner.on{display:block;animation:bannerIn .5s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes bannerIn{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
 .mon.hide img{visibility:hidden}
 /* ---------- the attack actions ---------- */
 @keyframes lungeR{0%{transform:translate(0,0)}35%{transform:translate(9vw,-3vh)}100%{transform:translate(0,0)}}
@@ -68,8 +80,6 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
 @keyframes faint{0%{transform:translateY(0);opacity:1}100%{transform:translateY(60px);opacity:0}}
 @keyframes sendOut{0%{transform:scale(.1);opacity:0}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
 @keyframes quake{0%,100%{transform:translate(0,0)}10%{transform:translate(-6px,4px)}30%{transform:translate(6px,-4px)}50%{transform:translate(-5px,2px)}70%{transform:translate(4px,-3px)}90%{transform:translate(-2px,1px)}}
-.mon.lungeR{animation:lungeR .55s cubic-bezier(.3,.8,.3,1)}
-.mon.lungeL{animation:lungeL .55s cubic-bezier(.3,.8,.3,1)}
 .mon.hit img{animation:hitShake .5s linear, hitFlash .5s linear}
 .mon.faint img{animation:faint .7s ease-in forwards}
 .mon.sendOut img{animation:sendOut .5s cubic-bezier(.2,.9,.3,1.3)}
@@ -129,8 +139,11 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
 #team.off{pointer-events:none}
 
 /* ---------- screens ---------- */
-.screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+.screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;
   padding:52px 16px 16px;overflow:auto;background:linear-gradient(180deg,rgba(27,26,74,.96),rgba(62,58,138,.96))}
+/* centred when short, scrollable from the top when tall: the two spacers take the slack */
+.screen::before,.screen::after{content:"";flex:1 0 0;min-height:0}
+.screen > *{flex:0 0 auto}
 .screen.on{display:flex}
 .screen h1{font-family:var(--hd);font-weight:800;font-size:clamp(24px,5vw,40px);margin:0 0 6px;color:#fff;letter-spacing:.5px}
 .screen p{margin:4px 0;font-size:clamp(13px,2.3vw,16px);color:#CFCDF2;line-height:1.45;max-width:640px;font-weight:700}
@@ -207,6 +220,8 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
     <div class="pad" id="padFoe"></div><div class="pad" id="padMe"></div>
     <div class="mon" id="monFoe"><img id="imgFoe" alt=""></div>
     <div class="mon" id="monMe"><img id="imgMe" alt=""></div>
+    <div id="flash"></div>
+    <div id="banner"></div>
   </div>
 
   <div id="hud">
@@ -601,7 +616,7 @@ function paintMe(full){
   var m = me(); if (!m) return;
   $("nmMe").textContent = m.name; $("lvMe").textContent = "Lv " + m.lv;
   $("tgMe").innerHTML = m.types.map(function(t){ return '<span class="tag" style="background:' + TYPE_COL[t] + '">' + t + "</span>"; }).join("") +
-    (m.grade >= 0 ? '<span class="tag gr' + m.grade + '">' + GRADE_NM[m.grade] + "</span>" : "");
+    (m.grade >= 0 ? '<span class="tag gr' + m.grade + '">' + GRADE_NM[m.grade] + " card</span>" : "");
   if (full) setImg($("imgMe"), spriteBack(m.id), spriteBackPng(m.id));
   fill("filMe", m); $("numMe").textContent = Math.max(0, m.hp) + " / " + m.hpMax;
 }
@@ -652,19 +667,206 @@ function calcDamage(att, mv, def){
   return {dmg:dmg, eff:eff, crit:crit};
 }
 function sideBox(side){ return side === "me" ? $("monMe") : $("monFoe"); }
-function burst(side, type, big){
-  var box = sideBox(side), r = box.getBoundingClientRect(), ar = $("arena").getBoundingClientRect();
-  var cx = r.left + r.width/2 - ar.left, cy = r.top + r.height*0.55 - ar.top, col = TYPE_COL[type] || "#fff";
-  var fx = document.createElement("div"); fx.className = "fx"; fx.style.left = cx + "px"; fx.style.top = cy + "px";
-  fx.style.background = "radial-gradient(circle, #fff 0%, " + col + " 35%, transparent 70%)";
-  $("arena").appendChild(fx); setTimeout(function(){ fx.remove(); }, 650);
-  var n = big ? 14 : 8;
-  for (var i = 0; i < n; i++){
-    var p = document.createElement("div"); p.className = "fxp"; p.style.left = cx + "px"; p.style.top = cy + "px"; p.style.background = col;
-    var a = Math.random()*Math.PI*2, d = (big ? 90 : 60) + Math.random()*60;
-    p.style.setProperty("--dx", Math.cos(a)*d + "px"); p.style.setProperty("--dy", Math.sin(a)*d + "px");
-    $("arena").appendChild(p); setTimeout(function(q){ q.remove(); }, 720, p);
+
+/* =====================================================================
+   MOVE ACTIONS. Will, 2026-10-03: "the characters should actually show
+   and perform the action of the power they're doing. not just a wiggle".
+   A canvas over the arena. A PHYSICAL move charges the attacker across
+   the field into the target, trailing its type, and lands with a type
+   burst. A SPECIAL move is thrown: fire is a stream of flame, water a
+   jet and a splash, electric a lightning strike from the sky, grass a
+   storm of spinning leaves, ice shards and a freeze, psychic rings,
+   ghost and dark orbs, dragon a beam, rock boulders from above, ground
+   a quake with dust, poison bubbles, bug darts, flying wind crescents,
+   steel shards, fairy stars, fighting a charge with a POW, normal a
+   white burst or beam. Damage lands at the moment of impact.
+   ===================================================================== */
+var FX = (function(){
+  var cv = null, g = null, parts = [], emitters = [], beams = [], bolts = [], running = false, t0 = 0;
+  var COL = {
+    fire:["#FF4D1C","#FF8A3C","#FFD23F","#FFF1A8"], water:["#2F9BFF","#4FC3FF","#8EE0FF","#FFFFFF"], electric:["#FFE94A","#FFF7B0","#FFFFFF","#F7D02C"],
+    grass:["#3DBB5A","#5FD68A","#9BE36B","#2E8B45"], ice:["#9EE6FF","#CFF6FF","#FFFFFF","#6FD0F0"], psychic:["#FF7FB0","#C58BFF","#FFB3D9","#FFFFFF"],
+    ghost:["#5B2A86","#8A5BC8","#2A1140","#C9A6FF"], dark:["#3A2E3E","#6B5A74","#1C1424","#9A8AA8"], dragon:["#7A6CF0","#4FC3FF","#B39CFF","#FFFFFF"],
+    rock:["#8E8A7A","#B8A26A","#6B6456","#D6CDB0"], ground:["#C09A5A","#E0C068","#8A6A3A","#F0E0B0"], poison:["#B07AD8","#8A4FB8","#E2C2FF","#6A2E8A"],
+    bug:["#A8C83A","#7FA324","#D6E88A","#5E7A14"], flying:["#FFFFFF","#C9DCFF","#A9C4FF","#E6EEFF"], steel:["#B8B8D0","#E6E6F0","#8A8AA0","#FFFFFF"],
+    fairy:["#FFA8CC","#FFD6EA","#FFFFFF","#FF7FB0"], normal:["#FFFFFF","#F0F0F0","#FFE9B5","#D8D8D8"], fighting:["#FF8A3C","#FFD23F","#FFFFFF","#D0604A"]
+  };
+  function ensure(){
+    if (cv) return;
+    cv = document.createElement("canvas"); cv.id = "fxCanvas"; $("arena").appendChild(cv); g = cv.getContext("2d");
   }
+  function size(){
+    var r = $("arena").getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+    if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return r;
+  }
+  function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
+  function start(){ if (running) return; running = true; t0 = performance.now(); requestAnimationFrame(loop); }
+  function loop(t){
+    ensure(); var r = size();
+    g.clearRect(0, 0, r.width, r.height);
+    var now = performance.now(), i;
+    for (i = emitters.length - 1; i >= 0; i--){
+      var e = emitters[i];
+      if (now >= e.until){ emitters.splice(i, 1); continue; }
+      if (now >= e.next){ e.next = now + e.every; try { e.fn(); } catch(err){} }
+    }
+    for (i = beams.length - 1; i >= 0; i--){ var b = beams[i]; if (now > b.until){ beams.splice(i, 1); continue; } drawBeam(b, now); }
+    for (i = bolts.length - 1; i >= 0; i--){ var bo = bolts[i]; if (now > bo.until){ bolts.splice(i, 1); continue; } drawBolt(bo, now); }
+    for (i = parts.length - 1; i >= 0; i--){
+      var p = parts[i], dt = 1/60;
+      p.age += 16;
+      if (p.age > p.life){ parts.splice(i, 1); continue; }
+      p.vx += (p.ax || 0); p.vy += (p.ay || 0);
+      p.x += p.vx; p.y += p.vy; p.rot = (p.rot || 0) + (p.vr || 0);
+      var k = p.age / p.life, alpha = p.fade === false ? 1 : (1 - k);
+      var rad = p.r * (p.grow ? (0.4 + k * 1.4) : (p.shrink ? (1 - k * 0.8) : 1));
+      drawPart(p, rad, alpha);
+    }
+    if (parts.length || emitters.length || beams.length || bolts.length) requestAnimationFrame(loop);
+    else { running = false; g.clearRect(0, 0, r.width, r.height); }
+  }
+  function drawPart(p, rad, alpha){
+    g.save(); g.globalAlpha = Math.max(0, Math.min(1, alpha)); g.translate(p.x, p.y); g.rotate(p.rot || 0);
+    g.fillStyle = p.col; g.strokeStyle = p.col;
+    if (p.glow){ g.shadowBlur = 14; g.shadowColor = p.col; }
+    var s = p.shape || "circle";
+    g.beginPath();
+    if (s === "circle"){ g.arc(0, 0, rad, 0, 7); g.fill(); }
+    else if (s === "leaf"){ g.ellipse(0, 0, rad * 1.6, rad * 0.7, 0, 0, 7); g.fill(); g.strokeStyle = "rgba(0,0,0,.25)"; g.lineWidth = 1; g.beginPath(); g.moveTo(-rad*1.4, 0); g.lineTo(rad*1.4, 0); g.stroke(); }
+    else if (s === "shard"){ g.moveTo(0, -rad*1.5); g.lineTo(rad*0.6, 0); g.lineTo(0, rad*1.5); g.lineTo(-rad*0.6, 0); g.closePath(); g.fill(); }
+    else if (s === "rock"){ g.moveTo(-rad, -rad*0.4); g.lineTo(-rad*0.3, -rad); g.lineTo(rad*0.7, -rad*0.8); g.lineTo(rad, rad*0.2); g.lineTo(rad*0.3, rad); g.lineTo(-rad*0.8, rad*0.7); g.closePath(); g.fill(); g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 2; g.stroke(); }
+    else if (s === "star"){ for (var k = 0; k < 10; k++){ var a = -Math.PI/2 + k * Math.PI/5, rr = k % 2 ? rad * 0.45 : rad; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.fill(); }
+    else if (s === "ring"){ g.lineWidth = Math.max(2, rad * 0.18); g.arc(0, 0, rad, 0, 7); g.stroke(); }
+    else if (s === "crescent"){ g.lineWidth = Math.max(3, rad * 0.22); g.lineCap = "round"; g.arc(0, 0, rad, -0.9, 0.9); g.stroke(); }
+    else if (s === "bubble"){ g.lineWidth = 2; g.arc(0, 0, rad, 0, 7); g.stroke(); g.globalAlpha *= 0.35; g.fill(); }
+    else if (s === "dart"){ g.moveTo(rad*1.6, 0); g.lineTo(-rad, -rad*0.5); g.lineTo(-rad*0.5, 0); g.lineTo(-rad, rad*0.5); g.closePath(); g.fill(); }
+    else if (s === "spark"){ g.lineWidth = 2; g.moveTo(-rad, 0); g.lineTo(rad, 0); g.moveTo(0, -rad); g.lineTo(0, rad); g.stroke(); }
+    g.restore();
+  }
+  function drawBeam(b, now){
+    var k = Math.min(1, (now - b.from) / 180), fade = now > b.until - 160 ? (b.until - now) / 160 : 1;
+    var x1 = b.x1, y1 = b.y1, x2 = b.x1 + (b.x2 - b.x1) * k, y2 = b.y1 + (b.y2 - b.y1) * k;
+    g.save(); g.globalAlpha = Math.max(0, fade); g.lineCap = "round";
+    var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx*dx + dy*dy) || 1, ux = dx/len, uy = dy/len, nx = -uy, ny = ux;
+    var n = Math.max(2, Math.floor(len / 14));
+    function path(w, col, amp){
+      g.lineWidth = w; g.strokeStyle = col; g.beginPath();
+      for (var i = 0; i <= n; i++){
+        var tt = i / n, off = Math.sin(tt * 18 + now / 60) * amp * Math.sin(tt * Math.PI);
+        var px = x1 + dx * tt + nx * off, py = y1 + dy * tt + ny * off;
+        if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      }
+      g.stroke();
+    }
+    g.shadowBlur = 18; g.shadowColor = b.col[0];
+    path(b.w, b.col[0], b.amp); path(b.w * 0.55, b.col[1], b.amp); path(b.w * 0.22, b.col[3] || "#fff", b.amp);
+    g.restore();
+  }
+  function drawBolt(bo, now){
+    var on = Math.floor((now - bo.from) / 70) % 2 === 0;
+    if (!on) return;
+    g.save(); g.lineCap = "round"; g.lineJoin = "round"; g.shadowBlur = 16; g.shadowColor = "#FFE94A";
+    [[9, "#F7D02C"], [4, "#FFFFFF"]].forEach(function(w){
+      g.lineWidth = w[0]; g.strokeStyle = w[1]; g.beginPath();
+      for (var i = 0; i < bo.pts.length; i++){ var p = bo.pts[i]; if (i === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
+      g.stroke();
+    });
+    g.restore();
+  }
+  /* where a sprite is, in arena pixels */
+  function at(side){
+    var box = sideBox(side), img = box.querySelector("img"), a = $("arena").getBoundingClientRect();
+    var r = img && img.getBoundingClientRect().width ? img.getBoundingClientRect() : box.getBoundingClientRect();
+    return { x: r.left + r.width/2 - a.left, y: r.top + r.height*0.55 - a.top, w: r.width, h: r.height, top: r.top - a.top, bottom: r.bottom - a.top };
+  }
+  function emit(ms, every, fn){ emitters.push({ until: performance.now() + ms, every: every, next: 0, fn: fn }); start(); }
+  function add(p){ parts.push(p); start(); }
+  function flash(){ var f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); }
+  function burst(pt, type, n, big){
+    var c = COL[type] || COL.normal;
+    for (var i = 0; i < n; i++){
+      var a = Math.random() * Math.PI * 2, sp = (big ? 5 : 3.2) + Math.random() * (big ? 6 : 4);
+      add({ x: pt.x, y: pt.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, ay: 0.12, life: 520 + Math.random() * 300, age: 0, r: 5 + Math.random() * (big ? 9 : 6), col: pick(c), shape: type === "fire" ? "circle" : (type === "electric" ? "spark" : (type === "grass" ? "leaf" : (type === "ice" || type === "steel" ? "shard" : (type === "rock" ? "rock" : (type === "fairy" || type === "normal" || type === "fighting" ? "star" : "circle"))))), shrink: true, glow: type === "fire" || type === "electric" || type === "psychic" || type === "dragon" || type === "ghost", vr: (Math.random() - 0.5) * 0.4 });
+    }
+    add({ x: pt.x, y: pt.y, vx: 0, vy: 0, life: 420, age: 0, r: big ? 26 : 18, col: c[2], shape: "ring", grow: true });
+  }
+  /* a thrown move: particles travel from the attacker to the target and land at `hit` ms */
+  function stream(from, to, type, hitAt, opts){
+    opts = opts || {};
+    var c = COL[type] || COL.normal, travel = Math.max(220, hitAt - 80);
+    var dx = to.x - from.x, dy = to.y - from.y, len = Math.sqrt(dx*dx + dy*dy) || 1;
+    emit(hitAt + 80, opts.every || 16, function(){
+      for (var k = 0; k < (opts.per || 3); k++){
+        var jitter = (Math.random() - 0.5) * (opts.spread || 26), nx = -dy/len, ny = dx/len;
+        var sx = from.x + nx * jitter, sy = from.y + ny * jitter;
+        var speed = len / (travel / 16);
+        add({ x: sx, y: sy, vx: dx/len * speed * (0.85 + Math.random() * 0.3), vy: dy/len * speed * (0.85 + Math.random() * 0.3) + (opts.arc ? -2.2 : 0), ay: opts.arc ? 0.12 : 0,
+              life: travel * (0.9 + Math.random() * 0.25), age: 0, r: (opts.r || 8) * (0.7 + Math.random() * 0.7), col: pick(c), shape: opts.shape || "circle",
+              rot: Math.random() * 6, vr: opts.spin ? (Math.random() - 0.5) * 0.6 : 0, shrink: opts.shrink !== false, glow: !!opts.glow, fade: opts.fade });
+      }
+    });
+  }
+  /* the recipes. Each returns {hit: ms when damage lands, end: ms when the field is clear} */
+  function special(type, attSide, defSide){
+    var from = at(attSide), to = at(defSide), mouth = { x: from.x + (attSide === "me" ? from.w * 0.35 : -from.w * 0.35), y: from.y - from.h * 0.15 };
+    var hit = 520, end = 1100;
+    switch (type){
+      case "fire":     stream(mouth, to, "fire", hit, { per: 4, r: 11, spread: 30, glow: true }); setTimeout(function(){ burst(to, "fire", 26, true); flash(); }, hit); break;
+      case "water":    stream(mouth, to, "water", hit, { per: 4, r: 7, spread: 18, shape: "circle" }); setTimeout(function(){ burst(to, "water", 22, true); for (var i = 0; i < 10; i++) add({ x: to.x + (Math.random()-0.5)*60, y: to.y + 10, vx: (Math.random()-0.5)*3, vy: -4 - Math.random()*4, ay: 0.25, life: 600, age: 0, r: 4 + Math.random()*4, col: pick(COL.water) }); }, hit); break;
+      case "electric": hit = 420; end = 1000; setTimeout(function(){
+          var pts = [[to.x + (Math.random()-0.5)*40, -10]], y = -10;
+          while (y < to.y - 10){ y += 22 + Math.random() * 22; pts.push([to.x + (Math.random()-0.5)*70, Math.min(y, to.y)]); }
+          pts.push([to.x, to.y]);
+          bolts.push({ pts: pts, from: performance.now(), until: performance.now() + 420 }); start(); flash();
+          burst(to, "electric", 24, true);
+        }, 140); break;
+      case "grass":    stream(mouth, to, "grass", hit, { per: 3, r: 9, spread: 50, shape: "leaf", spin: true, arc: true, shrink: false }); setTimeout(function(){ burst(to, "grass", 24, true); }, hit); break;
+      case "ice":      stream(mouth, to, "ice", hit, { per: 3, r: 9, spread: 34, shape: "shard", spin: true, glow: true }); setTimeout(function(){ burst(to, "ice", 22, true); flash(); add({ x: to.x, y: to.y, vx: 0, vy: 0, life: 600, age: 0, r: Math.max(to.w, to.h) * 0.5, col: "rgba(158,230,255,.55)", shape: "circle" }); }, hit); break;
+      case "psychic":  hit = 460; emit(600, 120, function(){ add({ x: to.x, y: to.y, vx: 0, vy: 0, life: 520, age: 0, r: 16, col: pick(COL.psychic), shape: "ring", grow: true, glow: true }); add({ x: from.x, y: from.y, vx: 0, vy: 0, life: 400, age: 0, r: 12, col: pick(COL.psychic), shape: "ring", grow: true }); }); setTimeout(function(){ burst(to, "psychic", 16, true); }, hit); break;
+      case "ghost": case "dark": stream(mouth, to, type, hit, { per: 2, r: 13, spread: 40, glow: true, every: 40 }); setTimeout(function(){ burst(to, type, 20, true); add({ x: to.x, y: to.y, vx: 0, vy: 0, life: 500, age: 0, r: Math.max(to.w, to.h) * 0.45, col: "rgba(40,16,64,.55)", shape: "circle" }); }, hit); break;
+      case "dragon":   hit = 380; end = 1000; beams.push({ x1: mouth.x, y1: mouth.y, x2: to.x, y2: to.y, from: performance.now(), until: performance.now() + 620, w: 22, amp: 10, col: COL.dragon }); start(); setTimeout(function(){ burst(to, "dragon", 26, true); flash(); }, hit); break;
+      case "rock":     hit = 480; for (var i = 0; i < 6; i++) add({ x: to.x + (Math.random()-0.5)*to.w*1.2, y: -30 - Math.random()*60, vx: 0, vy: 3 + Math.random()*2, ay: 0.45, life: 520, age: 0, r: 10 + Math.random()*12, col: pick(COL.rock), shape: "rock", vr: (Math.random()-0.5)*0.2, fade: false }); setTimeout(function(){ burst(to, "rock", 18, true); burst({ x: to.x, y: to.bottom }, "ground", 12, false); }, hit); break;
+      case "ground":   hit = 380; end = 1000; setTimeout(function(){ emit(500, 30, function(){ add({ x: to.x + (Math.random()-0.5)*to.w*1.4, y: to.bottom, vx: (Math.random()-0.5)*2, vy: -2 - Math.random()*3, life: 700, age: 0, r: 12 + Math.random()*12, col: pick(COL.ground), grow: true }); }); burst({ x: to.x, y: to.bottom }, "rock", 14, true); }, hit - 60); break;
+      case "poison":   hit = 480; emit(560, 24, function(){ add({ x: to.x + (Math.random()-0.5)*to.w, y: to.bottom, vx: (Math.random()-0.5)*1.2, vy: -2 - Math.random()*2, life: 800, age: 0, r: 5 + Math.random()*9, col: pick(COL.poison), shape: "bubble" }); }); setTimeout(function(){ burst(to, "poison", 16, false); }, hit); break;
+      case "bug":      stream(mouth, to, "bug", hit, { per: 2, r: 8, spread: 36, shape: "dart", every: 24 }); setTimeout(function(){ burst(to, "bug", 18, true); }, hit); break;
+      case "flying":   hit = 440; for (var k = 0; k < 4; k++) (function(k){ setTimeout(function(){ add({ x: to.x - 140 + (Math.random()-0.5)*40, y: to.y + (Math.random()-0.5)*to.h*0.8, vx: 9, vy: 0, life: 420, age: 0, r: 26, col: pick(COL.flying), shape: "crescent", rot: 0, glow: true, fade: true }); }, k * 90); })(k); setTimeout(function(){ burst(to, "flying", 18, true); }, hit); break;
+      case "steel":    stream(mouth, to, "steel", hit, { per: 3, r: 8, spread: 30, shape: "shard", spin: true, glow: true }); setTimeout(function(){ burst(to, "steel", 20, true); flash(); }, hit); break;
+      case "fairy":    stream(mouth, to, "fairy", hit, { per: 3, r: 9, spread: 46, shape: "star", spin: true, arc: true, glow: true, shrink: false }); setTimeout(function(){ burst(to, "fairy", 22, true); }, hit); break;
+      case "fighting": stream(mouth, to, "fighting", hit, { per: 3, r: 9, spread: 20 }); setTimeout(function(){ burst(to, "fighting", 20, true); }, hit); break;
+      default:         hit = 380; end = 1000; beams.push({ x1: mouth.x, y1: mouth.y, x2: to.x, y2: to.y, from: performance.now(), until: performance.now() + 600, w: 18, amp: 4, col: COL.normal }); start(); setTimeout(function(){ burst(to, "normal", 22, true); flash(); }, hit); break;
+    }
+    return { hit: hit, end: end };
+  }
+  /* a physical move: charge across the field into the target */
+  function physical(type, attSide, defSide){
+    var from = at(attSide), to = at(defSide), box = sideBox(attSide);
+    var dx = (to.x - from.x) * 0.82, dy = (to.y - from.y) * 0.82;
+    box.classList.remove("back"); box.classList.add("charge");
+    box.style.transform = "translate(" + dx + "px," + dy + "px)";
+    var c = COL[type] || COL.normal;
+    emit(260, 20, function(){ var p = at(attSide); add({ x: p.x + (Math.random()-0.5)*p.w*0.6, y: p.y + (Math.random()-0.5)*p.h*0.6, vx: -dx/40, vy: -dy/40, life: 360, age: 0, r: 6 + Math.random()*8, col: pick(c), shape: type === "grass" ? "leaf" : (type === "ice" || type === "steel" ? "shard" : "circle"), glow: type === "fire" || type === "electric", shrink: true }); });
+    setTimeout(function(){
+      burst(to, type, 22, true);
+      add({ x: to.x, y: to.y - 10, vx: 0, vy: -1, life: 520, age: 0, r: 30, col: "#FFE066", shape: "star", grow: true });
+      if (type === "fighting" || type === "normal") flash();
+    }, 280);
+    setTimeout(function(){ box.classList.remove("charge"); box.classList.add("back"); box.style.transform = "translate(0,0)"; }, 420);
+    setTimeout(function(){ box.classList.remove("back"); box.style.transform = ""; }, 800);
+    return { hit: 290, end: 900 };
+  }
+  function play(mv, attSide, defSide){
+    ensure(); size();
+    return (mv.c === "physical") ? physical(mv.t, attSide, defSide) : special(mv.t, attSide, defSide);
+  }
+  function clear(){ parts = []; emitters = []; beams = []; bolts = []; if (cv && g){ var r = size(); g.clearRect(0, 0, r.width, r.height); } }
+  return { play: play, burst: function(side, type, big){ ensure(); size(); burst(at(side), type, big ? 24 : 12, big); }, clear: clear, flash: flash };
+})();
+function banner(text, ms){
+  var b = $("banner"); b.textContent = text; b.classList.remove("on"); void b.offsetWidth; b.classList.add("on");
+  setTimeout(function(){ b.classList.remove("on"); }, ms || 1400);
 }
 function dmgPop(side, n, eff){
   var box = sideBox(side), r = box.getBoundingClientRect(), ar = $("arena").getBoundingClientRect();
@@ -678,17 +880,22 @@ function attack(attSide, att, mv, def, cb){
   var defSide = attSide === "me" ? "foe" : "me";
   mv.pp = Math.max(0, mv.pp - 1);
   msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "");
-  sideBox(attSide).classList.add(attSide === "me" ? "lungeR" : "lungeL");
-  setTimeout(function(){ sideBox(attSide).classList.remove("lungeR", "lungeL"); }, 560);
+  var miss = Math.random()*100 >= mv.a;
+  var r = miss ? null : calcDamage(att, mv, def);
+  var timing = FX.play(mv, attSide, defSide);          /* the move is performed on screen; damage lands at timing.hit */
+  if (mv.c !== "physical" && mv.t !== "fire" && mv.t !== "dragon") Snd.tick();
   setTimeout(function(){
-    if (Math.random()*100 >= mv.a){ Snd.miss(); msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "It missed!"); setTimeout(cb, 700); return; }
-    var r = calcDamage(att, mv, def);
-    if (r.eff === 0){ Snd.miss(); msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "It doesn't affect " + def.name.toUpperCase() + "..."); setTimeout(cb, 800); return; }
+    if (miss){
+      var box = sideBox(defSide); box.style.setProperty("--dodge", (defSide === "foe" ? 46 : -46) + "px");
+      box.classList.add("dodge"); setTimeout(function(){ box.classList.remove("dodge"); }, 420);
+      Snd.miss(); msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "It missed!");
+      setTimeout(cb, Math.max(500, timing.end - timing.hit)); return;
+    }
+    if (r.eff === 0){ Snd.miss(); msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "It doesn't affect " + def.name.toUpperCase() + "..."); setTimeout(cb, Math.max(600, timing.end - timing.hit)); return; }
     def.hp = Math.max(0, def.hp - r.dmg);
     var big = r.eff > 1 || r.crit;
-    burst(defSide, mv.t, big);
     sideBox(defSide).classList.add("hit"); setTimeout(function(){ sideBox(defSide).classList.remove("hit"); }, 520);
-    if (big){ $("arena").classList.add("quake"); setTimeout(function(){ $("arena").classList.remove("quake"); }, 460); }
+    if (big || mv.t === "ground" || mv.t === "rock"){ $("arena").classList.add("quake"); setTimeout(function(){ $("arena").classList.remove("quake"); }, 460); }
     Snd.hit(big);
     dmgPop(defSide, r.dmg, r.eff);
     if (defSide === "me") paintMe(false); else paintFoe(false);
@@ -703,8 +910,8 @@ function attack(attSide, att, mv, def, cb){
         msg(def.name.toUpperCase() + " fainted!", "");
         setTimeout(function(){ sideBox(defSide).classList.add("hide"); sideBox(defSide).classList.remove("faint"); paintTeam(); cb(true); }, 800);
       } else cb(false);
-    }, sub ? 750 : 350);
-  }, 330);
+    }, Math.max(sub ? 750 : 350, timing.end - timing.hit));
+  }, timing.hit);
 }
 /* the leader's pick: the move that should do the most, with a little wobble */
 function foeChoice(){
@@ -787,19 +994,23 @@ function winBattle(){
   var li = B.leader, firstTime = !S.badges[li];
   S.badges[li] = Date.now(); S.wins++; save();
   msg("You beat the " + LEADERS[li].name + "!", "");
+  banner("YOU WIN!", 1600);
+  var lost = B.me.filter(function(x){ return x.fainted; }).length;
   var pack = makePack(), res = pack.map(function(c){ return gainCard(c.id, c.grade); }).filter(Boolean);
   $("resultBadge").textContent = "\u{1F3C5}";
   $("resultTitle").textContent = firstTime ? "BADGE WON!" : "BADGE DEFENDED!";
-  $("resultLine").textContent = "The " + LEADERS[li].name + " is beaten. " + badgeCount() + " of 8 badges. Your whole team is now Lv +" + (BADGE_LV*badgeCount()) + ". Here is your 3-card pack:";
+  $("resultLine").textContent = "All " + B.foe.length + " of the " + LEADERS[li].name + "'s Pokemon fainted" + (lost ? " and " + lost + " of yours did too" : " and none of yours did") + ". " + badgeCount() + " of 8 badges. Your whole team is now Lv +" + (BADGE_LV*badgeCount()) + ". Here is your 3-card pack:";
   paintPack(res);
   setTimeout(function(){ $("resultOv").classList.add("on"); }, 900);
 }
 function loseBattle(){
   B.over = true; running = false; S.losses++; save(); Snd.lose();
   msg("All your Pokemon fainted.", "Nothing is taken away. Heal up and try again.");
+  banner("YOU LOSE", 1600);
+  var beat = B.foe.filter(function(x){ return x.fainted; }).length;
   $("resultBadge").textContent = "\u{1F4A4}";
   $("resultTitle").textContent = "NOT THIS TIME";
-  $("resultLine").textContent = "The " + LEADERS[B.leader].name + " was too strong today. Nothing is lost: your team is healed. Try a different six, or catch more in Sudoku.";
+  $("resultLine").textContent = "All " + B.me.length + " of yours fainted; you knocked out " + beat + " of the " + LEADERS[B.leader].name + "'s " + B.foe.length + ". No badge. Nothing is lost: your team is healed. Try a different six, or catch more in Sudoku.";
   $("packRow").innerHTML = ""; $("packMsg").textContent = "";
   setTimeout(function(){ $("resultOv").classList.add("on"); }, 900);
 }
@@ -878,7 +1089,7 @@ $("switchCancel").onclick = function(){ Snd.tick(); $("switchOv").classList.remo
 $("resultDone").onclick = function(){ Snd.tick(); $("resultOv").classList.remove("on"); paintStart(); paintLadder(); $("ladderOv").classList.add("on"); $("startScreen").classList.add("on"); };
 $("quitBtn").onclick = function(){
   if (running && !confirm("Leave this fight? Nothing is lost, but you start it again from the beginning.")) return;
-  running = false; B = null; $("startScreen").classList.add("on"); paintStart();
+  running = false; B = null; FX.clear(); $("switchOv").classList.remove("on"); $("startScreen").classList.add("on"); paintStart();
 };
 $("muteBtn").onclick = function(){ var on = Snd.toggle(); $("muteBtn").textContent = on ? "\u{1F50A}" : "\u{1F507}"; if (on) Snd.tick(); };
 $("muteBtn").textContent = Snd.isOn() ? "\u{1F50A}" : "\u{1F507}";
