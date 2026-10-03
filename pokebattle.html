@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poke Battle">
+<title>Pokemon Battle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   NIGHT ARENA. The look Will picked 2026-10-03 from
+   mockups/pokebattle-mockups.html: a stadium at night, crowd lights,
+   spotlights on both battle pads, pale lavender cards with navy ink.
+   ===================================================================== */
+:root{
+  --sky1:#1B1A4A; --sky2:#3E3A8A; --stand:#2B2F6B; --floor:#3C7A4A; --pad:#54A062; --padEdge:#2F5C38;
+  --card:#F4F3FF; --cardEdge:#141435; --slot:#DDDCF2; --ink:#1B1A4A; --sub:#5E5C9C; --accent:#FFD84A; --accentInk:#4A3100;
+  --good:#4ADE80; --warn:#FFC928; --bad:#E8403A; --white:#FFFFFF;
+  --hd:'Baloo 2','Nunito',sans-serif; --ui:'Nunito','Helvetica Neue',system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--sky1);color:var(--ink);font-family:var(--ui);overflow:hidden;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation}
+button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:none}
+#app{position:fixed;inset:0;overflow:hidden;background:linear-gradient(180deg,var(--sky1),var(--sky2))}
+
+/* ---------- the HUD row (home-button.js docks into #hud) ---------- */
+#hud{position:absolute;left:0;right:0;top:0;z-index:20;display:flex;align-items:center;gap:6px;padding:8px 10px 0;pointer-events:none}
+#hud > *{pointer-events:auto}            /* the buttons, and the docked home button */
+#hud .sp{flex:1;pointer-events:none}
+.chip{pointer-events:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;min-height:34px;padding:4px 12px 4px 8px;
+  background:var(--card);border:1.6px solid var(--cardEdge);border-radius:999px;font-weight:800;font-size:14px;color:var(--ink);
+  box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.rnd{pointer-events:auto;width:36px;height:34px;border-radius:999px;background:var(--card);border:1.6px solid var(--cardEdge);
+  display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.rnd:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+
+/* ---------- the arena ---------- */
+#arena{position:absolute;inset:0;overflow:hidden}
+#stars{position:absolute;inset:0;pointer-events:none}
+#stand{position:absolute;left:0;right:0;top:40%;height:13%;background:var(--stand);
+  background-image:repeating-linear-gradient(90deg,rgba(155,163,255,.45) 0 12px,transparent 12px 26px);
+  background-size:26px 10px;background-repeat:repeat-x;background-position:6px 6px}
+#floor{position:absolute;left:0;right:0;top:53%;bottom:0;background:var(--floor)}
+.pad{position:absolute;border-radius:50%;background:var(--pad);border:2px solid var(--padEdge)}
+#padFoe{right:12%;top:46%;width:30%;height:10%}
+#padMe{left:4%;top:78%;width:40%;height:13%}
+.spot{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.42),rgba(255,255,255,0));pointer-events:none}
+#spotFoe{right:4%;top:14%;width:46%;height:60%}
+#spotMe{left:-6%;top:44%;width:60%;height:70%}
+.mon{position:absolute;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;will-change:transform}
+.mon img{display:block;image-rendering:pixelated;image-rendering:crisp-edges;filter:drop-shadow(0 10px 8px rgba(0,0,0,.45))}
+#monFoe{right:14%;top:14%;width:26%;height:40%}
+#monFoe img{height:100%;width:auto;max-width:100%;object-fit:contain}
+#monMe{left:6%;top:36%;width:36%;height:56%}
+#monMe img{height:100%;width:auto;max-width:100%;object-fit:contain}
+.mon.hide img{visibility:hidden}
+/* ---------- the attack actions ---------- */
+@keyframes lungeR{0%{transform:translate(0,0)}35%{transform:translate(9vw,-3vh)}100%{transform:translate(0,0)}}
+@keyframes lungeL{0%{transform:translate(0,0)}35%{transform:translate(-9vw,3vh)}100%{transform:translate(0,0)}}
+@keyframes hitShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-9px,0)}40%{transform:translate(9px,0)}60%{transform:translate(-6px,0)}80%{transform:translate(6px,0)}}
+@keyframes hitFlash{0%,100%{filter:none}25%,75%{filter:brightness(4) saturate(0)}50%{filter:brightness(1)}}
+@keyframes faint{0%{transform:translateY(0);opacity:1}100%{transform:translateY(60px);opacity:0}}
+@keyframes sendOut{0%{transform:scale(.1);opacity:0}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes quake{0%,100%{transform:translate(0,0)}10%{transform:translate(-6px,4px)}30%{transform:translate(6px,-4px)}50%{transform:translate(-5px,2px)}70%{transform:translate(4px,-3px)}90%{transform:translate(-2px,1px)}}
+.mon.lungeR{animation:lungeR .55s cubic-bezier(.3,.8,.3,1)}
+.mon.lungeL{animation:lungeL .55s cubic-bezier(.3,.8,.3,1)}
+.mon.hit img{animation:hitShake .5s linear, hitFlash .5s linear}
+.mon.faint img{animation:faint .7s ease-in forwards}
+.mon.sendOut img{animation:sendOut .5s cubic-bezier(.2,.9,.3,1.3)}
+#arena.quake{animation:quake .45s linear}
+/* a burst over the target coloured by the move's type */
+.fx{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;pointer-events:none;z-index:9;
+  animation:burst .6s ease-out forwards}
+@keyframes burst{0%{transform:scale(.3);opacity:1}100%{transform:scale(5);opacity:0}}
+.fxp{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;pointer-events:none;z-index:9;
+  animation:spark .7s ease-out forwards}
+@keyframes spark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+.dmg{position:absolute;z-index:10;font-family:var(--hd);font-weight:800;font-size:30px;color:#fff;-webkit-text-stroke:1.5px var(--cardEdge);
+  text-shadow:0 3px 0 rgba(0,0,0,.4);pointer-events:none;animation:dmgUp 1s ease-out forwards}
+@keyframes dmgUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-60px);opacity:0}}
+
+/* ---------- the HP boxes ---------- */
+.hp{position:absolute;z-index:6;width:min(300px,38vw);background:var(--card);border:1.6px solid var(--cardEdge);border-radius:12px;
+  padding:7px 12px 8px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+#hpFoe{left:36%;top:48px}
+#hpMe{right:12px;top:52%}
+.hp .nm{display:flex;align-items:baseline;gap:8px;font-family:var(--hd);font-weight:800;font-size:17px;line-height:1.1;text-transform:uppercase}
+.hp .nm .lv{margin-left:auto;font-size:12px;color:var(--sub)}
+.hp .tags{display:flex;gap:4px;margin:4px 0 5px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:9px;font-weight:900;letter-spacing:.6px;padding:2px 8px;border-radius:999px;border:1px solid var(--cardEdge);color:#1a1a1a;text-transform:uppercase}
+.tag.gr0{background:#E4E4E4} .tag.gr1{background:#7FE3FF} .tag.gr2{background:#C58BFF} .tag.gr3{background:#FFC928}
+.hp .bar{display:flex;align-items:center;gap:6px}
+.hp .bar .lab{font-size:9px;font-weight:900;color:var(--sub)}
+.hp .trk{flex:1;height:11px;border-radius:6px;background:var(--slot);border:1px solid var(--cardEdge);overflow:hidden}
+.hp .fil{height:100%;width:100%;background:var(--good);border-radius:6px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.hp .fil.mid{background:var(--warn)} .hp .fil.low{background:var(--bad)}
+.hp .num{text-align:right;font-family:var(--hd);font-weight:800;font-size:12px;margin-top:3px}
+
+/* ---------- the message box + moves ---------- */
+#msgBox{position:absolute;left:12px;top:48px;z-index:6;width:min(300px,34vw);min-height:70px;background:var(--card);border:1.6px solid var(--cardEdge);
+  border-radius:14px;padding:9px 13px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+#msgMain{font-family:var(--hd);font-weight:800;font-size:17px;line-height:1.15;min-height:22px}
+#msgSub{font-size:12px;font-weight:700;color:var(--sub);margin-top:4px;line-height:1.25;min-height:15px}
+#moves{position:absolute;right:12px;bottom:12px;z-index:7;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(400px,50vw)}
+#moves button{position:relative;min-height:42px;background:var(--card);border:1.6px solid var(--cardEdge);border-radius:11px;
+  display:flex;align-items:center;gap:8px;padding:0 10px 0 14px;text-align:left;box-shadow:0 4px 0 rgba(0,0,0,.35);overflow:hidden}
+#moves button::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--t,#999)}
+#moves button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+#moves button[disabled]{opacity:.45}
+#moves .mn{font-family:var(--hd);font-weight:800;font-size:15px;line-height:1.05;text-transform:capitalize;flex:1}
+#moves .pp{font-size:10.5px;font-weight:800;color:var(--sub);white-space:nowrap}
+#moves .eff{font-size:10px;font-weight:900;padding:1px 6px;border-radius:999px;color:#fff;background:var(--sub)}
+#moves .eff.up{background:#1C8A4A} #moves .eff.dn{background:#8A6A3A}
+#moves.off{pointer-events:none;opacity:.5}
+#team{position:absolute;left:12px;bottom:12px;z-index:7;display:flex;gap:6px}
+#team button{width:44px;height:44px;border-radius:50%;background:var(--card);border:1.6px solid var(--cardEdge);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 0 rgba(0,0,0,.35);position:relative}
+#team button img{width:40px;height:40px;image-rendering:pixelated}
+#team button.active{border-color:var(--accent);border-width:2.6px}
+#team button.out img{filter:grayscale(1) brightness(.6)}
+#team button .hpd{position:absolute;left:8px;right:8px;bottom:3px;height:4px;border-radius:2px;background:var(--slot);overflow:hidden}
+#team button .hpd i{display:block;height:100%;background:var(--good)}
+#team.off{pointer-events:none}
+
+/* ---------- screens ---------- */
+.screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  padding:52px 16px 16px;overflow:auto;background:linear-gradient(180deg,rgba(27,26,74,.96),rgba(62,58,138,.96))}
+.screen.on{display:flex}
+.screen h1{font-family:var(--hd);font-weight:800;font-size:clamp(24px,5vw,40px);margin:0 0 6px;color:#fff;letter-spacing:.5px}
+.screen p{margin:4px 0;font-size:clamp(13px,2.3vw,16px);color:#CFCDF2;line-height:1.45;max-width:640px;font-weight:700}
+.screen p b{color:var(--accent)}
+.bigbtn{background:var(--accent);color:var(--accentInk);font-family:var(--hd);font-weight:800;font-size:19px;padding:12px 28px;border-radius:19px;
+  box-shadow:0 7px 0 #B8912A;margin-top:10px}
+.bigbtn:active{transform:translateY(4px);box-shadow:0 3px 0 #B8912A}
+.bigbtn.ghost{background:var(--card);color:var(--ink);box-shadow:0 7px 0 #9C9AC4}
+.bigbtn.ghost:active{box-shadow:0 3px 0 #9C9AC4}
+.bigbtn[disabled]{opacity:.5}
+.stats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0}
+.stat{background:var(--card);border-radius:14px;padding:8px 14px;min-width:92px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.stat .v{font-family:var(--hd);font-weight:800;font-size:20px;color:var(--ink);line-height:1}
+.stat .l{font-size:10px;font-weight:900;letter-spacing:.6px;color:var(--sub);text-transform:uppercase;margin-top:3px}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+/* ladder */
+#ladder{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;margin:8px 0}
+.leader{width:104px;background:var(--card);border-radius:14px;padding:8px 6px 8px;box-shadow:0 4px 0 rgba(0,0,0,.35);position:relative;color:var(--ink)}
+.leader.lock{opacity:.55}
+.leader .ring{width:66px;height:66px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;background:var(--t,#ccc)}
+.leader .ring img{width:64px;height:64px;image-rendering:pixelated}
+.leader .ln{font-family:var(--hd);font-weight:800;font-size:11px;margin-top:6px;text-transform:uppercase;line-height:1.1}
+.leader .st{display:inline-block;margin-top:6px;font-size:10px;font-weight:900;padding:3px 9px;border-radius:999px;background:#C9D6DD;border:1px solid var(--cardEdge)}
+.leader .st.won{background:var(--good)} .leader .st.next{background:var(--accent)}
+.leader .lock{position:absolute;right:6px;top:6px;font-size:14px}
+/* team pick */
+#pickGrid{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;max-width:980px;margin:8px 0}
+.pk{width:78px;background:var(--card);border-radius:12px;padding:4px 4px 6px;box-shadow:0 3px 0 rgba(0,0,0,.35);position:relative;color:var(--ink);border:2px solid transparent}
+.pk.on{border-color:var(--accent)}
+.pk img{width:64px;height:64px;image-rendering:pixelated;display:block;margin:0 auto}
+.pk .pn{font-family:var(--hd);font-weight:800;font-size:10px;text-transform:uppercase;line-height:1.05;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk .tag{display:block;margin:3px auto 0;width:62px;text-align:center}
+.pk .lv{font-size:10px;font-weight:800;color:var(--sub);margin-top:3px}
+.pk .tick{position:absolute;right:-6px;top:-6px;width:20px;height:20px;border-radius:50%;background:var(--good);border:2px solid #fff;color:#fff;font-size:11px;font-weight:900;display:none;align-items:center;justify-content:center}
+.pk.on .tick{display:flex}
+#pickLine{font-family:var(--hd);font-weight:800;color:#fff;font-size:16px;margin:4px 0}
+/* result + pack */
+#resultOv .badge{font-size:64px;line-height:1;margin:4px 0}
+#packRow{display:flex;gap:12px;justify-content:center;margin:10px 0}
+.pcard{width:120px;height:160px;perspective:800px;cursor:pointer}
+.pcard .in{position:relative;width:100%;height:100%;transition:transform .55s;transform-style:preserve-3d}
+.pcard.open .in{transform:rotateY(180deg)}
+.pcard .f{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  border:2px solid var(--cardEdge);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.pcard .bk{background:repeating-linear-gradient(45deg,#3E3A8A 0 8px,#2B2F6B 8px 16px);color:#fff;font-family:var(--hd);font-weight:800;font-size:13px}
+.pcard .fr{background:var(--card);transform:rotateY(180deg);color:var(--ink)}
+.pcard .fr img{width:84px;height:84px;image-rendering:pixelated}
+.pcard .fr .pn{font-family:var(--hd);font-weight:800;font-size:11px;text-transform:uppercase}
+.pcard .fr .nw{font-size:10px;font-weight:900;color:#1C8A4A}
+#switchOv .row button{min-width:150px}
+/* mute/home sizes on short screens */
+@media (max-height:460px){
+  .hp{padding:5px 10px 6px} .hp .nm{font-size:15px} #hpFoe{top:44px} #hpMe{top:50%}
+  #msgBox{top:44px;min-height:58px} #msgMain{font-size:15px}
+  #moves button{min-height:36px} #moves .mn{font-size:13.5px}
+  .screen{padding-top:44px} .leader{width:92px} .leader .ring{width:56px;height:56px} .leader .ring img{width:54px;height:54px}
+  .pk{width:68px} .pk img{width:54px;height:54px}
+}
+@media (max-width:640px) and (orientation:portrait){
+  #hpFoe{left:12px;top:48px;width:min(300px,62vw)} #msgBox{left:12px;top:auto;bottom:118px;width:calc(100vw - 24px)}
+  #hpMe{right:12px;top:auto;bottom:176px;width:min(300px,62vw)} #moves{right:12px;left:12px;width:auto;bottom:62px}
+  #team{bottom:12px} #monFoe{right:6%;top:12%;width:44%;height:30%} #monMe{left:2%;top:34%;width:52%;height:34%}
+  #padFoe{right:4%;top:36%;width:48%;height:8%} #padMe{left:0;top:62%;width:56%;height:9%} #floor{top:40%} #stand{top:30%}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="arena">
+    <div id="stars"></div>
+    <div id="stand"></div>
+    <div id="floor"></div>
+    <div class="spot" id="spotFoe"></div><div class="spot" id="spotMe"></div>
+    <div class="pad" id="padFoe"></div><div class="pad" id="padMe"></div>
+    <div class="mon" id="monFoe"><img id="imgFoe" alt=""></div>
+    <div class="mon" id="monMe"><img id="imgMe" alt=""></div>
+  </div>
+
+  <div id="hud">
+    <span class="chip" id="badgeChip">&#x1F3C5; <span id="badgeN">0</span>/8</span>
+    <span class="chip" id="teamChip">&#x1F7E1; <span id="caughtN">0</span> caught</span>
+    <span class="sp"></span>
+    <button class="rnd" id="muteBtn" title="Sound on or off" aria-label="Sound on or off">&#x1F50A;</button>
+    <button class="rnd" id="quitBtn" title="Leave the fight" aria-label="Leave the fight">&#x2716;</button>
+  </div>
+
+  <div class="hp" id="hpFoe">
+    <div class="nm"><span id="nmFoe">...</span><span class="lv" id="lvFoe"></span></div>
+    <div class="tags" id="tgFoe"></div>
+    <div class="bar"><span class="lab">HP</span><div class="trk"><div class="fil" id="filFoe"></div></div></div>
+  </div>
+  <div class="hp" id="hpMe">
+    <div class="nm"><span id="nmMe">...</span><span class="lv" id="lvMe"></span></div>
+    <div class="tags" id="tgMe"></div>
+    <div class="bar"><span class="lab">HP</span><div class="trk"><div class="fil" id="filMe"></div></div></div>
+    <div class="num" id="numMe"></div>
+  </div>
+  <div id="msgBox"><div id="msgMain"></div><div id="msgSub"></div></div>
+  <div id="moves"></div>
+  <div id="team"></div>
+</div>
+
+<!-- START -->
+<div class="screen on" id="startScreen">
+  <h1>POKEMON BATTLE</h1>
+  <p>The Pokemon you caught in <b>Pokemon Sudoku</b> fight for you. A Gold card hits hardest. Beat all 8 arena leaders.</p>
+  <div class="stats" id="startStats"></div>
+  <div class="row">
+    <button class="bigbtn" id="ladderBtn">Arena ladder</button>
+    <button class="bigbtn ghost" id="teamBtn">My team</button>
+  </div>
+  <p id="startNote" style="font-size:12px;margin-top:10px"></p>
+</div>
+
+<!-- LADDER -->
+<div class="screen" id="ladderOv">
+  <h1>8 ARENA LEADERS</h1>
+  <p>Each leader uses one type. Beat one to unlock the next. A badge is yours forever; losing takes nothing away.</p>
+  <div id="ladder"></div>
+  <div class="row"><button class="bigbtn" id="fightBtn">Fight the next leader</button><button class="bigbtn ghost" id="ladderBack">Back</button></div>
+</div>
+
+<!-- TEAM PICK -->
+<div class="screen" id="teamOv">
+  <h1>PICK YOUR TEAM OF 6</h1>
+  <p>Only Pokemon you caught in Sudoku can fight. Card grade is power: Normal, Shiny, Full Art, Gold. Every badge you win levels the whole team up.</p>
+  <div id="pickLine"></div>
+  <div id="pickGrid"></div>
+  <div class="row"><button class="bigbtn" id="teamDone">Done</button></div>
+</div>
+
+<!-- SWITCH (after a faint, or by choice) -->
+<div class="screen" id="switchOv">
+  <h1 id="switchTitle">WHO GOES NEXT?</h1>
+  <p id="switchLine"></p>
+  <div class="row" id="switchRow"></div>
+  <div class="row"><button class="bigbtn ghost" id="switchCancel">Back</button></div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="resultOv">
+  <div class="badge" id="resultBadge">&#x1F3C5;</div>
+  <h1 id="resultTitle">BADGE WON!</h1>
+  <p id="resultLine"></p>
+  <div id="packRow"></div>
+  <p id="packMsg" style="min-height:18px"></p>
+  <div class="row"><button class="bigbtn" id="resultDone">Back to the ladder</button></div>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+
+/* =====================================================================
+   POKEMON BATTLE (no maths in here: this is the reward for the maths)
+   Will, 2026-10-03: "perhaps one that has nothing to do with math. just
+   a regular fighting battle. using pokemon" -> classic turn-based, his
+   team is what he caught in Pokemon Sudoku, card grade is power, an
+   8-leader ladder with badges, Night Arena look.
+
+   DATA: pokedata.json (ids 1-386: name, types, base stats, 4 real moves;
+   and every move's type, power, accuracy, PP, class), built from PokeAPI
+   at build time. Numbers and names only. SPRITES and CRIES stream from
+   PokeAPI at play time, exactly as Sudoku does; no artwork is stored.
+
+   STORAGE: "pokeBattle.v1" {v:1, team:[ids], badges:{i:ms}, wins, losses, mute}
+   READS (never rewrites): "pokeDex.v1" (what he caught) and
+   "pokeCards.v1" (card grades). A leader win grants a 3-card pack into
+   pokeCards.v1 / pokeDex.v1 through the same shape Sudoku writes.
+   The "poke" prefix puts the save in transfer.js and the master reset.
+   ===================================================================== */
+var SP = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/";
+var CRY = "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/";
+function spriteFront(id){ return SP + "other/showdown/" + id + ".gif"; }
+function spriteBack(id){ return SP + "other/showdown/back/" + id + ".gif"; }
+function spriteFrontPng(id){ return SP + id + ".png"; }
+function spriteBackPng(id){ return SP + "back/" + id + ".png"; }
+function spriteIcon(id){ return SP + id + ".png"; }
+
+var TYPE_COL = {normal:"#c9b89a", fire:"#ff8a4c", water:"#6ec6ff", electric:"#f7d02c", grass:"#5fd68a", ice:"#9ee6e6",
+  fighting:"#d0604a", poison:"#b07ad8", ground:"#e0c068", flying:"#a9c4ff", psychic:"#ff7fb0", bug:"#a8c83a",
+  rock:"#b8a26a", ghost:"#a884e0", dragon:"#7a6cf0", dark:"#8a7a6a", steel:"#b8b8d0", fairy:"#ffa8cc"};
+/* attacker type -> defender type -> multiplier (the real chart) */
+var CHART = (function(){
+  var T = ["normal","fire","water","electric","grass","ice","fighting","poison","ground","flying","psychic","bug","rock","ghost","dragon","dark","steel","fairy"];
+  var M = {};
+  T.forEach(function(a){ M[a] = {}; T.forEach(function(d){ M[a][d] = 1; }); });
+  function set(a, list, v){ list.forEach(function(d){ M[a][d] = v; }); }
+  set("normal",["rock","steel"],.5); set("normal",["ghost"],0);
+  set("fire",["grass","ice","bug","steel"],2); set("fire",["fire","water","rock","dragon"],.5);
+  set("water",["fire","ground","rock"],2); set("water",["water","grass","dragon"],.5);
+  set("electric",["water","flying"],2); set("electric",["electric","grass","dragon"],.5); set("electric",["ground"],0);
+  set("grass",["water","ground","rock"],2); set("grass",["fire","grass","poison","flying","bug","dragon","steel"],.5);
+  set("ice",["grass","ground","flying","dragon"],2); set("ice",["fire","water","ice","steel"],.5);
+  set("fighting",["normal","ice","rock","dark","steel"],2); set("fighting",["poison","flying","psychic","bug","fairy"],.5); set("fighting",["ghost"],0);
+  set("poison",["grass","fairy"],2); set("poison",["poison","ground","rock","ghost"],.5); set("poison",["steel"],0);
+  set("ground",["fire","electric","poison","rock","steel"],2); set("ground",["grass","bug"],.5); set("ground",["flying"],0);
+  set("flying",["grass","fighting","bug"],2); set("flying",["electric","rock","steel"],.5);
+  set("psychic",["fighting","poison"],2); set("psychic",["psychic","steel"],.5); set("psychic",["dark"],0);
+  set("bug",["grass","psychic","dark"],2); set("bug",["fire","fighting","poison","flying","ghost","steel","fairy"],.5);
+  set("rock",["fire","ice","flying","bug"],2); set("rock",["fighting","ground","steel"],.5);
+  set("ghost",["psychic","ghost"],2); set("ghost",["dark"],.5); set("ghost",["normal"],0);
+  set("dragon",["dragon"],2); set("dragon",["steel"],.5); set("dragon",["fairy"],0);
+  set("dark",["psychic","ghost"],2); set("dark",["fighting","dark","fairy"],.5);
+  set("steel",["ice","rock","fairy"],2); set("steel",["fire","water","electric","steel"],.5);
+  set("fairy",["fighting","dragon","dark"],2); set("fairy",["fire","poison","steel"],.5);
+  return M;
+})();
+function effect(moveType, defTypes){
+  var m = 1;
+  for (var i = 0; i < defTypes.length; i++){ var row = CHART[moveType]; if (row && typeof row[defTypes[i]] === "number") m *= row[defTypes[i]]; }
+  return m;
+}
+
+/* the ladder: one type each, three Pokemon each, levels climbing */
+var LEADERS = [
+  { type:"rock",     name:"Rock Leader",     team:[74,95,76],    lv:[26,28,30] },
+  { type:"water",    name:"Water Leader",    team:[120,121,130], lv:[29,31,33] },
+  { type:"electric", name:"Electric Leader", team:[25,26,125],   lv:[32,34,36] },
+  { type:"grass",    name:"Grass Leader",    team:[45,71,103],   lv:[35,37,39] },
+  { type:"poison",   name:"Poison Leader",   team:[110,89,169],  lv:[38,40,42] },
+  { type:"psychic",  name:"Psychic Leader",  team:[64,65,122],   lv:[41,43,45] },
+  { type:"fire",     name:"Fire Leader",     team:[59,78,136],   lv:[44,46,48] },
+  { type:"dragon",   name:"Dragon Leader",   team:[148,230,149], lv:[47,50,53] }
+];
+/* a card's grade is its power: the level it fights at */
+var GRADE_LV = [30, 36, 42, 50];
+var GRADE_NM = ["Normal", "Shiny", "Full Art", "Gold"];
+var BADGE_LV = 2;            /* every badge levels the whole team up by this */
+var TEAM_MAX = 6;
+/* the 3-card pack for beating a leader: the odds of a hard 9x9 Sudoku win */
+var PACK_SIZE = 3, PACK_ODDS = [0.75, 0.225, 0.025, 0], UPGRADE_AT = 3, MAX_GRADE = 3;
+
+/* ---------------- guarded storage ---------------- */
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } }
+var KEY = "pokeBattle.v1";
+function fresh(){ return {v:1, team:[], badges:{}, wins:0, losses:0, mute:0}; }
+var S = (function(){
+  var o = fresh();
+  try {
+    var raw = lsGet(KEY); if (!raw) return o;
+    var j = JSON.parse(raw); if (!j || typeof j !== "object") return o;
+    if (Array.isArray(j.team)) o.team = j.team.map(function(x){ return parseInt(x, 10); }).filter(function(x){ return isFinite(x) && x > 0; }).slice(0, TEAM_MAX);
+    if (j.badges && typeof j.badges === "object") Object.keys(j.badges).forEach(function(k){ var i = parseInt(k, 10); if (i >= 0 && i < LEADERS.length) o.badges[i] = Number(j.badges[k]) || 1; });
+    o.wins = Math.max(0, Math.floor(Number(j.wins) || 0)); o.losses = Math.max(0, Math.floor(Number(j.losses) || 0));
+    o.mute = j.mute ? 1 : 0;
+  } catch(e){ return fresh(); }
+  return o;
+})();
+function save(){ lsSet(KEY, JSON.stringify(S)); }
+function badgeCount(){ return Object.keys(S.badges).length; }
+function nextLeader(){ for (var i = 0; i < LEADERS.length; i++) if (!S.badges[i]) return i; return -1; }
+
+/* ---------- what he caught (pokeDex.v1) and the grades (pokeCards.v1): READ ONLY, same validation as Sudoku ---------- */
+function dexLoad(){
+  var out = {caught:{}, order:[]};
+  try {
+    var raw = lsGet("pokeDex.v1"); if (!raw) return out;
+    var o = JSON.parse(raw); if (!o || typeof o !== "object") return out;
+    var src = (o.caught && typeof o.caught === "object") ? o.caught : {};
+    Object.keys(src).forEach(function(k){ var id = parseInt(k, 10); if (isFinite(id) && id > 0) out.caught[id] = Number(src[k]) || 1; });
+    (Array.isArray(o.order) ? o.order : []).forEach(function(id){ id = parseInt(id, 10); if (out.caught[id] && out.order.indexOf(id) === -1) out.order.push(id); });
+    Object.keys(out.caught).forEach(function(k){ var id = parseInt(k, 10); if (out.order.indexOf(id) === -1) out.order.push(id); });
+  } catch(e){ return {caught:{}, order:[]}; }
+  return out;
+}
+function cardsLoad(){
+  var out = {cards:{}, order:[]};
+  try {
+    var raw = lsGet("pokeCards.v1"); if (!raw) return out;
+    var o = JSON.parse(raw); if (!o || typeof o !== "object") return out;
+    var src = (o.cards && typeof o.cards === "object") ? o.cards : {};
+    Object.keys(src).forEach(function(k){
+      var id = parseInt(k, 10); if (!isFinite(id) || id <= 0) return;
+      var r = src[k]; if (!r || typeof r !== "object") return;
+      var e = {c:0, b:[0,0,0,0]}, tot = 0, i, n;
+      var b = Array.isArray(r.b) ? r.b : [];
+      for (i = 0; i < 4; i++){ n = Math.floor(Number(b[i])); if (!isFinite(n) || n < 0) n = 0; e.b[i] = Math.min(n, 1e6); tot += e.b[i]; }
+      n = Math.floor(Number(r.c)); e.c = (isFinite(n) && n > 0) ? Math.min(n, 1e7) : 0;
+      if (tot === 0){ e.b[0] = 1; tot = 1; }
+      if (e.c < tot) e.c = tot;
+      out.cards[id] = e;
+    });
+    (Array.isArray(o.order) ? o.order : []).forEach(function(id){ id = parseInt(id, 10); if (out.cards[id] && out.order.indexOf(id) === -1) out.order.push(id); });
+    Object.keys(out.cards).forEach(function(k){ var id = parseInt(k, 10); if (out.order.indexOf(id) === -1) out.order.push(id); });
+  } catch(e){ return {cards:{}, order:[]}; }
+  return out;
+}
+var DEXS = dexLoad(), CARDS = cardsLoad();
+function isCaught(id){ return !!DEXS.caught[id]; }
+function cardGrade(id){ var e = CARDS.cards[id]; if (!e) return 0; for (var g = MAX_GRADE; g >= 0; g--) if (e.b[g] > 0) return g; return 0; }
+function dexSave(){
+  /* exactly Sudoku's shape, merged over whatever is on disk so nothing is lost */
+  try {
+    var raw = lsGet("pokeDex.v1"), o = raw ? JSON.parse(raw) : null;
+    if (!o || typeof o !== "object") o = {v:1, caught:{}, order:[]};
+    if (!o.caught || typeof o.caught !== "object") o.caught = {};
+    if (!Array.isArray(o.order)) o.order = [];
+    Object.keys(DEXS.caught).forEach(function(k){ if (!o.caught[k]) o.caught[k] = DEXS.caught[k]; });
+    DEXS.order.forEach(function(id){ if (o.order.indexOf(id) === -1 && o.order.indexOf(String(id)) === -1) o.order.push(id); });
+    o.v = 1; lsSet("pokeDex.v1", JSON.stringify(o));
+  } catch(e){}
+}
+function cardsSave(){
+  try {
+    var raw = lsGet("pokeCards.v1"), o = raw ? JSON.parse(raw) : null;
+    if (!o || typeof o !== "object") o = {v:1, cards:{}, order:[]};
+    if (!o.cards || typeof o.cards !== "object") o.cards = {};
+    if (!Array.isArray(o.order)) o.order = [];
+    Object.keys(CARDS.cards).forEach(function(k){ o.cards[k] = CARDS.cards[k]; });
+    CARDS.order.forEach(function(id){ if (o.order.indexOf(id) === -1 && o.order.indexOf(String(id)) === -1) o.order.push(id); });
+    o.v = 1; lsSet("pokeCards.v1", JSON.stringify(o));
+  } catch(e){}
+}
+function dexAdd(id){ if (isCaught(id)) return false; DEXS.caught[id] = Date.now(); DEXS.order.push(id); dexSave(); return true; }
+/* one copy of `id` at grade g, with Sudoku's 3-become-1 ladder */
+function gainCard(id, g){
+  if (!DATA.pokemon[id]) return null;
+  if (!(g >= 0 && g <= MAX_GRADE)) g = 0;
+  var fresh = !CARDS.cards[id];
+  var e = fresh ? {c:0, b:[0,0,0,0]} : CARDS.cards[id];
+  if (fresh){ CARDS.cards[id] = e; if (CARDS.order.indexOf(id) === -1) CARDS.order.push(id); }
+  var before = fresh ? -1 : cardGrade(id);
+  e.c += 1; e.b[g] += 1;
+  for (var k = 0; k < MAX_GRADE; k++){ while (e.b[k] >= UPGRADE_AT){ e.b[k] -= UPGRADE_AT; e.b[k+1] += 1; } }
+  var after = cardGrade(id);
+  var isNew = !isCaught(id);
+  if (isNew) dexAdd(id);
+  cardsSave();
+  return {id:id, pulled:g, isNew:isNew, upgraded:(!fresh && after > before), to:after};
+}
+function rollGrade(){
+  var r = Math.random(), acc = 0;
+  for (var g = 0; g < PACK_ODDS.length; g++){ acc += PACK_ODDS[g]; if (r < acc) return g; }
+  return 0;
+}
+function makePack(){
+  var ids = Object.keys(DATA.pokemon).map(Number);
+  var freshIds = ids.filter(function(id){ return !isCaught(id); });
+  var out = [];
+  if (freshIds.length) out.push({id: freshIds[Math.floor(Math.random()*freshIds.length)], grade: rollGrade()});
+  while (out.length < PACK_SIZE) out.push({id: ids[Math.floor(Math.random()*ids.length)], grade: rollGrade()});
+  for (var i = out.length - 1; i > 0; i--){ var j = Math.floor(Math.random()*(i+1)); var t = out[i]; out[i] = out[j]; out[j] = t; }
+  return out;
+}
+
+/* ---------------- sound ---------------- */
+var Snd = (function(){
+  var on = !S.mute, ctx = null, cries = {};
+  function init(){ if (ctx) return ctx; try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ ctx = null; } return ctx; }
+  function blip(type, f0, f1, vol, dur, delay){
+    if (!on) return;
+    try {
+      var c = init(); if (!c) return;
+      var t = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t);
+      if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+      g.gain.setValueAtTime(0.0008, c.currentTime); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+    } catch(e){}
+  }
+  function noise(vol, dur, hz){
+    if (!on) return;
+    try {
+      var c = init(); if (!c) return;
+      var len = Math.max(1, Math.floor(c.sampleRate * dur)), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = (Math.random()*2 - 1) * (1 - i/len);
+      var s = c.createBufferSource(); s.buffer = buf; var f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = hz;
+      var g = c.createGain(); g.gain.setValueAtTime(vol, c.currentTime); g.gain.exponentialRampToValueAtTime(0.0008, c.currentTime + dur);
+      s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+    } catch(e){}
+  }
+  return {
+    start: function(){ try { var c = init(); if (c && c.state === "suspended") c.resume(); } catch(e){} },
+    tick: function(){ blip("triangle", 1600, 1200, 0.05, 0.05); },
+    hit: function(big){ noise(big ? 0.22 : 0.12, big ? 0.28 : 0.16, big ? 900 : 1600); blip("square", big ? 160 : 240, 60, 0.08, 0.14); },
+    miss: function(){ blip("sine", 500, 200, 0.06, 0.18); },
+    win: function(){ [523,659,784,1047].forEach(function(f, i){ blip("triangle", f, 0, 0.12, 0.35, i*0.12); }); },
+    lose: function(){ [392,330,262].forEach(function(f, i){ blip("triangle", f, 0, 0.10, 0.4, i*0.2); }); },
+    cry: function(id){
+      if (!on || !id) return;
+      try {
+        var a = cries[id] || (cries[id] = new Audio(CRY + id + ".ogg"));
+        a.currentTime = 0; a.volume = 0.55; var p = a.play(); if (p && p.catch) p.catch(function(){});
+      } catch(e){}
+    },
+    set: function(v){ on = !!v; S.mute = on ? 0 : 1; save(); return on; },
+    toggle: function(){ return this.set(!on); },
+    isOn: function(){ return on; }
+  };
+})();
+
+/* ---------------- the data file ---------------- */
+var DATA = {pokemon:{}, moves:{}};
+function loadData(){
+  return fetch("pokedata.json", {cache:"force-cache"}).then(function(r){ if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+    .then(function(j){
+      if (!j || !j.pokemon || !j.moves) throw new Error("shape");
+      DATA = j; return j;
+    });
+}
+function nameOf(id){ var p = DATA.pokemon[id]; return p ? p.n.replace(/-/g, " ") : ("#" + id); }
+function typesOf(id){ var p = DATA.pokemon[id]; return p ? p.t : ["normal"]; }
+
+/* ---------------- a fighter ---------------- */
+function statAt(base, lv){ return Math.floor((2*base + 31) * lv / 100) + 5; }
+function hpAt(base, lv){ return Math.floor((2*base + 31) * lv / 100) + lv + 10; }
+function makeMon(id, lv, grade){
+  var p = DATA.pokemon[id]; if (!p) return null;
+  var mv = (p.m || []).map(function(n){ var m = DATA.moves[n]; return m ? {n:n, t:m.t, p:m.p || 0, a:(m.a === null ? 100 : m.a), pp:m.pp || 10, ppMax:m.pp || 10, c:m.c} : null; }).filter(Boolean);
+  if (!mv.length) mv = [{n:"tackle", t:"normal", p:40, a:100, pp:35, ppMax:35, c:"physical"}];
+  var s = p.s || [50,50,50,50,50,50];
+  return { id:id, name:nameOf(id), types:p.t, lv:lv, grade:(typeof grade === "number" ? grade : -1),
+           hpMax:hpAt(s[0], lv), hp:hpAt(s[0], lv), atk:statAt(s[1], lv), def:statAt(s[2], lv), spa:statAt(s[3], lv), spd:statAt(s[4], lv), spe:statAt(s[5], lv),
+           moves:mv, fainted:false };
+}
+function myLevel(id){ return GRADE_LV[cardGrade(id)] + BADGE_LV * badgeCount(); }
+
+/* ---------------- the battle ---------------- */
+var B = null;              /* {me:[mons], foe:[mons], mi, fi, leader, busy, over} */
+var running = false;
+function teamIds(){
+  var ids = S.team.filter(function(id){ return isCaught(id) && DATA.pokemon[id]; });
+  if (!ids.length) ids = DEXS.order.filter(function(id){ return DATA.pokemon[id]; }).slice(0, TEAM_MAX);
+  return ids.slice(0, TEAM_MAX);
+}
+function startBattle(li){
+  var L = LEADERS[li]; if (!L) return false;
+  var ids = teamIds(); if (!ids.length) return false;
+  B = { leader:li, me: ids.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean),
+        foe: L.team.map(function(id, i){ return makeMon(id, L.lv[i], -1); }).filter(Boolean), mi:0, fi:0, busy:true, over:false, turn:0 };
+  running = true;
+  $("arena").classList.remove("quake");
+  paintTeam(); paintMe(true); paintFoe(true);
+  msg(L.name + " wants to battle!", "Their first Pokemon is " + B.foe[0].name.toUpperCase() + ".");
+  $("moves").classList.add("off"); $("team").classList.add("off");
+  sendOut("foe", B.foe[0]);
+  setTimeout(function(){ sendOut("me", B.me[0]); }, 700);
+  setTimeout(function(){ paintMoves(); B.busy = false; msg("What will " + me().name.toUpperCase() + " do?", tipLine()); $("moves").classList.remove("off"); $("team").classList.remove("off"); }, 1500);
+  return true;
+}
+function me(){ return B.me[B.mi]; }
+function foe(){ return B.foe[B.fi]; }
+function msg(a, b){ $("msgMain").textContent = a || ""; $("msgSub").textContent = b || ""; }
+function tipLine(){
+  var f = foe(), best = null;
+  me().moves.forEach(function(m){ if (!m.p || m.pp <= 0) return; var e = effect(m.t, f.types); if (!best || e > best.e) best = {m:m, e:e}; });
+  if (best && best.e > 1) return cap(best.m.n) + " is super effective on " + f.name.toUpperCase() + ".";
+  if (best && best.e < 1) return "Nothing you have is strong against " + f.name.toUpperCase() + ". Switch, or hit hard.";
+  return "Pick a move, or tap a team-mate to switch.";
+}
+function cap(s){ return String(s || "").replace(/-/g, " ").replace(/\b\w/g, function(c){ return c.toUpperCase(); }); }
+function setImg(img, srcGif, srcPng){
+  img.onerror = function(){ img.onerror = null; img.src = srcPng; };
+  img.src = srcGif;
+}
+function paintFoe(full){
+  var f = foe(); if (!f) return;
+  $("nmFoe").textContent = f.name; $("lvFoe").textContent = "Lv " + f.lv;
+  $("tgFoe").innerHTML = f.types.map(function(t){ return '<span class="tag" style="background:' + TYPE_COL[t] + '">' + t + "</span>"; }).join("");
+  if (full) setImg($("imgFoe"), spriteFront(f.id), spriteFrontPng(f.id));
+  fill("filFoe", f);
+}
+function paintMe(full){
+  var m = me(); if (!m) return;
+  $("nmMe").textContent = m.name; $("lvMe").textContent = "Lv " + m.lv;
+  $("tgMe").innerHTML = m.types.map(function(t){ return '<span class="tag" style="background:' + TYPE_COL[t] + '">' + t + "</span>"; }).join("") +
+    (m.grade >= 0 ? '<span class="tag gr' + m.grade + '">' + GRADE_NM[m.grade] + "</span>" : "");
+  if (full) setImg($("imgMe"), spriteBack(m.id), spriteBackPng(m.id));
+  fill("filMe", m); $("numMe").textContent = Math.max(0, m.hp) + " / " + m.hpMax;
+}
+function fill(id, mon){
+  var e = $(id), f = Math.max(0, mon.hp) / mon.hpMax;
+  e.style.width = (f*100) + "%"; e.className = "fil" + (f <= 0.2 ? " low" : (f <= 0.5 ? " mid" : ""));
+}
+function paintMoves(){
+  var m = me(), f = foe(), box = $("moves"); box.innerHTML = "";
+  m.moves.forEach(function(mv, i){
+    var b = document.createElement("button"); b.type = "button"; b.style.setProperty("--t", TYPE_COL[mv.t] || "#999");
+    var e = effect(mv.t, f.types), tag = e > 1 ? '<span class="eff up">SUPER</span>' : (e === 0 ? '<span class="eff dn">NO EFFECT</span>' : (e < 1 ? '<span class="eff dn">WEAK</span>' : ""));
+    b.innerHTML = '<span class="mn">' + cap(mv.n) + "</span>" + tag + '<span class="pp">PP ' + mv.pp + "/" + mv.ppMax + "</span>";
+    b.disabled = mv.pp <= 0;
+    b.onclick = function(){ if (B.busy || B.over) return; Snd.tick(); playerMove(i); };
+    box.appendChild(b);
+  });
+}
+function paintTeam(){
+  var box = $("team"); box.innerHTML = "";
+  B.me.forEach(function(mon, i){
+    var b = document.createElement("button"); b.type = "button"; b.title = mon.name;
+    b.className = (i === B.mi ? "active " : "") + (mon.fainted ? "out" : "");
+    b.innerHTML = '<img src="' + spriteIcon(mon.id) + '" alt=""><span class="hpd"><i style="width:' + (Math.max(0, mon.hp)/mon.hpMax*100) + '%"></i></span>';
+    b.onclick = function(){ if (B.busy || B.over || i === B.mi || mon.fainted) return; Snd.tick(); openSwitch(false); };
+    box.appendChild(b);
+  });
+}
+function sendOut(side, mon){
+  var box = side === "me" ? $("monMe") : $("monFoe");
+  box.classList.remove("faint", "hit", "lungeL", "lungeR", "hide");
+  box.classList.add("sendOut");
+  setTimeout(function(){ box.classList.remove("sendOut"); }, 520);
+  Snd.cry(mon.id);
+}
+/* ----- damage: the real shape of the formula, with STAB, type chart, a crit and a little variance ----- */
+function calcDamage(att, mv, def){
+  if (!mv.p) return {dmg:0, eff:1, crit:false};
+  var special = mv.c === "special";
+  var A = special ? att.spa : att.atk, D = special ? def.spd : def.def;
+  var base = Math.floor(Math.floor(Math.floor(2*att.lv/5 + 2) * mv.p * A / D) / 50) + 2;
+  var stab = att.types.indexOf(mv.t) >= 0 ? 1.5 : 1;
+  var eff = effect(mv.t, def.types);
+  var crit = Math.random() < 1/16;
+  var rnd = 0.85 + Math.random()*0.15;
+  var dmg = Math.floor(base * stab * eff * (crit ? 1.5 : 1) * rnd);
+  if (eff > 0 && dmg < 1) dmg = 1;
+  return {dmg:dmg, eff:eff, crit:crit};
+}
+function sideBox(side){ return side === "me" ? $("monMe") : $("monFoe"); }
+function burst(side, type, big){
+  var box = sideBox(side), r = box.getBoundingClientRect(), ar = $("arena").getBoundingClientRect();
+  var cx = r.left + r.width/2 - ar.left, cy = r.top + r.height*0.55 - ar.top, col = TYPE_COL[type] || "#fff";
+  var fx = document.createElement("div"); fx.className = "fx"; fx.style.left = cx + "px"; fx.style.top = cy + "px";
+  fx.style.background = "radial-gradient(circle, #fff 0%, " + col + " 35%, transparent 70%)";
+  $("arena").appendChild(fx); setTimeout(function(){ fx.remove(); }, 650);
+  var n = big ? 14 : 8;
+  for (var i = 0; i < n; i++){
+    var p = document.createElement("div"); p.className = "fxp"; p.style.left = cx + "px"; p.style.top = cy + "px"; p.style.background = col;
+    var a = Math.random()*Math.PI*2, d = (big ? 90 : 60) + Math.random()*60;
+    p.style.setProperty("--dx", Math.cos(a)*d + "px"); p.style.setProperty("--dy", Math.sin(a)*d + "px");
+    $("arena").appendChild(p); setTimeout(function(q){ q.remove(); }, 720, p);
+  }
+}
+function dmgPop(side, n, eff){
+  var box = sideBox(side), r = box.getBoundingClientRect(), ar = $("arena").getBoundingClientRect();
+  var d = document.createElement("div"); d.className = "dmg"; d.textContent = "-" + n + (eff > 1 ? "!" : "");
+  d.style.left = (r.left + r.width/2 - ar.left - 20) + "px"; d.style.top = (r.top + r.height*0.3 - ar.top) + "px";
+  if (eff > 1) d.style.color = "#FFD84A";
+  $("arena").appendChild(d); setTimeout(function(){ d.remove(); }, 1000);
+}
+/* one attack, fully animated; cb when the attack has resolved */
+function attack(attSide, att, mv, def, cb){
+  var defSide = attSide === "me" ? "foe" : "me";
+  mv.pp = Math.max(0, mv.pp - 1);
+  msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "");
+  sideBox(attSide).classList.add(attSide === "me" ? "lungeR" : "lungeL");
+  setTimeout(function(){ sideBox(attSide).classList.remove("lungeR", "lungeL"); }, 560);
+  setTimeout(function(){
+    if (Math.random()*100 >= mv.a){ Snd.miss(); msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "It missed!"); setTimeout(cb, 700); return; }
+    var r = calcDamage(att, mv, def);
+    if (r.eff === 0){ Snd.miss(); msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", "It doesn't affect " + def.name.toUpperCase() + "..."); setTimeout(cb, 800); return; }
+    def.hp = Math.max(0, def.hp - r.dmg);
+    var big = r.eff > 1 || r.crit;
+    burst(defSide, mv.t, big);
+    sideBox(defSide).classList.add("hit"); setTimeout(function(){ sideBox(defSide).classList.remove("hit"); }, 520);
+    if (big){ $("arena").classList.add("quake"); setTimeout(function(){ $("arena").classList.remove("quake"); }, 460); }
+    Snd.hit(big);
+    dmgPop(defSide, r.dmg, r.eff);
+    if (defSide === "me") paintMe(false); else paintFoe(false);
+    paintTeam();
+    var sub = r.eff > 1 ? "It's super effective!" : (r.eff < 1 ? "It's not very effective..." : "");
+    if (r.crit) sub = "A critical hit! " + sub;
+    msg(att.name.toUpperCase() + " used " + cap(mv.n) + "!", sub);
+    setTimeout(function(){
+      if (def.hp <= 0){
+        def.fainted = true;
+        sideBox(defSide).classList.add("faint"); Snd.cry(def.id);
+        msg(def.name.toUpperCase() + " fainted!", "");
+        setTimeout(function(){ sideBox(defSide).classList.add("hide"); sideBox(defSide).classList.remove("faint"); paintTeam(); cb(true); }, 800);
+      } else cb(false);
+    }, sub ? 750 : 350);
+  }, 330);
+}
+/* the leader's pick: the move that should do the most, with a little wobble */
+function foeChoice(){
+  var f = foe(), m = me(), best = null;
+  f.moves.forEach(function(mv){
+    if (mv.pp <= 0 || !mv.p) return;
+    var e = effect(mv.t, m.types), stab = f.types.indexOf(mv.t) >= 0 ? 1.5 : 1;
+    var score = mv.p * e * stab * (mv.a/100) * (0.85 + Math.random()*0.3);
+    if (!best || score > best.score) best = {mv:mv, score:score};
+  });
+  return best ? best.mv : struggle();
+}
+function struggle(){ return {n:"struggle", t:"normal", p:50, a:100, pp:1, ppMax:1, c:"physical"}; }
+function playerMove(i){
+  var m = me(), mv = m.moves[i]; if (!mv || mv.pp <= 0) return;
+  B.busy = true; $("moves").classList.add("off"); $("team").classList.add("off");
+  var f = foe(), fm = foeChoice();
+  var meFirst = m.spe > f.spe || (m.spe === f.spe && Math.random() < 0.5);
+  var order = meFirst ? [["me", m, mv, f], ["foe", f, fm, m]] : [["foe", f, fm, m], ["me", m, mv, f]];
+  runTurn(order, 0);
+}
+function runTurn(order, k){
+  if (k >= order.length){ endTurn(); return; }
+  var step = order[k], att = step[1], def = step[3];
+  if (att.fainted || def.fainted){ runTurn(order, k+1); return; }
+  attack(step[0], att, step[2], def, function(fainted){
+    if (fainted){ afterFaint(step[0] === "me" ? "foe" : "me"); return; }
+    runTurn(order, k+1);
+  });
+}
+function endTurn(){
+  B.turn++;
+  B.busy = false; paintMoves(); paintTeam();
+  msg("What will " + me().name.toUpperCase() + " do?", tipLine());
+  $("moves").classList.remove("off"); $("team").classList.remove("off");
+}
+function afterFaint(side){
+  if (side === "foe"){
+    var next = -1;
+    for (var i = 0; i < B.foe.length; i++) if (!B.foe[i].fainted){ next = i; break; }
+    if (next < 0){ winBattle(); return; }
+    B.fi = next; var f = foe();
+    msg(LEADERS[B.leader].name + " sends out " + f.name.toUpperCase() + "!", "");
+    paintFoe(true); setTimeout(function(){ sendOut("foe", f); }, 200);
+    setTimeout(endTurn, 1100);
+  } else {
+    var any = B.me.some(function(x){ return !x.fainted; });
+    if (!any){ loseBattle(); return; }
+    openSwitch(true);
+  }
+}
+function openSwitch(forced){
+  var row = $("switchRow"); row.innerHTML = "";
+  $("switchTitle").textContent = forced ? "WHO GOES NEXT?" : "SWITCH TO WHO?";
+  $("switchLine").textContent = forced ? me().name.toUpperCase() + " fainted. Pick who goes next." : "Switching uses your turn. The leader still attacks.";
+  $("switchCancel").style.display = forced ? "none" : "";
+  B.me.forEach(function(mon, i){
+    if (i === B.mi || mon.fainted) return;
+    var b = document.createElement("button"); b.className = "bigbtn ghost"; b.type = "button";
+    b.innerHTML = '<img src="' + spriteIcon(mon.id) + '" alt="" style="width:40px;height:40px;vertical-align:middle;image-rendering:pixelated"> ' + mon.name.toUpperCase() + " · " + Math.max(0, mon.hp) + "/" + mon.hpMax;
+    b.onclick = function(){ Snd.tick(); $("switchOv").classList.remove("on"); doSwitch(i, forced); };
+    row.appendChild(b);
+  });
+  $("switchOv").classList.add("on");
+}
+function doSwitch(i, forced){
+  B.busy = true; $("moves").classList.add("off"); $("team").classList.add("off");
+  B.mi = i; var m = me();
+  msg("Go, " + m.name.toUpperCase() + "!", "");
+  paintMe(true); paintTeam(); setTimeout(function(){ sendOut("me", m); }, 150);
+  if (forced){ setTimeout(endTurn, 1000); return; }
+  /* a chosen switch costs the turn: the leader gets a free hit */
+  setTimeout(function(){
+    var f = foe(), fm = foeChoice();
+    attack("foe", f, fm, me(), function(fainted){ if (fainted){ afterFaint("me"); return; } endTurn(); });
+  }, 1000);
+}
+function winBattle(){
+  B.over = true; running = false; Snd.win();
+  var li = B.leader, firstTime = !S.badges[li];
+  S.badges[li] = Date.now(); S.wins++; save();
+  msg("You beat the " + LEADERS[li].name + "!", "");
+  var pack = makePack(), res = pack.map(function(c){ return gainCard(c.id, c.grade); }).filter(Boolean);
+  $("resultBadge").textContent = "\u{1F3C5}";
+  $("resultTitle").textContent = firstTime ? "BADGE WON!" : "BADGE DEFENDED!";
+  $("resultLine").textContent = "The " + LEADERS[li].name + " is beaten. " + badgeCount() + " of 8 badges. Your whole team is now Lv +" + (BADGE_LV*badgeCount()) + ". Here is your 3-card pack:";
+  paintPack(res);
+  setTimeout(function(){ $("resultOv").classList.add("on"); }, 900);
+}
+function loseBattle(){
+  B.over = true; running = false; S.losses++; save(); Snd.lose();
+  msg("All your Pokemon fainted.", "Nothing is taken away. Heal up and try again.");
+  $("resultBadge").textContent = "\u{1F4A4}";
+  $("resultTitle").textContent = "NOT THIS TIME";
+  $("resultLine").textContent = "The " + LEADERS[B.leader].name + " was too strong today. Nothing is lost: your team is healed. Try a different six, or catch more in Sudoku.";
+  $("packRow").innerHTML = ""; $("packMsg").textContent = "";
+  setTimeout(function(){ $("resultOv").classList.add("on"); }, 900);
+}
+/* ---------- the pack reveal (same words as Sudoku) ---------- */
+var packRes = [];
+function paintPack(res){
+  packRes = res; var row = $("packRow"); row.innerHTML = ""; $("packMsg").textContent = "Tap a card to turn it over.";
+  res.forEach(function(r, i){
+    var d = document.createElement("div"); d.className = "pcard";
+    d.innerHTML = '<div class="in"><div class="f bk">?</div><div class="f fr"><img src="' + spriteIcon(r.id) + '" alt=""><span class="pn">' + nameOf(r.id) + '</span><span class="tag gr' + r.to + '">' + GRADE_NM[r.to] + "</span>" +
+      (r.isNew ? '<span class="nw">NEW!</span>' : (r.upgraded ? '<span class="nw">UPGRADED!</span>' : "")) + "</div></div>";
+    d.onclick = function(){ if (d.classList.contains("open")) return; d.classList.add("open"); Snd.tick(); packSummary(); };
+    row.appendChild(d);
+  });
+}
+function packSummary(){
+  var open = $("packRow").querySelectorAll(".pcard.open").length, nw = 0, up = 0;
+  packRes.forEach(function(r, i){ if ($("packRow").children[i].classList.contains("open")){ if (r.isNew) nw++; if (r.upgraded) up++; } });
+  var bits = []; if (nw) bits.push(nw + " new Pokemon"); if (up) bits.push(up + " upgraded");
+  if (open && !nw && !up) bits.push("Duplicates, and every one counts toward an upgrade");
+  if (open < packRes.length) bits.push((packRes.length - open) + " still face down");
+  $("packMsg").textContent = bits.join(" · ");
+}
+
+/* ---------------- screens ---------------- */
+function caughtIds(){ return DEXS.order.filter(function(id){ return DATA.pokemon[id]; }); }
+function paintStart(){
+  var ids = caughtIds();
+  $("caughtN").textContent = ids.length; $("badgeN").textContent = badgeCount();
+  $("startStats").innerHTML = [[ids.length, "caught"], [teamIds().length, "on the team"], [badgeCount() + "/8", "badges"], [S.wins, "wins"]].map(function(s){ return '<div class="stat"><div class="v">' + s[0] + '</div><div class="l">' + s[1] + "</div></div>"; }).join("");
+  $("ladderBtn").disabled = !ids.length;
+  $("startNote").innerHTML = ids.length ? "" : "You have no Pokemon yet. Win a round of <b>Pokemon Sudoku</b> to catch your first one, then come back.";
+}
+function paintLadder(){
+  var box = $("ladder"); box.innerHTML = ""; var nx = nextLeader();
+  LEADERS.forEach(function(L, i){
+    var won = !!S.badges[i], open = won || i === nx;
+    var d = document.createElement("div"); d.className = "leader" + (open ? "" : " lock"); d.style.setProperty("--t", TYPE_COL[L.type]);
+    d.innerHTML = '<div class="ring"><img src="' + spriteIcon(L.team[2]) + '" alt=""></div><div class="ln">' + L.name + '</div><div class="ln" style="font-weight:700;color:var(--sub);text-transform:none">Lv ' + L.lv[0] + "–" + L.lv[2] + "</div>" +
+      '<span class="st ' + (won ? "won" : (i === nx ? "next" : "")) + '">' + (won ? "BADGE WON" : (i === nx ? "NEXT" : "LOCKED")) + "</span>" + (open ? "" : '<span class="lock">\u{1F512}</span>');
+    if (open){ d.style.cursor = "pointer"; d.onclick = function(){ Snd.tick(); go(i); }; }
+    box.appendChild(d);
+  });
+  $("fightBtn").textContent = nx < 0 ? "All 8 badges won! Fight anyone again" : "Fight the " + LEADERS[nx].name;
+  $("fightBtn").onclick = function(){ Snd.tick(); go(nx < 0 ? LEADERS.length - 1 : nx); };
+}
+function go(li){
+  if (!teamIds().length){ $("startNote").textContent = "Catch a Pokemon in Sudoku first."; return; }
+  $("ladderOv").classList.remove("on"); $("startScreen").classList.remove("on");
+  Snd.start(); startBattle(li);
+}
+function paintPick(){
+  var grid = $("pickGrid"); grid.innerHTML = "";
+  var ids = caughtIds(), picked = teamIds();
+  ids.forEach(function(id){
+    var g = cardGrade(id), on = picked.indexOf(id) >= 0;
+    var d = document.createElement("div"); d.className = "pk" + (on ? " on" : "");
+    d.innerHTML = '<img src="' + spriteIcon(id) + '" alt=""><div class="pn">' + nameOf(id) + '</div><span class="tag gr' + g + '">' + GRADE_NM[g] + '</span><div class="lv">Lv ' + myLevel(id) + '</div><span class="tick">✓</span>';
+    d.onclick = function(){
+      Snd.tick();
+      var t = teamIds().slice(), k = t.indexOf(id);
+      if (k >= 0) t.splice(k, 1); else { if (t.length >= TEAM_MAX){ $("pickLine").textContent = "Six is the limit. Tap one to take it off first."; return; } t.push(id); }
+      S.team = t; save(); paintPick();
+    };
+    grid.appendChild(d);
+  });
+  $("pickLine").textContent = picked.length + " of " + TEAM_MAX + " picked" + (ids.length ? "" : " · nothing caught yet");
+}
+
+/* ---------------- buttons ---------------- */
+$("ladderBtn").onclick = function(){ Snd.start(); Snd.tick(); paintLadder(); $("ladderOv").classList.add("on"); };
+$("ladderBack").onclick = function(){ Snd.tick(); $("ladderOv").classList.remove("on"); };
+$("teamBtn").onclick = function(){ Snd.start(); Snd.tick(); paintPick(); $("teamOv").classList.add("on"); };
+$("teamDone").onclick = function(){ Snd.tick(); $("teamOv").classList.remove("on"); paintStart(); };
+$("switchCancel").onclick = function(){ Snd.tick(); $("switchOv").classList.remove("on"); };
+$("resultDone").onclick = function(){ Snd.tick(); $("resultOv").classList.remove("on"); paintStart(); paintLadder(); $("ladderOv").classList.add("on"); $("startScreen").classList.add("on"); };
+$("quitBtn").onclick = function(){
+  if (running && !confirm("Leave this fight? Nothing is lost, but you start it again from the beginning.")) return;
+  running = false; B = null; $("startScreen").classList.add("on"); paintStart();
+};
+$("muteBtn").onclick = function(){ var on = Snd.toggle(); $("muteBtn").textContent = on ? "\u{1F50A}" : "\u{1F507}"; if (on) Snd.tick(); };
+$("muteBtn").textContent = Snd.isOn() ? "\u{1F50A}" : "\u{1F507}";
+
+/* stars */
+(function(){ var s = $("stars"), h = ""; for (var i = 0; i < 70; i++){ h += '<i style="position:absolute;left:' + (Math.random()*100) + '%;top:' + (Math.random()*40) + '%;width:' + (1+Math.random()*2) + 'px;height:' + (1+Math.random()*2) + 'px;border-radius:50%;background:#fff;opacity:' + (0.4+Math.random()*0.6) + '"></i>'; } s.innerHTML = h; })();
+
+/* ---------------- Escape: closes the top-most panel, never leaves the page ---------------- */
+(function(){
+  function vis(id){ var e = $(id); if (!e) return false; try { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); } catch(err){ return false; } }
+  var LAYERS = [
+    { open: function(){ return vis("resultOv"); }, close: function(){ $("resultDone").click(); } },
+    { open: function(){ return vis("switchOv") && $("switchCancel").style.display !== "none"; }, close: function(){ $("switchCancel").click(); } },
+    { open: function(){ return vis("teamOv"); }, close: function(){ $("teamDone").click(); } },
+    { open: function(){ return vis("ladderOv"); }, close: function(){ $("ladderBack").click(); } },
+    { open: function(){ return running && !vis("startScreen"); }, close: function(){ $("quitBtn").click(); } }
+  ];
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape" && ev.key !== "Esc" && ev.keyCode !== 27) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    for (var i = 0; i < LAYERS.length; i++){
+      var open = false; try { open = !!LAYERS[i].open(); } catch(err){ open = false; }
+      if (!open) continue;
+      try { ev.preventDefault(); ev.stopPropagation(); } catch(err){}
+      try { LAYERS[i].close(); } catch(err){}
+      return;
+    }
+  }, true);
+})();
+
+/* ---------------- boot ---------------- */
+loadData().then(function(){ paintStart(); }).catch(function(e){
+  $("startNote").innerHTML = "The Pokemon list did not load (" + (e && e.message ? e.message : "no internet") + "). Check the connection and reload.";
+  $("ladderBtn").disabled = true; $("teamBtn").disabled = true;
+});
+
+/* test hook */
+window.__PB = { S:S, state:function(){ return B; }, start:startBattle, leaders:LEADERS, data:function(){ return DATA; }, calc:calcDamage, effect:effect, makeMon:makeMon,
+  auto:function(){ if (!B || B.busy || B.over) return false; var m = me(), best = 0; m.moves.forEach(function(mv, i){ if (mv.pp > 0 && effect(mv.t, foe().types)*mv.p > effect(m.moves[best].t, foe().types)*m.moves[best].p) best = i; }); playerMove(best); return true; },
+  gain:gainCard, pack:makePack, team:teamIds, caught:caughtIds, cards:function(){ return CARDS; }, dex:function(){ return DEXS; } };
+})();
+</script>
+<script src="home-button.js"></script>
+</body>
+</html>
