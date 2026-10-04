@@ -108,6 +108,11 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
 .pk .mu{display:block;margin:3px auto 0;width:62px;text-align:center;font-size:8.5px;background:#5E5C9C}
 .pk .mu.up{background:#1C8A4A} .pk .mu.dn{background:#B03A2E}
 .leaderTypes{font-size:12px;font-weight:800;color:#CFCDF2;margin:0 0 6px}
+#eliteRow,#legendRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;margin:8px 0}
+.leader.done .ring{box-shadow:0 0 0 3px var(--good)}
+.leader .rm{display:block;margin:6px auto 0;font-size:10px;font-weight:900;padding:4px 9px;border-radius:999px;background:var(--accent);color:var(--accentInk);border:1px solid var(--cardEdge)}
+.leader .rm.won{background:var(--good)}
+.bigbtn.lock{opacity:.5}
 #hpMe{right:12px;top:52%}
 .hp .nm{display:flex;align-items:baseline;gap:8px;font-family:var(--hd);font-weight:800;font-size:17px;line-height:1.1;text-transform:uppercase}
 .hp .nm .lv{margin-left:auto;font-size:12px;color:var(--sub)}
@@ -266,9 +271,36 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
   <div class="stats" id="startStats"></div>
   <div class="row">
     <button class="bigbtn" id="ladderBtn">Arena ladder</button>
+    <button class="bigbtn ghost" id="eliteBtn">Elite Four</button>
+    <button class="bigbtn ghost" id="towerBtn">Battle Tower</button>
+    <button class="bigbtn ghost" id="legendBtn">Legends</button>
     <button class="bigbtn ghost" id="teamBtn">My team</button>
   </div>
   <p id="startNote" style="font-size:12px;margin-top:10px"></p>
+</div>
+
+<!-- ELITE FOUR -->
+<div class="screen" id="eliteOv">
+  <h1>ELITE FOUR + CHAMPION</h1>
+  <p>Five fights in a row, each harder than the last, with a full heal between them and three potions for the whole run. <b>Lose any one fight and the whole run starts over.</b> Beat the Champion for a Champion's pack and a crown.</p>
+  <div id="eliteRow"></div>
+  <div class="row"><button class="bigbtn" id="eliteGo">Start the run</button><button class="bigbtn ghost" id="eliteBack">Back</button></div>
+</div>
+
+<!-- BATTLE TOWER -->
+<div class="screen" id="towerOv">
+  <h1>BATTLE TOWER</h1>
+  <p>Endless. Every round the trainers get stronger and bring more Pokemon. Between rounds you get half your HP back, but a fainted Pokemon stays down; two potions per run. Every 5 rounds: everyone back up, full heal and a pack. How far can you go?</p>
+  <div class="stats" id="towerStats"></div>
+  <div class="row"><button class="bigbtn" id="towerGo">Start a run</button><button class="bigbtn ghost" id="towerBack">Back</button></div>
+</div>
+
+<!-- LEGENDS -->
+<div class="screen" id="legendOv">
+  <h1>LEGENDS</h1>
+  <p>One legendary Pokemon with <b>double HP</b> against your six. Beat it and it is <b>caught</b>: a Shiny card in your binder, and it fights for you from then on. These never come in packs.</p>
+  <div id="legendRow"></div>
+  <div class="row"><button class="bigbtn ghost" id="legendBack">Back</button></div>
 </div>
 
 <!-- LADDER -->
@@ -394,6 +426,63 @@ var LEADERS = [
   { type:"dragon",   name:"Dragon Leader",   team:[148,230,149], lv:[46,48,51], smart:true }
 ];
 var POTIONS = 2;             /* per fight: heals half, costs the turn */
+
+/* Will, 2026-10-03, after clearing all 8 in an hour: "there needs to be
+   more challenges". Four more, each unlocked by the one before:
+   REMATCHES  all 8 badges -> every leader comes back 18 levels higher with 5 Pokemon and plays smart
+   ELITE FOUR all 8 badges -> four Elite trainers then the Champion, in a row, no healing between fights
+   TOWER      3 badges     -> endless rounds, harder every round, HP carries, best streak saved
+   LEGENDS    see each one -> one legendary Pokemon with double HP; beat it and it is CAUGHT (a card in his binder) */
+/* every extra challenge is pitched off HIS level (a Normal card plus every
+   bonus he has earned), so it stays a fight as he climbs instead of a wall */
+function plv(){ return GRADE_LV[0] + levelBonus(); }
+var REMATCH_OFF = [-3, -1, 1, 2, 3];       /* five slots, per rematch, plus half the leader's index */
+var REMATCH_ADJ = { water:-3, dragon:-10 }; /* their teams are the strongest of the eight by base stats */
+var ELITE_OFF = [-4, -3, -2, -1];          /* each Elite member, slots +0..+1; he may swap his six between fights */
+var CHAMP_OFF = -1;
+var ELITE_HEAL = 1;                        /* between members: a full heal and revive; the run is lost the moment one fight is */
+var TOWER_OFF = -18;                       /* round 1 is well under him; +1.25 a round, so round 15 is level and round 24 is +12 */
+var TOWER_HEAL = 0.5;                      /* between rounds; a full heal every 5 */
+var LEGEND_OFF = [5, 5, 5, 6, 7, 9, 12, 7];
+var REMATCH_MORE = { rock:[138,140], water:[131,134], electric:[101,135], grass:[182,189], poison:[94,24], psychic:[196,124], fire:[38,157], dragon:[334,330] };
+var ELITE = [
+  { type:"ice",      name:"Ice Elite",      team:[87,91,124,221] },
+  { type:"fighting", name:"Fighting Elite", team:[68,106,107,297] },
+  { type:"ghost",    name:"Ghost Elite",    team:[93,200,302,94] },
+  { type:"dragon",   name:"Dragon Elite",   team:[148,230,334,149] }
+];
+var CHAMPION = { type:"mixed", name:"Champion", team:[18,65,103,112,130,6] };
+var ELITE_POTIONS = 3;
+var TOWER_POTIONS = 2;
+var LEGENDS = [
+  { id:144, lv:56, need:"badges",   needText:"all 8 badges" },
+  { id:145, lv:56, need:"badges",   needText:"all 8 badges" },
+  { id:146, lv:56, need:"badges",   needText:"all 8 badges" },
+  { id:150, lv:68, need:"champion", needText:"beat the Champion" },
+  { id:249, lv:66, need:"champion", needText:"beat the Champion" },
+  { id:250, lv:66, need:"champion", needText:"beat the Champion" },
+  { id:384, lv:70, need:"tower8",   needText:"reach round 8 of the Tower" },
+  { id:151, lv:60, need:"tower8",   needText:"reach round 8 of the Tower" }
+];
+var LEGEND_HP = 2, LEGEND_POTIONS = 3;
+function legendOpen(L){
+  if (L.need === "badges") return allBadges();
+  if (L.need === "champion") return !!S.elite.champion;
+  if (L.need === "tower8") return S.tower.best >= 8;
+  return false;
+}
+/* opponents: one shape for every mode */
+function oppLeader(i){ var L = LEADERS[i]; return { kind:"leader", idx:i, name:L.name, type:L.type, team:L.team.slice(), lv:L.lv.slice(), smart:L.smart, potions:POTIONS }; }
+function oppRematch(i){ var L = LEADERS[i], base = plv() + Math.floor(i / 2) + (REMATCH_ADJ[L.type] || 0); return { kind:"rematch", idx:i, name:L.name + " (rematch)", type:L.type, team:L.team.concat(REMATCH_MORE[L.type] || []), lv:REMATCH_OFF.map(function(o){ return base + o; }), smart:true, potions:POTIONS }; }
+function oppEliteRun(){ var team = []; ELITE.forEach(function(E){ team = team.concat(E.team); }); team = team.concat(CHAMPION.team); return { kind:"elite", idx:0, name:"Elite Four run", type:"mixed", team:team, lv:team.map(function(){ return plv(); }), smart:true, potions:ELITE_POTIONS }; }
+function oppElite(k){ var E = k < 4 ? ELITE[k] : CHAMPION, base = plv() + (k < 4 ? ELITE_OFF[k] : CHAMP_OFF); return { kind:"elite", idx:k, name:E.name, type:E.type, team:E.team.slice(), lv:E.team.map(function(_, j){ return base + Math.floor(j / 2); }), smart:true, potions:ELITE_POTIONS }; }
+function towerPool(minTotal){ return Object.keys(DATA.pokemon).map(Number).filter(function(id){ var p = DATA.pokemon[id]; var t = p.s.reduce(function(a, b){ return a + b; }, 0); return t >= minTotal && (p.m || []).length >= 2; }); }
+function oppTower(r){
+  var n = Math.min(6, 2 + Math.floor((r - 1) / 6)), lv = plv() + TOWER_OFF + Math.floor(1.25 * r), pool = towerPool(r < 5 ? 320 : (r < 10 ? 380 : 450));
+  var team = [], tries = 0; while (team.length < n && tries++ < 200){ var id = pool[Math.floor(Math.random() * pool.length)]; if (team.indexOf(id) < 0) team.push(id); }
+  return { kind:"tower", idx:r, name:"Tower round " + r, type:"mixed", team:team, lv:team.map(function(_, i){ return lv + i; }), smart:r >= 9, potions:TOWER_POTIONS };
+}
+function oppLegend(k){ var L = LEGENDS[k]; return { kind:"legend", idx:k, name:nameOf(L.id).toUpperCase(), type:"legend", team:[L.id], lv:[plv() + LEGEND_OFF[k]], smart:true, potions:LEGEND_POTIONS, hpMul:LEGEND_HP }; }
 /* a card's grade is its power: the level it fights at */
 var GRADE_LV = [30, 36, 42, 50];
 var GRADE_NM = ["Normal", "Shiny", "Full Art", "Gold"];
@@ -406,7 +495,7 @@ var PACK_SIZE = 3, PACK_ODDS = [0.75, 0.225, 0.025, 0], UPGRADE_AT = 3, MAX_GRAD
 function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
 function lsSet(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } }
 var KEY = "pokeBattle.v1";
-function fresh(){ return {v:1, team:[], badges:{}, wins:0, losses:0, mute:0}; }
+function fresh(){ return {v:1, team:[], badges:{}, rematch:{}, elite:{best:0, champion:0}, tower:{best:0}, legends:{}, wins:0, losses:0, mute:0}; }
 var S = (function(){
   var o = fresh();
   try {
@@ -415,12 +504,19 @@ var S = (function(){
     if (Array.isArray(j.team)) o.team = j.team.map(function(x){ return parseInt(x, 10); }).filter(function(x){ return isFinite(x) && x > 0; }).slice(0, TEAM_MAX);
     if (j.badges && typeof j.badges === "object") Object.keys(j.badges).forEach(function(k){ var i = parseInt(k, 10); if (i >= 0 && i < LEADERS.length) o.badges[i] = Number(j.badges[k]) || 1; });
     o.wins = Math.max(0, Math.floor(Number(j.wins) || 0)); o.losses = Math.max(0, Math.floor(Number(j.losses) || 0));
+    if (j.rematch && typeof j.rematch === "object") Object.keys(j.rematch).forEach(function(k){ var i = parseInt(k, 10); if (i >= 0 && i < LEADERS.length) o.rematch[i] = Number(j.rematch[k]) || 1; });
+    if (j.elite && typeof j.elite === "object"){ o.elite.best = Math.max(0, Math.min(5, Math.floor(Number(j.elite.best) || 0))); o.elite.champion = Number(j.elite.champion) || 0; }
+    if (j.tower && typeof j.tower === "object") o.tower.best = Math.max(0, Math.floor(Number(j.tower.best) || 0));
+    if (j.legends && typeof j.legends === "object") Object.keys(j.legends).forEach(function(k){ var i = parseInt(k, 10); if (i > 0) o.legends[i] = Number(j.legends[k]) || 1; });
     o.mute = j.mute ? 1 : 0;
   } catch(e){ return fresh(); }
   return o;
 })();
 function save(){ lsSet(KEY, JSON.stringify(S)); }
 function badgeCount(){ return Object.keys(S.badges).length; }
+function rematchCount(){ return Object.keys(S.rematch).length; }
+function legendCount(){ return Object.keys(S.legends).length; }
+function allBadges(){ return badgeCount() >= LEADERS.length; }
 function nextLeader(){ for (var i = 0; i < LEADERS.length; i++) if (!S.badges[i]) return i; return -1; }
 
 /* ---------- what he caught (pokeDex.v1) and the grades (pokeCards.v1): READ ONLY, same validation as Sudoku ---------- */
@@ -501,17 +597,20 @@ function gainCard(id, g){
   cardsSave();
   return {id:id, pulled:g, isNew:isNew, upgraded:(!fresh && after > before), to:after};
 }
-function rollGrade(){
+function rollGrade(odds){
+  odds = odds || PACK_ODDS;
   var r = Math.random(), acc = 0;
-  for (var g = 0; g < PACK_ODDS.length; g++){ acc += PACK_ODDS[g]; if (r < acc) return g; }
+  for (var g = 0; g < odds.length; g++){ acc += odds[g]; if (r < acc) return g; }
   return 0;
 }
-function makePack(){
-  var ids = Object.keys(DATA.pokemon).map(Number);
+var LEGEND_IDS = LEGENDS.map(function(L){ return L.id; });
+function makePack(odds){
+  /* legendaries are never in a pack: they are caught by beating them */
+  var ids = Object.keys(DATA.pokemon).map(Number).filter(function(id){ return LEGEND_IDS.indexOf(id) < 0; });
   var freshIds = ids.filter(function(id){ return !isCaught(id); });
   var out = [];
-  if (freshIds.length) out.push({id: freshIds[Math.floor(Math.random()*freshIds.length)], grade: rollGrade()});
-  while (out.length < PACK_SIZE) out.push({id: ids[Math.floor(Math.random()*ids.length)], grade: rollGrade()});
+  if (freshIds.length) out.push({id: freshIds[Math.floor(Math.random()*freshIds.length)], grade: rollGrade(odds)});
+  while (out.length < PACK_SIZE) out.push({id: ids[Math.floor(Math.random()*ids.length)], grade: rollGrade(odds)});
   for (var i = out.length - 1; i > 0; i--){ var j = Math.floor(Math.random()*(i+1)); var t = out[i]; out[i] = out[j]; out[j] = t; }
   return out;
 }
@@ -586,7 +685,8 @@ function makeMon(id, lv, grade){
            hpMax:hpAt(s[0], lv), hp:hpAt(s[0], lv), atk:statAt(s[1], lv), def:statAt(s[2], lv), spa:statAt(s[3], lv), spd:statAt(s[4], lv), spe:statAt(s[5], lv),
            moves:mv, fainted:false };
 }
-function myLevel(id){ return GRADE_LV[cardGrade(id)] + BADGE_LV * badgeCount(); }
+function levelBonus(){ return BADGE_LV * badgeCount() + 2 * rematchCount() + 3 * Math.min(4, S.elite.best) + (S.elite.champion ? 4 : 0); }
+function myLevel(id){ return GRADE_LV[cardGrade(id)] + levelBonus(); }
 
 /* ---------- the strategy layer: who is good against whom ---------- */
 var ALL_TYPES = Object.keys(TYPE_COL);
@@ -601,9 +701,14 @@ function matchup(id, enemy){
   var def = 1; theirs.forEach(function(m){ def = Math.max(def, effect(m.t, p.t)); });
   return {off:off, def:def};
 }
-function leaderEnemies(li){
-  var L = LEADERS[li]; if (!L) return [];
-  return L.team.map(function(id){ var q = DATA.pokemon[id]; return q ? {types:q.t, moves:q.m || []} : null; }).filter(Boolean);
+function leaderEnemies(li){ var L = LEADERS[li]; return L ? oppEnemies(oppLeader(li)) : []; }
+function oppEnemies(opp){ return (opp && opp.team ? opp.team : []).map(function(id){ var q = DATA.pokemon[id]; return q ? {types:q.t, moves:q.m || []} : null; }).filter(Boolean); }
+/* what the team picker and best-six aim at: the next thing he is likely to fight */
+function pickTarget(){
+  if (PICK_TARGET) return PICK_TARGET;
+  var nx = nextLeader(); if (nx >= 0) return oppLeader(nx);
+  for (var i = 0; i < LEADERS.length; i++) if (!S.rematch[i]) return oppRematch(i);
+  return S.elite.champion ? oppLeader(LEADERS.length - 1) : oppEliteRun();
 }
 /* a one-word verdict for the picker and the switch panel */
 function verdict(id, enemies){
@@ -616,7 +721,7 @@ function verdict(id, enemies){
   return {tag:"", cls:"", score: 0};
 }
 function bestSix(li){
-  var en = leaderEnemies(li);
+  var en = (li && typeof li === "object") ? oppEnemies(li) : leaderEnemies(li);
   return caughtIds().map(function(id){ var v = verdict(id, en); return {id:id, score: v.score * 10 + cardGrade(id) * 3 + (DATA.pokemon[id].s[0] + DATA.pokemon[id].s[1] + DATA.pokemon[id].s[3]) / 100}; })
     .sort(function(a, b){ return b.score - a.score; }).slice(0, TEAM_MAX).map(function(x){ return x.id; });
 }
@@ -630,15 +735,21 @@ function teamIds(){
   if (!ids.length) ids = DEXS.order.filter(function(id){ return DATA.pokemon[id]; }).slice(0, TEAM_MAX);
   return ids.slice(0, TEAM_MAX);
 }
-function startBattle(li){
-  var L = LEADERS[li]; if (!L) return false;
+function startBattle(opp, carry){
+  if (typeof opp === "number") opp = oppLeader(opp);
+  if (!opp || !opp.team.length) return false;
   var ids = teamIds(); if (!ids.length) return false;
-  B = { leader:li, me: ids.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean),
-        foe: L.team.map(function(id, i){ return makeMon(id, L.lv[i], -1); }).filter(Boolean), mi:0, fi:0, busy:true, over:false, turn:0, potions:POTIONS };
+  var prev = (carry && B && B.me) ? B : null;
+  var mine = prev ? prev.me : ids.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean);
+  var foes = opp.team.map(function(id, i){ var m = makeMon(id, opp.lv[i], -1); if (m && opp.hpMul){ m.hpMax = Math.floor(m.hpMax * opp.hpMul); m.hp = m.hpMax; } return m; }).filter(Boolean);
+  if (!foes.length) return false;
+  var mi0 = 0; for (var q = 0; q < mine.length; q++) if (!mine[q].fainted){ mi0 = q; break; }
+  B = { opp:opp, leader:(opp.kind === "leader" || opp.kind === "rematch") ? opp.idx : -1, me:mine, foe:foes, mi:mi0, fi:0, busy:true, over:false, turn:0,
+        potions: prev ? prev.potions : opp.potions, run: prev ? prev.run : { beaten:0, round:(opp.kind === "tower" ? opp.idx : 0) } };
   running = true;
   $("arena").classList.remove("quake");
   paintTeam(); paintMe(true); paintFoe(true);
-  msg(L.name + " wants to battle!", "Their first Pokemon is " + B.foe[0].name.toUpperCase() + ".");
+  msg(opp.name + (opp.kind === "legend" ? " appears!" : " wants to battle!"), (opp.kind === "legend" ? "Beat it and it is caught." : "Their first Pokemon is " + B.foe[0].name.toUpperCase() + "."));
   paintStrat();
   $("moves").classList.add("off"); $("team").classList.add("off");
   sendOut("foe", B.foe[0]);
@@ -1000,7 +1111,7 @@ function attack(attSide, att, mv, def, cb){
 /* the leader's pick: the move that should do the most, with a little wobble */
 function foeChoice(){
   var f = foe(), m = me(), best = null, pool = [];
-  var smart = !!(LEADERS[B.leader] && LEADERS[B.leader].smart);
+  var smart = !!(B.opp && B.opp.smart);
   f.moves.forEach(function(mv){
     if (mv.pp <= 0 || !mv.p) return;
     pool.push(mv);
@@ -1042,7 +1153,7 @@ function afterFaint(side){
     for (var i = 0; i < B.foe.length; i++) if (!B.foe[i].fainted){ next = i; break; }
     if (next < 0){ winBattle(); return; }
     B.fi = next; var f = foe();
-    msg(LEADERS[B.leader].name + " sends out " + f.name.toUpperCase() + "!", "");
+    msg(B.opp.name + " sends out " + f.name.toUpperCase() + "!", "");
     paintFoe(true); paintStrat(); setTimeout(function(){ sendOut("foe", f); }, 200);
     setTimeout(endTurn, 1100);
   } else {
@@ -1079,32 +1190,89 @@ function doSwitch(i, forced){
     attack("foe", f, fm, me(), function(fainted){ if (fainted){ afterFaint("me"); return; } endTurn(); });
   }, 1000);
 }
-function winBattle(){
-  B.over = true; running = false; Snd.win();
-  var li = B.leader, firstTime = !S.badges[li];
-  S.badges[li] = Date.now(); S.wins++; save();
-  msg("You beat the " + LEADERS[li].name + "!", "");
-  banner("YOU WIN!", 1600);
-  var lost = B.me.filter(function(x){ return x.fainted; }).length;
-  var pack = makePack(), res = pack.map(function(c){ return gainCard(c.id, c.grade); }).filter(Boolean);
-  $("resultBadge").textContent = "\u{1F3C5}";
-  $("resultTitle").textContent = firstTime ? "BADGE WON!" : "BADGE DEFENDED!";
-  $("resultLine").textContent = "All " + B.foe.length + " of the " + LEADERS[li].name + "'s Pokemon fainted" + (lost ? " and " + lost + " of yours did too" : " and none of yours did") + ". " + badgeCount() + " of 8 badges. Your whole team is now Lv +" + (BADGE_LV*badgeCount()) + ". Here is your 3-card pack:";
-  paintPack(res);
+/* a run pause: the team picker opens aimed at the next opponent; Done starts that fight with whatever six he picked, fresh, carrying the run and the potions */
+var REPICK = null;
+function repickThen(nextOpp){
+  REPICK = nextOpp; PICK_TARGET = nextOpp; running = false;
+  paintPick(); $("teamDone").textContent = "Fight " + nextOpp.name + " \u2192"; $("teamOv").classList.add("on");
+}
+var PICK_TARGET = null;
+function runHeal(frac, revive){ B.me.forEach(function(m){ if (revive && m.fainted){ m.fainted = false; m.hp = 0; } if (!m.fainted) m.hp = Math.min(m.hpMax, m.hp + Math.floor(m.hpMax * frac)); m.moves.forEach(function(mv){ mv.pp = mv.ppMax; }); }); paintMe(false); paintTeam(); }
+function lostLine(){ var lost = B.me.filter(function(x){ return x.fainted; }).length; return lost ? " and " + lost + " of yours did too" : " and none of yours did"; }
+function showResult(icon, title, line, res){
+  $("resultBadge").textContent = icon; $("resultTitle").textContent = title; $("resultLine").textContent = line;
+  if (res && res.length) paintPack(res); else { $("packRow").innerHTML = ""; $("packMsg").textContent = ""; }
   setTimeout(function(){ $("resultOv").classList.add("on"); }, 900);
+}
+function winBattle(){
+  B.over = true; S.wins++; Snd.win();
+  var o = B.opp, foes = B.foe.length;
+  msg("You beat " + o.name + "!", "");
+  if (o.kind === "leader"){
+    running = false;
+    var firstTime = !S.badges[o.idx]; S.badges[o.idx] = Date.now(); save();
+    banner("YOU WIN!", 1600);
+    showResult("\u{1F3C5}", firstTime ? "BADGE WON!" : "BADGE DEFENDED!",
+      "All " + foes + " of the " + o.name + "'s Pokemon fainted" + lostLine() + ". " + badgeCount() + " of 8 badges. Your whole team is now Lv +" + levelBonus() + ". Here is your 3-card pack:",
+      makePack().map(function(c){ return gainCard(c.id, c.grade); }).filter(Boolean));
+  } else if (o.kind === "rematch"){
+    running = false;
+    var first = !S.rematch[o.idx]; S.rematch[o.idx] = Date.now(); save();
+    banner("YOU WIN!", 1600);
+    showResult("\u{1F31F}", first ? "REMATCH WON!" : "REMATCH WON AGAIN!",
+      "All " + foes + " of the " + o.name + "'s Pokemon fainted" + lostLine() + ". " + rematchCount() + " of 8 rematches. Team Lv +" + levelBonus() + ". Here is your 3-card pack:",
+      makePack().map(function(c){ return gainCard(c.id, c.grade); }).filter(Boolean));
+  } else if (o.kind === "elite"){
+    B.run.beaten = o.idx + 1;
+    if (o.idx < 4){
+      S.elite.best = Math.max(S.elite.best, B.run.beaten); save();
+      banner(o.name.toUpperCase() + " DOWN!", 1500);
+      var nxt = oppElite(o.idx + 1);
+      runHeal(ELITE_HEAL, true);
+      msg("You beat the " + o.name + "!", "Full heal. " + nxt.name + " steps up next. Lose one fight and the run starts over.");
+      setTimeout(function(){ if (B && !B.quit) repickThen(nxt); }, 2000);
+    } else {
+      running = false; var firstC = !S.elite.champion; S.elite.champion = Date.now(); S.elite.best = 5; save();
+      banner("CHAMPION!", 2000);
+      showResult("\u{1F451}", firstC ? "YOU ARE THE CHAMPION!" : "CHAMPION AGAIN!",
+        "The Elite Four and the Champion, all in one run" + lostLine() + ". Team Lv +" + levelBonus() + ". Three more Legends are now open. A Champion's pack:",
+        makePack([0.40, 0.35, 0.20, 0.05]).map(function(c){ return gainCard(c.id, c.grade); }).filter(Boolean));
+    }
+  } else if (o.kind === "tower"){
+    var r = o.idx; B.run.round = r;
+    S.tower.best = Math.max(S.tower.best, r); save();
+    var pack = (r % 5 === 0);
+    if (pack){ runHeal(1, true); B.potions = TOWER_POTIONS; } else runHeal(TOWER_HEAL);
+    banner("ROUND " + r + " CLEAR", 1400);
+    msg("Round " + r + " cleared!", pack ? "Every 5 rounds: everyone back up, full heal and a pack. Round " + (r + 1) + " is coming." : "Half your HP back, moves restored, fainted stay down. Round " + (r + 1) + " is coming.");
+    if (pack){
+      running = false;
+      showResult("\u{1F3D7}", "ROUND " + r + " CLEARED", "Best streak: " + S.tower.best + ". Everyone is back up and healed for round " + (r + 1) + ", and you may swap your six. Here is your pack:", makePack().map(function(c){ return gainCard(c.id, c.grade); }).filter(Boolean));
+      B.towerNext = r + 1;
+    } else setTimeout(function(){ if (B && !B.quit) startBattle(oppTower(r + 1), true); }, 2000);
+  } else if (o.kind === "legend"){
+    running = false;
+    var id = LEGENDS[o.idx].id, firstL = !S.legends[id]; S.legends[id] = Date.now(); save();
+    var got = gainCard(id, firstL ? 1 : 0);
+    banner(firstL ? "CAUGHT!" : "YOU WIN!", 1800);
+    showResult("\u{2728}", firstL ? nameOf(id).toUpperCase() + " CAUGHT!" : nameOf(id).toUpperCase() + " BEATEN AGAIN",
+      firstL ? nameOf(id).toUpperCase() + " is yours: a Shiny card in your binder, and it can fight for you from now on. " + legendCount() + " of " + LEGENDS.length + " legends." : "Another copy of " + nameOf(id).toUpperCase() + " for the binder.",
+      got ? [got] : []);
+  }
 }
 function loseBattle(){
   B.over = true; running = false; S.losses++; save(); Snd.lose();
   msg("All your Pokemon fainted.", "Nothing is taken away. Heal up and try again.");
   banner("YOU LOSE", 1600);
-  var beat = B.foe.filter(function(x){ return x.fainted; }).length;
-  $("resultBadge").textContent = "\u{1F4A4}";
-  $("resultTitle").textContent = "NOT THIS TIME";
-  var en = leaderEnemies(B.leader), tip = caughtIds().filter(function(id){ return B.me.every(function(x){ return x.id !== id; }) && verdict(id, en).tag === "SUPER"; }).slice(0, 3).map(function(id){ return nameOf(id).toUpperCase(); });
-  $("resultLine").textContent = "All " + B.me.length + " of yours fainted; you knocked out " + beat + " of the " + LEADERS[B.leader].name + "'s " + B.foe.length + ". No badge. Nothing is lost: your team is healed. " +
-    (tip.length ? "On your bench, " + tip.join(", ") + " would hit this leader hard: pick them in My team." : "Catch more in Sudoku, or pick Pokemon whose moves beat " + cap(LEADERS[B.leader].type) + ".");
-  $("packRow").innerHTML = ""; $("packMsg").textContent = "";
-  setTimeout(function(){ $("resultOv").classList.add("on"); }, 900);
+  var o = B.opp, beat = B.foe.filter(function(x){ return x.fainted; }).length;
+  var en = oppEnemies(o), tip = caughtIds().filter(function(id){ return B.me.every(function(x){ return x.id !== id; }) && verdict(id, en).tag === "SUPER"; }).slice(0, 3).map(function(id){ return nameOf(id).toUpperCase(); });
+  var how = tip.length ? " On your bench, " + tip.join(", ") + " would hit " + o.name + " hard: pick them in My team." : " Catch more in Sudoku, or pick Pokemon whose moves beat " + cap(o.type) + ".";
+  var line;
+  if (o.kind === "elite") line = "All " + B.me.length + " of yours fainted against the " + o.name + " (" + B.run.beaten + " of 5 beaten this run). An Elite run starts over from the first. Your team is healed." + how;
+  else if (o.kind === "tower") line = "Your run ended on round " + o.idx + ". Best streak: " + S.tower.best + ". Your team is healed." + how;
+  else if (o.kind === "legend") line = nameOf(LEGENDS[o.idx].id).toUpperCase() + " got away this time. It has double HP: bring six that hit it hard, and save your potions." + how;
+  else line = "All " + B.me.length + " of yours fainted; you knocked out " + beat + " of " + o.name + "'s " + B.foe.length + ". No badge. Nothing is lost: your team is healed." + how;
+  showResult("\u{1F4A4}", "NOT THIS TIME", line, []);
 }
 /* ---------- the pack reveal (same words as Sudoku) ---------- */
 var packRes = [];
@@ -1132,32 +1300,68 @@ function caughtIds(){ return DEXS.order.filter(function(id){ return DATA.pokemon
 function paintStart(){
   var ids = caughtIds();
   $("caughtN").textContent = ids.length; $("badgeN").textContent = badgeCount();
-  $("startStats").innerHTML = [[ids.length, "caught"], [teamIds().length, "on the team"], [badgeCount() + "/8", "badges"], [S.wins, "wins"]].map(function(s){ return '<div class="stat"><div class="v">' + s[0] + '</div><div class="l">' + s[1] + "</div></div>"; }).join("");
+  $("startStats").innerHTML = [[ids.length, "caught"], [badgeCount() + "/8", "badges"], [rematchCount() + "/8", "rematches"], [(S.elite.champion ? "\u{1F451}" : S.elite.best + "/5"), "elite four"], [S.tower.best, "tower best"], [legendCount() + "/" + LEGENDS.length, "legends"]].map(function(s){ return '<div class="stat"><div class="v">' + s[0] + '</div><div class="l">' + s[1] + "</div></div>"; }).join("");
   $("ladderBtn").disabled = !ids.length;
-  $("startNote").innerHTML = ids.length ? "" : "You have no Pokemon yet. Win a round of <b>Pokemon Sudoku</b> to catch your first one, then come back.";
+  var e = $("eliteBtn"), t = $("towerBtn"), l = $("legendBtn");
+  e.classList.toggle("lock", !allBadges()); e.title = allBadges() ? "" : "Opens with all 8 badges";
+  t.classList.toggle("lock", badgeCount() < 3); t.title = badgeCount() >= 3 ? "" : "Opens with 3 badges";
+  l.classList.toggle("lock", !allBadges()); l.title = allBadges() ? "" : "Opens with all 8 badges";
+  $("startNote").innerHTML = ids.length ? (allBadges() ? "" : (badgeCount() < 3 ? "Battle Tower opens at 3 badges. Elite Four and Legends open with all 8." : "Elite Four and Legends open with all 8 badges.")) : "You have no Pokemon yet. Win a round of <b>Pokemon Sudoku</b> to catch your first one, then come back.";
+}
+function paintElite(){
+  var row = $("eliteRow"); row.innerHTML = "";
+  for (var k = 0; k < 5; k++){
+    var E = k < 4 ? ELITE[k] : CHAMPION, done = S.elite.champion ? true : (k < S.elite.best);
+    var d = document.createElement("div"); d.className = "leader" + (done ? " done" : ""); d.style.setProperty("--t", TYPE_COL[E.type] || "#FFD84A");
+    d.innerHTML = '<div class="ring"><img src="' + spriteIcon(E.team[E.team.length - 1]) + '" alt=""></div><div class="ln">' + E.name + '</div><div class="ln" style="font-weight:700;color:var(--sub);text-transform:none">' + E.team.length + " Pokemon \u00B7 Lv " + oppElite(k).lv[0] + "–" + oppElite(k).lv[E.team.length - 1] + "</div>" +
+      '<span class="st ' + (done ? "won" : "") + '">' + (done ? "BEATEN" : (k === 4 ? "CHAMPION" : "ELITE " + (k + 1))) + "</span>";
+    row.appendChild(d);
+  }
+  $("eliteGo").textContent = S.elite.champion ? "Run it again" : "Start the run";
+}
+function paintTower(){
+  $("towerStats").innerHTML = [[S.tower.best, "best round"], [S.tower.best >= 8 ? "open" : "round 8", "Rayquaza + Mew"]].map(function(s){ return '<div class="stat"><div class="v">' + s[0] + '</div><div class="l">' + s[1] + "</div></div>"; }).join("");
+}
+function paintLegends(){
+  var row = $("legendRow"); row.innerHTML = "";
+  LEGENDS.forEach(function(L, k){
+    var open = legendOpen(L), got = !!S.legends[L.id];
+    var d = document.createElement("div"); d.className = "leader" + (open ? "" : " lock") + (got ? " done" : "");
+    var ty = typesOf(L.id); d.style.setProperty("--t", TYPE_COL[ty[0]] || "#FFD84A");
+    d.innerHTML = '<div class="ring"><img src="' + spriteIcon(L.id) + '" alt="" style="opacity:' + (open ? 1 : .45) + '"></div><div class="ln">' + nameOf(L.id) + '</div><div class="ln" style="font-weight:700;color:var(--sub);text-transform:none">Lv ' + oppLegend(k).lv[0] + " \u00B7 " + typeList(ty) + "</div>" +
+      '<span class="st ' + (got ? "won" : (open ? "next" : "")) + '">' + (got ? "CAUGHT" : (open ? "FIGHT" : "LOCKED")) + "</span>" + (open ? "" : '<span class="lock">\u{1F512}</span><div class="ln" style="font-weight:700;color:var(--sub);text-transform:none;font-size:9px;margin-top:4px">' + L.needText + "</div>");
+    if (open){ d.style.cursor = "pointer"; d.onclick = function(){ Snd.tick(); goOpp(oppLegend(k), "legendOv"); }; }
+    row.appendChild(d);
+  });
 }
 function paintLadder(){
-  var box = $("ladder"); box.innerHTML = ""; var nx = nextLeader();
+  var box = $("ladder"); box.innerHTML = ""; var nx = nextLeader(), all = allBadges();
   LEADERS.forEach(function(L, i){
-    var won = !!S.badges[i], open = won || i === nx;
+    var won = !!S.badges[i], open = won || i === nx, rm = !!S.rematch[i];
     var d = document.createElement("div"); d.className = "leader" + (open ? "" : " lock"); d.style.setProperty("--t", TYPE_COL[L.type]);
     d.innerHTML = '<div class="ring"><img src="' + spriteIcon(L.team[2]) + '" alt=""></div><div class="ln">' + L.name + '</div><div class="ln" style="font-weight:700;color:var(--sub);text-transform:none">Lv ' + L.lv[0] + "–" + L.lv[2] + "</div>" +
-      '<span class="st ' + (won ? "won" : (i === nx ? "next" : "")) + '">' + (won ? "BADGE WON" : (i === nx ? "NEXT" : "LOCKED")) + "</span>" + (open ? "" : '<span class="lock">\u{1F512}</span>');
-    if (open){ d.style.cursor = "pointer"; d.onclick = function(){ Snd.tick(); go(i); }; }
+      '<span class="st ' + (won ? "won" : (i === nx ? "next" : "")) + '">' + (won ? "BADGE WON" : (i === nx ? "NEXT" : "LOCKED")) + "</span>" + (open ? "" : '<span class="lock">\u{1F512}</span>') +
+      (all ? '<button type="button" class="rm' + (rm ? " won" : "") + '" data-rm="' + i + '">' + (rm ? "\u2605 REMATCH WON" : "REMATCH Lv " + oppRematch(i).lv[0] + "+") + "</button>" : "");
+    if (open){ d.style.cursor = "pointer"; d.onclick = function(ev){ if (ev.target && ev.target.getAttribute("data-rm") !== null){ Snd.tick(); goOpp(oppRematch(i), "ladderOv"); return; } Snd.tick(); go(i); }; }
     box.appendChild(d);
   });
-  $("fightBtn").textContent = nx < 0 ? "All 8 badges won! Fight anyone again" : "Fight the " + LEADERS[nx].name;
-  $("fightBtn").onclick = function(){ Snd.tick(); go(nx < 0 ? LEADERS.length - 1 : nx); };
+  var nr = -1; for (var r = 0; r < LEADERS.length; r++) if (!S.rematch[r]){ nr = r; break; }
+  $("fightBtn").textContent = nx >= 0 ? "Fight the " + LEADERS[nx].name : (nr >= 0 ? "Rematch the " + LEADERS[nr].name + " (5 Pokemon, Lv " + oppRematch(nr).lv[0] + "+)" : "Every badge and rematch won! Fight anyone again");
+  $("fightBtn").onclick = function(){ Snd.tick(); if (nx >= 0) go(nx); else if (nr >= 0) goOpp(oppRematch(nr), "ladderOv"); else go(LEADERS.length - 1); };
 }
-function go(li){
+var LAST_OV = "ladderOv";
+function goOpp(opp, fromOv){
   if (!teamIds().length){ $("startNote").textContent = "Catch a Pokemon in Sudoku first."; return; }
-  $("ladderOv").classList.remove("on"); $("startScreen").classList.remove("on");
-  Snd.start(); startBattle(li);
+  LAST_OV = fromOv || "ladderOv";
+  ["ladderOv","eliteOv","towerOv","legendOv"].forEach(function(id){ $(id).classList.remove("on"); });
+  $("startScreen").classList.remove("on");
+  Snd.start(); startBattle(opp, false);
 }
+function go(li){ goOpp(oppLeader(li), "ladderOv"); }
 function paintPick(){
   var grid = $("pickGrid"); grid.innerHTML = "";
   var ids = caughtIds(), picked = teamIds();
-  var nx = nextLeader(), li = nx < 0 ? LEADERS.length - 1 : nx, L = LEADERS[li], en = leaderEnemies(li);
+  var L = pickTarget(), en = oppEnemies(L);
   var lt = {}; en.forEach(function(e){ e.types.forEach(function(t){ lt[t] = 1; }); });
   $("pickLeader").innerHTML = "Next fight: <b style=\"color:var(--accent)\">" + L.name + "</b> (" + typeList(Object.keys(lt)) + "). <b style=\"color:#4ADE80\">SUPER</b> = hits them hard. <b style=\"color:#FF8A8A\">WEAK</b> = they hit it hard.";
   ids.sort(function(a, b){ return verdict(b, en).score - verdict(a, en).score; });
@@ -1181,13 +1385,39 @@ function paintPick(){
 $("ladderBtn").onclick = function(){ Snd.start(); Snd.tick(); paintLadder(); $("ladderOv").classList.add("on"); };
 $("ladderBack").onclick = function(){ Snd.tick(); $("ladderOv").classList.remove("on"); };
 $("teamBtn").onclick = function(){ Snd.start(); Snd.tick(); paintPick(); $("teamOv").classList.add("on"); };
-$("teamDone").onclick = function(){ Snd.tick(); $("teamOv").classList.remove("on"); paintStart(); };
-$("bestBtn").onclick = function(){ Snd.tick(); var nx = nextLeader(); S.team = bestSix(nx < 0 ? LEADERS.length - 1 : nx); save(); paintPick(); };
+$("teamDone").onclick = function(){
+  Snd.tick(); $("teamOv").classList.remove("on"); $("teamDone").textContent = "Done"; PICK_TARGET = null;
+  if (REPICK && B && !B.quit){
+    var nxt = REPICK; REPICK = null;
+    /* a fresh six at full health, the run and the potions carried */
+    var ids = teamIds(); B.me = ids.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean); B.mi = 0;
+    running = true; startBattle(nxt, true); return;
+  }
+  REPICK = null; paintStart();
+};
+$("bestBtn").onclick = function(){ Snd.tick(); S.team = bestSix(pickTarget()); save(); paintPick(); };
+$("eliteBtn").onclick = function(){ Snd.start(); Snd.tick(); if (!allBadges()){ $("startNote").textContent = "The Elite Four opens when you hold all 8 badges."; return; } paintElite(); $("eliteOv").classList.add("on"); };
+$("eliteBack").onclick = function(){ Snd.tick(); $("eliteOv").classList.remove("on"); };
+$("eliteGo").onclick = function(){ Snd.tick(); goOpp(oppElite(0), "eliteOv"); };
+$("towerBtn").onclick = function(){ Snd.start(); Snd.tick(); if (badgeCount() < 3){ $("startNote").textContent = "The Battle Tower opens at 3 badges."; return; } paintTower(); $("towerOv").classList.add("on"); };
+$("towerBack").onclick = function(){ Snd.tick(); $("towerOv").classList.remove("on"); };
+$("towerGo").onclick = function(){ Snd.tick(); goOpp(oppTower(1), "towerOv"); };
+$("legendBtn").onclick = function(){ Snd.start(); Snd.tick(); if (!allBadges()){ $("startNote").textContent = "Legends open when you hold all 8 badges."; return; } paintLegends(); $("legendOv").classList.add("on"); };
+$("legendBack").onclick = function(){ Snd.tick(); $("legendOv").classList.remove("on"); };
 $("switchCancel").onclick = function(){ Snd.tick(); $("switchOv").classList.remove("on"); };
-$("resultDone").onclick = function(){ Snd.tick(); $("resultOv").classList.remove("on"); paintStart(); paintLadder(); $("ladderOv").classList.add("on"); $("startScreen").classList.add("on"); };
+$("resultDone").onclick = function(){
+  Snd.tick(); $("resultOv").classList.remove("on"); paintStart();
+  /* a tower pack mid-run: straight into the next round */
+  if (B && B.opp && B.opp.kind === "tower" && B.towerNext && !B.quit){ var nr = B.towerNext; B.towerNext = 0; repickThen(oppTower(nr)); return; }
+  B = null; FX.clear();
+  paintLadder(); paintElite(); paintTower(); paintLegends();
+  $("startScreen").classList.add("on"); $(LAST_OV).classList.add("on");
+};
 $("quitBtn").onclick = function(){
   if (running && !confirm("Leave this fight? Nothing is lost, but you start it again from the beginning.")) return;
+  if (B) B.quit = true; REPICK = null; PICK_TARGET = null; $("teamDone").textContent = "Done"; $("teamOv").classList.remove("on");
   running = false; B = null; FX.clear(); $("switchOv").classList.remove("on"); $("startScreen").classList.add("on"); paintStart();
+  ["ladderOv","eliteOv","towerOv","legendOv","resultOv"].forEach(function(id){ $(id).classList.remove("on"); });
 };
 $("muteBtn").onclick = function(){ var on = Snd.toggle(); $("muteBtn").textContent = on ? "\u{1F50A}" : "\u{1F507}"; if (on) Snd.tick(); };
 $("muteBtn").textContent = Snd.isOn() ? "\u{1F50A}" : "\u{1F507}";
@@ -1203,6 +1433,9 @@ $("muteBtn").textContent = Snd.isOn() ? "\u{1F50A}" : "\u{1F507}";
     { open: function(){ return vis("switchOv") && $("switchCancel").style.display !== "none"; }, close: function(){ $("switchCancel").click(); } },
     { open: function(){ return vis("teamOv"); }, close: function(){ $("teamDone").click(); } },
     { open: function(){ return vis("ladderOv"); }, close: function(){ $("ladderBack").click(); } },
+    { open: function(){ return vis("eliteOv"); }, close: function(){ $("eliteBack").click(); } },
+    { open: function(){ return vis("towerOv"); }, close: function(){ $("towerBack").click(); } },
+    { open: function(){ return vis("legendOv"); }, close: function(){ $("legendBack").click(); } },
     { open: function(){ return running && !vis("startScreen"); }, close: function(){ $("quitBtn").click(); } }
   ];
   document.addEventListener("keydown", function(ev){
@@ -1225,11 +1458,12 @@ loadData().then(function(){ paintStart(); }).catch(function(e){
 });
 
 /* headless battle: the same numbers, no screen, for tuning the ladder */
-function simBattle(teamIds_, li, smartPlayer){
-  var L = LEADERS[li];
-  var mine = teamIds_.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean);
-  var theirs = L.team.map(function(id, i){ return makeMon(id, L.lv[i], -1); }).filter(Boolean);
-  var mi = 0, fi = 0, potions = POTIONS, turns = 0;
+function simBattle(teamIds_, li, smartPlayer, mineIn){
+  var L = (li && typeof li === "object") ? li : oppLeader(li);
+  var mine = mineIn || teamIds_.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean);
+  var theirs = L.team.map(function(id, i){ var m = makeMon(id, L.lv[i], -1); if (m && L.hpMul){ m.hpMax = Math.floor(m.hpMax * L.hpMul); m.hp = m.hpMax; } return m; }).filter(Boolean);
+  var mi = 0, fi = 0, potions = L.potions || POTIONS, turns = 0;
+  for (var q0 = 0; q0 < mine.length; q0++) if (!mine[q0].fainted){ mi = q0; break; }
   function alive(a){ return a.some(function(x){ return !x.fainted; }); }
   function firstAlive(a){ for (var i = 0; i < a.length; i++) if (!a[i].fainted) return i; return -1; }
   function pickMove(att, def, smart){
@@ -1252,13 +1486,29 @@ function simBattle(teamIds_, li, smartPlayer){
     if (f.fainted){ fi = firstAlive(theirs); if (fi < 0) break; }
     if (m.fainted){ mi = firstAlive(mine); if (mi < 0) break; }
   }
-  return { won: alive(mine) && !alive(theirs), turns: turns, left: mine.filter(function(x){ return !x.fainted; }).length };
+  return { won: alive(mine) && !alive(theirs), turns: turns, left: mine.filter(function(x){ return !x.fainted; }).length, mine: mine };
+}
+/* an Elite run: five fights, the same team carried through */
+function simElite(teamIds_, smartPlayer, repick){
+  var mine = teamIds_.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean);
+  for (var k = 0; k < 5; k++){
+    var o = oppElite(k);
+    if (repick){ var six = bestSix(o); mine = six.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean); }
+    var r = simBattle(teamIds_, o, smartPlayer, mine); if (!r.won) return {won:false, beaten:k};
+    mine.forEach(function(m){ m.fainted = false; m.hp = m.hpMax; m.moves.forEach(function(mv){ mv.pp = mv.ppMax; }); });
+  }
+  return {won:true, beaten:5};
+}
+function simTower(teamIds_, smartPlayer, maxR, repick){
+  var mine = teamIds_.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean);
+  for (var r = 1; r <= (maxR || 30); r++){ var o = oppTower(r); if (repick && (r === 1 || (r - 1) % 5 === 0)){ var six = bestSix(o); mine = six.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean); } var res = simBattle(teamIds_, o, smartPlayer, mine); if (!res.won) return r - 1; var frac = (r % 5 === 0) ? 1 : TOWER_HEAL; mine.forEach(function(m){ if (r % 5 === 0 && m.fainted){ m.fainted = false; m.hp = 0; } if (!m.fainted) m.hp = Math.min(m.hpMax, m.hp + Math.floor(m.hpMax * frac)); m.moves.forEach(function(mv){ mv.pp = mv.ppMax; }); }); }
+  return maxR || 30;
 }
 function simRun(teamIds_, li, n, smartPlayer){ var w = 0; for (var i = 0; i < n; i++) if (simBattle(teamIds_, li, smartPlayer).won) w++; return w / n; }
 
 /* test hook */
 window.__PB = {
-  sim: simBattle, simRun: simRun, bestSix: bestSix, verdict: verdict, matchup: matchup, leaderEnemies: leaderEnemies, usePotion: usePotion, S:S, state:function(){ return B; }, start:startBattle, leaders:LEADERS, data:function(){ return DATA; }, calc:calcDamage, effect:effect, makeMon:makeMon,
+  sim: simBattle, simRun: simRun, simElite: simElite, simTower: simTower, oppElite: oppElite, oppEliteRun: oppEliteRun, oppRematch: oppRematch, oppTower: oppTower, oppLegend: oppLegend, bestSix: bestSix, verdict: verdict, matchup: matchup, leaderEnemies: leaderEnemies, usePotion: usePotion, S:S, state:function(){ return B; }, start:startBattle, leaders:LEADERS, data:function(){ return DATA; }, calc:calcDamage, effect:effect, makeMon:makeMon,
   auto:function(){ if (!B || B.busy || B.over) return false; var m = me(), best = 0; m.moves.forEach(function(mv, i){ if (mv.pp > 0 && effect(mv.t, foe().types)*mv.p > effect(m.moves[best].t, foe().types)*m.moves[best].p) best = i; }); playerMove(best); return true; },
   gain:gainCard, pack:makePack, team:teamIds, caught:caughtIds, cards:function(){ return CARDS; }, dex:function(){ return DEXS; } };
 })();
