@@ -99,6 +99,15 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
 .hp{position:absolute;z-index:6;width:min(300px,38vw);background:var(--card);border:1.6px solid var(--cardEdge);border-radius:12px;
   padding:7px 12px 8px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
 #hpFoe{left:36%;top:48px}
+.hp .mu{display:inline-block;font-size:9px;font-weight:900;letter-spacing:.5px;padding:2px 7px;border-radius:999px;color:#fff;margin-left:6px;vertical-align:middle}
+.mu.up{background:#1C8A4A} .mu.dn{background:#B03A2E}
+#potionBtn{width:auto;padding:0 12px;border-radius:22px;font-family:var(--hd);font-weight:800;font-size:13px;gap:6px;color:var(--ink)}
+#potionBtn[disabled]{opacity:.45}
+#strat{position:absolute;left:12px;top:124px;z-index:6;width:min(300px,34vw);font-size:11.5px;font-weight:800;color:#DAD8FF;line-height:1.3;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+#strat b{color:var(--accent)}
+.pk .mu{display:block;margin:3px auto 0;width:62px;text-align:center;font-size:8.5px;background:#5E5C9C}
+.pk .mu.up{background:#1C8A4A} .pk .mu.dn{background:#B03A2E}
+.leaderTypes{font-size:12px;font-weight:800;color:#CFCDF2;margin:0 0 6px}
 #hpMe{right:12px;top:52%}
 .hp .nm{display:flex;align-items:baseline;gap:8px;font-family:var(--hd);font-weight:800;font-size:17px;line-height:1.1;text-transform:uppercase}
 .hp .nm .lv{margin-left:auto;font-size:12px;color:var(--sub)}
@@ -236,6 +245,7 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
     <div class="nm"><span id="nmFoe">...</span><span class="lv" id="lvFoe"></span></div>
     <div class="tags" id="tgFoe"></div>
     <div class="bar"><span class="lab">HP</span><div class="trk"><div class="fil" id="filFoe"></div></div></div>
+    <div class="num" id="numFoe"></div>
   </div>
   <div class="hp" id="hpMe">
     <div class="nm"><span id="nmMe">...</span><span class="lv" id="lvMe"></span></div>
@@ -244,6 +254,7 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
     <div class="num" id="numMe"></div>
   </div>
   <div id="msgBox"><div id="msgMain"></div><div id="msgSub"></div></div>
+  <div id="strat"></div>
   <div id="moves"></div>
   <div id="team"></div>
 </div>
@@ -272,7 +283,9 @@ button{font:inherit;border:0;cursor:pointer;color:inherit;padding:0;background:n
 <div class="screen" id="teamOv">
   <h1>PICK YOUR TEAM OF 6</h1>
   <p>Only Pokemon you caught in Sudoku can fight. Card grade is power: Normal, Shiny, Full Art, Gold. Every badge you win levels the whole team up.</p>
+  <div class="leaderTypes" id="pickLeader"></div>
   <div id="pickLine"></div>
+  <div class="row"><button class="bigbtn ghost" id="bestBtn">Pick the best six for me</button></div>
   <div id="pickGrid"></div>
   <div class="row"><button class="bigbtn" id="teamDone">Done</button></div>
 </div>
@@ -363,16 +376,24 @@ function effect(moveType, defTypes){
 }
 
 /* the ladder: one type each, three Pokemon each, levels climbing */
+/* Will, 2026-10-03: "you're just making us lose all the time. There's no
+   real strategy here." His cards are Normal grade, Lv 30. The ladder now
+   starts UNDER that and climbs about two levels per leader, which is the
+   +2 his whole team gets per badge, so the ladder keeps pace with him and
+   the type chart decides the fight. The first three leaders also pick
+   their moves at random instead of always the best one. Levels tuned by
+   simulation (window.__PB.simRun). */
 var LEADERS = [
-  { type:"rock",     name:"Rock Leader",     team:[74,95,76],    lv:[26,28,30] },
-  { type:"water",    name:"Water Leader",    team:[120,121,130], lv:[29,31,33] },
-  { type:"electric", name:"Electric Leader", team:[25,26,125],   lv:[32,34,36] },
-  { type:"grass",    name:"Grass Leader",    team:[45,71,103],   lv:[35,37,39] },
-  { type:"poison",   name:"Poison Leader",   team:[110,89,169],  lv:[38,40,42] },
-  { type:"psychic",  name:"Psychic Leader",  team:[64,65,122],   lv:[41,43,45] },
-  { type:"fire",     name:"Fire Leader",     team:[59,78,136],   lv:[44,46,48] },
-  { type:"dragon",   name:"Dragon Leader",   team:[148,230,149], lv:[47,50,53] }
+  { type:"rock",     name:"Rock Leader",     team:[74,95,76],    lv:[28,30,32], smart:false },
+  { type:"water",    name:"Water Leader",    team:[120,121,130], lv:[31,33,35], smart:false },
+  { type:"electric", name:"Electric Leader", team:[25,26,125],   lv:[35,37,39], smart:false },
+  { type:"grass",    name:"Grass Leader",    team:[45,71,103],   lv:[37,39,41], smart:true },
+  { type:"poison",   name:"Poison Leader",   team:[110,89,169],  lv:[41,43,45], smart:true },
+  { type:"psychic",  name:"Psychic Leader",  team:[64,65,122],   lv:[42,44,46], smart:true },
+  { type:"fire",     name:"Fire Leader",     team:[59,78,136],   lv:[44,46,48], smart:true },
+  { type:"dragon",   name:"Dragon Leader",   team:[148,230,149], lv:[46,48,51], smart:true }
 ];
+var POTIONS = 2;             /* per fight: heals half, costs the turn */
 /* a card's grade is its power: the level it fights at */
 var GRADE_LV = [30, 36, 42, 50];
 var GRADE_NM = ["Normal", "Shiny", "Full Art", "Gold"];
@@ -567,6 +588,40 @@ function makeMon(id, lv, grade){
 }
 function myLevel(id){ return GRADE_LV[cardGrade(id)] + BADGE_LV * badgeCount(); }
 
+/* ---------- the strategy layer: who is good against whom ---------- */
+var ALL_TYPES = Object.keys(TYPE_COL);
+function strongAgainst(defTypes){ return ALL_TYPES.filter(function(t){ return effect(t, defTypes) >= 2; }); }
+/* my Pokemon `id` against one enemy mon (or a {types, moves} shape): +offense, -danger */
+function matchup(id, enemy){
+  var p = DATA.pokemon[id]; if (!p) return {off:1, def:1};
+  var mine = (p.m || []).map(function(n){ return DATA.moves[n]; }).filter(function(m){ return m && m.p; });
+  var off = 1; mine.forEach(function(m){ off = Math.max(off, effect(m.t, enemy.types)); });
+  if (!mine.length) off = 0;
+  var theirs = (enemy.moves || []).map(function(m){ return typeof m === "string" ? DATA.moves[m] : m; }).filter(function(m){ return m && m.p; });
+  var def = 1; theirs.forEach(function(m){ def = Math.max(def, effect(m.t, p.t)); });
+  return {off:off, def:def};
+}
+function leaderEnemies(li){
+  var L = LEADERS[li]; if (!L) return [];
+  return L.team.map(function(id){ var q = DATA.pokemon[id]; return q ? {types:q.t, moves:q.m || []} : null; }).filter(Boolean);
+}
+/* a one-word verdict for the picker and the switch panel */
+function verdict(id, enemies){
+  var sup = 0, weak = 0;
+  enemies.forEach(function(e){ var r = matchup(id, e); if (r.off >= 2) sup++; if (r.def >= 2) weak++; });
+  var n = enemies.length || 1;
+  if (sup >= Math.ceil(n/2) && weak < Math.ceil(n/2)) return {tag:"SUPER", cls:"up", score: 2 + sup - weak};
+  if (weak >= Math.ceil(n/2) && sup < Math.ceil(n/2)) return {tag:"WEAK", cls:"dn", score: -2 - weak + sup};
+  if (sup && weak) return {tag:"RISKY", cls:"", score: sup - weak};
+  return {tag:"", cls:"", score: 0};
+}
+function bestSix(li){
+  var en = leaderEnemies(li);
+  return caughtIds().map(function(id){ var v = verdict(id, en); return {id:id, score: v.score * 10 + cardGrade(id) * 3 + (DATA.pokemon[id].s[0] + DATA.pokemon[id].s[1] + DATA.pokemon[id].s[3]) / 100}; })
+    .sort(function(a, b){ return b.score - a.score; }).slice(0, TEAM_MAX).map(function(x){ return x.id; });
+}
+function typeList(ts){ return ts.map(cap).join(", "); }
+
 /* ---------------- the battle ---------------- */
 var B = null;              /* {me:[mons], foe:[mons], mi, fi, leader, busy, over} */
 var running = false;
@@ -579,11 +634,12 @@ function startBattle(li){
   var L = LEADERS[li]; if (!L) return false;
   var ids = teamIds(); if (!ids.length) return false;
   B = { leader:li, me: ids.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean),
-        foe: L.team.map(function(id, i){ return makeMon(id, L.lv[i], -1); }).filter(Boolean), mi:0, fi:0, busy:true, over:false, turn:0 };
+        foe: L.team.map(function(id, i){ return makeMon(id, L.lv[i], -1); }).filter(Boolean), mi:0, fi:0, busy:true, over:false, turn:0, potions:POTIONS };
   running = true;
   $("arena").classList.remove("quake");
   paintTeam(); paintMe(true); paintFoe(true);
   msg(L.name + " wants to battle!", "Their first Pokemon is " + B.foe[0].name.toUpperCase() + ".");
+  paintStrat();
   $("moves").classList.add("off"); $("team").classList.add("off");
   sendOut("foe", B.foe[0]);
   setTimeout(function(){ sendOut("me", B.me[0]); }, 700);
@@ -597,8 +653,17 @@ function tipLine(){
   var f = foe(), best = null;
   me().moves.forEach(function(m){ if (!m.p || m.pp <= 0) return; var e = effect(m.t, f.types); if (!best || e > best.e) best = {m:m, e:e}; });
   if (best && best.e > 1) return cap(best.m.n) + " is super effective on " + f.name.toUpperCase() + ".";
-  if (best && best.e < 1) return "Nothing you have is strong against " + f.name.toUpperCase() + ". Switch, or hit hard.";
-  return "Pick a move, or tap a team-mate to switch.";
+  var bench = B.me.filter(function(x, i){ return i !== B.mi && !x.fainted && matchup(x.id, f).off >= 2; });
+  if (bench.length) return "Nothing strong here. " + bench[0].name.toUpperCase() + " on your bench hits " + f.name.toUpperCase() + " hard: tap it to switch.";
+  if (best && best.e < 1) return "Nothing you have is strong against " + f.name.toUpperCase() + ". Hit hard, or use a potion.";
+  return "Pick a move, tap a team-mate to switch, or use a potion.";
+}
+/* the line under the message box: what beats the Pokemon in front of him */
+function paintStrat(){
+  var el = $("strat"); if (!el) return;
+  if (!B || B.over){ el.innerHTML = ""; return; }
+  var f = foe(), hard = strongAgainst(f.types);
+  el.innerHTML = f.name.toUpperCase() + " is <b>" + typeList(f.types) + "</b>. " + (hard.length ? "<b>" + typeList(hard) + "</b> moves hit it hard." : "Nothing hits it extra hard.");
 }
 function cap(s){ return String(s || "").replace(/-/g, " ").replace(/\b\w/g, function(c){ return c.toUpperCase(); }); }
 function setImg(img, srcGif, srcPng){
@@ -610,7 +675,7 @@ function paintFoe(full){
   $("nmFoe").textContent = f.name; $("lvFoe").textContent = "Lv " + f.lv;
   $("tgFoe").innerHTML = f.types.map(function(t){ return '<span class="tag" style="background:' + TYPE_COL[t] + '">' + t + "</span>"; }).join("");
   if (full) setImg($("imgFoe"), spriteFront(f.id), spriteFrontPng(f.id));
-  fill("filFoe", f);
+  fill("filFoe", f); $("numFoe").textContent = Math.max(0, f.hp) + " / " + f.hpMax;
 }
 function paintMe(full){
   var m = me(); if (!m) return;
@@ -644,6 +709,25 @@ function paintTeam(){
     b.onclick = function(){ if (B.busy || B.over || i === B.mi || mon.fainted) return; Snd.tick(); openSwitch(false); };
     box.appendChild(b);
   });
+  var pb = document.createElement("button"); pb.type = "button"; pb.id = "potionBtn";
+  pb.innerHTML = "\u{1F9EA} Potion \u00D7" + B.potions; pb.title = "Heal half of " + me().name.toUpperCase() + "'s HP. Uses your turn.";
+  pb.disabled = B.potions <= 0 || me().hp >= me().hpMax;
+  pb.onclick = function(){ if (B.busy || B.over || B.potions <= 0) return; Snd.tick(); usePotion(); };
+  box.appendChild(pb);
+}
+function usePotion(){
+  var m = me(); if (m.hp >= m.hpMax || B.potions <= 0) return;
+  B.busy = true; $("moves").classList.add("off"); $("team").classList.add("off");
+  B.potions--;
+  var heal = Math.floor(m.hpMax / 2); m.hp = Math.min(m.hpMax, m.hp + heal);
+  FX.burst("me", "fairy", false); Snd.tick();
+  msg("You used a potion!", m.name.toUpperCase() + " got " + heal + " HP back. " + B.potions + " left.");
+  paintMe(false); paintTeam();
+  /* the leader still attacks */
+  setTimeout(function(){
+    var f = foe(), fm = foeChoice();
+    attack("foe", f, fm, me(), function(fainted){ if (fainted){ afterFaint("me"); return; } endTurn(); });
+  }, 1100);
 }
 function sendOut(side, mon){
   var box = side === "me" ? $("monMe") : $("monFoe");
@@ -915,14 +999,18 @@ function attack(attSide, att, mv, def, cb){
 }
 /* the leader's pick: the move that should do the most, with a little wobble */
 function foeChoice(){
-  var f = foe(), m = me(), best = null;
+  var f = foe(), m = me(), best = null, pool = [];
+  var smart = !!(LEADERS[B.leader] && LEADERS[B.leader].smart);
   f.moves.forEach(function(mv){
     if (mv.pp <= 0 || !mv.p) return;
+    pool.push(mv);
     var e = effect(mv.t, m.types), stab = f.types.indexOf(mv.t) >= 0 ? 1.5 : 1;
     var score = mv.p * e * stab * (mv.a/100) * (0.85 + Math.random()*0.3);
     if (!best || score > best.score) best = {mv:mv, score:score};
   });
-  return best ? best.mv : struggle();
+  if (!pool.length) return struggle();
+  if (!smart) return pool[Math.floor(Math.random() * pool.length)];   /* the early leaders just swing */
+  return best.mv;
 }
 function struggle(){ return {n:"struggle", t:"normal", p:50, a:100, pp:1, ppMax:1, c:"physical"}; }
 function playerMove(i){
@@ -955,7 +1043,7 @@ function afterFaint(side){
     if (next < 0){ winBattle(); return; }
     B.fi = next; var f = foe();
     msg(LEADERS[B.leader].name + " sends out " + f.name.toUpperCase() + "!", "");
-    paintFoe(true); setTimeout(function(){ sendOut("foe", f); }, 200);
+    paintFoe(true); paintStrat(); setTimeout(function(){ sendOut("foe", f); }, 200);
     setTimeout(endTurn, 1100);
   } else {
     var any = B.me.some(function(x){ return !x.fainted; });
@@ -971,7 +1059,9 @@ function openSwitch(forced){
   B.me.forEach(function(mon, i){
     if (i === B.mi || mon.fainted) return;
     var b = document.createElement("button"); b.className = "bigbtn ghost"; b.type = "button";
-    b.innerHTML = '<img src="' + spriteIcon(mon.id) + '" alt="" style="width:40px;height:40px;vertical-align:middle;image-rendering:pixelated"> ' + mon.name.toUpperCase() + " · " + Math.max(0, mon.hp) + "/" + mon.hpMax;
+    var v = verdict(mon.id, [foe()]);
+    b.innerHTML = '<img src="' + spriteIcon(mon.id) + '" alt="" style="width:40px;height:40px;vertical-align:middle;image-rendering:pixelated"> ' + mon.name.toUpperCase() + " · " + Math.max(0, mon.hp) + "/" + mon.hpMax +
+      (v.tag ? ' <span class="mu ' + v.cls + '">' + v.tag + "</span>" : "");
     b.onclick = function(){ Snd.tick(); $("switchOv").classList.remove("on"); doSwitch(i, forced); };
     row.appendChild(b);
   });
@@ -1010,7 +1100,9 @@ function loseBattle(){
   var beat = B.foe.filter(function(x){ return x.fainted; }).length;
   $("resultBadge").textContent = "\u{1F4A4}";
   $("resultTitle").textContent = "NOT THIS TIME";
-  $("resultLine").textContent = "All " + B.me.length + " of yours fainted; you knocked out " + beat + " of the " + LEADERS[B.leader].name + "'s " + B.foe.length + ". No badge. Nothing is lost: your team is healed. Try a different six, or catch more in Sudoku.";
+  var en = leaderEnemies(B.leader), tip = caughtIds().filter(function(id){ return B.me.every(function(x){ return x.id !== id; }) && verdict(id, en).tag === "SUPER"; }).slice(0, 3).map(function(id){ return nameOf(id).toUpperCase(); });
+  $("resultLine").textContent = "All " + B.me.length + " of yours fainted; you knocked out " + beat + " of the " + LEADERS[B.leader].name + "'s " + B.foe.length + ". No badge. Nothing is lost: your team is healed. " +
+    (tip.length ? "On your bench, " + tip.join(", ") + " would hit this leader hard: pick them in My team." : "Catch more in Sudoku, or pick Pokemon whose moves beat " + cap(LEADERS[B.leader].type) + ".");
   $("packRow").innerHTML = ""; $("packMsg").textContent = "";
   setTimeout(function(){ $("resultOv").classList.add("on"); }, 900);
 }
@@ -1065,10 +1157,15 @@ function go(li){
 function paintPick(){
   var grid = $("pickGrid"); grid.innerHTML = "";
   var ids = caughtIds(), picked = teamIds();
+  var nx = nextLeader(), li = nx < 0 ? LEADERS.length - 1 : nx, L = LEADERS[li], en = leaderEnemies(li);
+  var lt = {}; en.forEach(function(e){ e.types.forEach(function(t){ lt[t] = 1; }); });
+  $("pickLeader").innerHTML = "Next fight: <b style=\"color:var(--accent)\">" + L.name + "</b> (" + typeList(Object.keys(lt)) + "). <b style=\"color:#4ADE80\">SUPER</b> = hits them hard. <b style=\"color:#FF8A8A\">WEAK</b> = they hit it hard.";
+  ids.sort(function(a, b){ return verdict(b, en).score - verdict(a, en).score; });
   ids.forEach(function(id){
-    var g = cardGrade(id), on = picked.indexOf(id) >= 0;
+    var g = cardGrade(id), on = picked.indexOf(id) >= 0, v = verdict(id, en);
     var d = document.createElement("div"); d.className = "pk" + (on ? " on" : "");
-    d.innerHTML = '<img src="' + spriteIcon(id) + '" alt=""><div class="pn">' + nameOf(id) + '</div><span class="tag gr' + g + '">' + GRADE_NM[g] + '</span><div class="lv">Lv ' + myLevel(id) + '</div><span class="tick">✓</span>';
+    d.innerHTML = '<img src="' + spriteIcon(id) + '" alt=""><div class="pn">' + nameOf(id) + '</div><span class="tag gr' + g + '">' + GRADE_NM[g] + '</span>' +
+      (v.tag ? '<span class="mu ' + v.cls + '">' + v.tag + "</span>" : '<span class="mu" style="visibility:hidden">-</span>') + '<div class="lv">Lv ' + myLevel(id) + '</div><span class="tick">✓</span>';
     d.onclick = function(){
       Snd.tick();
       var t = teamIds().slice(), k = t.indexOf(id);
@@ -1085,6 +1182,7 @@ $("ladderBtn").onclick = function(){ Snd.start(); Snd.tick(); paintLadder(); $("
 $("ladderBack").onclick = function(){ Snd.tick(); $("ladderOv").classList.remove("on"); };
 $("teamBtn").onclick = function(){ Snd.start(); Snd.tick(); paintPick(); $("teamOv").classList.add("on"); };
 $("teamDone").onclick = function(){ Snd.tick(); $("teamOv").classList.remove("on"); paintStart(); };
+$("bestBtn").onclick = function(){ Snd.tick(); var nx = nextLeader(); S.team = bestSix(nx < 0 ? LEADERS.length - 1 : nx); save(); paintPick(); };
 $("switchCancel").onclick = function(){ Snd.tick(); $("switchOv").classList.remove("on"); };
 $("resultDone").onclick = function(){ Snd.tick(); $("resultOv").classList.remove("on"); paintStart(); paintLadder(); $("ladderOv").classList.add("on"); $("startScreen").classList.add("on"); };
 $("quitBtn").onclick = function(){
@@ -1126,8 +1224,41 @@ loadData().then(function(){ paintStart(); }).catch(function(e){
   $("ladderBtn").disabled = true; $("teamBtn").disabled = true;
 });
 
+/* headless battle: the same numbers, no screen, for tuning the ladder */
+function simBattle(teamIds_, li, smartPlayer){
+  var L = LEADERS[li];
+  var mine = teamIds_.map(function(id){ return makeMon(id, myLevel(id), cardGrade(id)); }).filter(Boolean);
+  var theirs = L.team.map(function(id, i){ return makeMon(id, L.lv[i], -1); }).filter(Boolean);
+  var mi = 0, fi = 0, potions = POTIONS, turns = 0;
+  function alive(a){ return a.some(function(x){ return !x.fainted; }); }
+  function firstAlive(a){ for (var i = 0; i < a.length; i++) if (!a[i].fainted) return i; return -1; }
+  function pickMove(att, def, smart){
+    var pool = att.moves.filter(function(m){ return m.pp > 0 && m.p; }); if (!pool.length) return struggle();
+    if (!smart) return pool[Math.floor(Math.random()*pool.length)];
+    var best = null; pool.forEach(function(mv){ var sc = mv.p * effect(mv.t, def.types) * (att.types.indexOf(mv.t) >= 0 ? 1.5 : 1) * mv.a/100; if (!best || sc > best.sc) best = {mv:mv, sc:sc}; }); return best.mv;
+  }
+  function hit(att, mv, def){ mv.pp--; if (Math.random()*100 >= mv.a) return; var r = calcDamage(att, mv, def); def.hp = Math.max(0, def.hp - r.dmg); if (def.hp <= 0) def.fainted = true; }
+  while (alive(mine) && alive(theirs) && turns < 200){
+    turns++;
+    var m = mine[mi], f = theirs[fi];
+    if (smartPlayer && matchup(m.id, f).off < 2){
+      var k = -1; for (var i = 0; i < mine.length; i++) if (i !== mi && !mine[i].fainted && matchup(mine[i].id, f).off >= 2){ k = i; break; }
+      if (k >= 0){ mi = k; m = mine[mi]; hit(f, pickMove(f, m, L.smart), m); if (m.fainted){ mi = firstAlive(mine); if (mi < 0) break; } continue; }
+    }
+    if (smartPlayer && potions > 0 && m.hp < m.hpMax * 0.3){ potions--; m.hp = Math.min(m.hpMax, m.hp + Math.floor(m.hpMax/2)); hit(f, pickMove(f, m, L.smart), m); if (m.fainted){ mi = firstAlive(mine); if (mi < 0) break; } continue; }
+    var mv = pickMove(m, f, true), fm = pickMove(f, m, L.smart);
+    var meFirst = m.spe > f.spe || (m.spe === f.spe && Math.random() < 0.5);
+    if (meFirst){ hit(m, mv, f); if (!f.fainted) hit(f, fm, m); } else { hit(f, fm, m); if (!m.fainted) hit(m, mv, f); }
+    if (f.fainted){ fi = firstAlive(theirs); if (fi < 0) break; }
+    if (m.fainted){ mi = firstAlive(mine); if (mi < 0) break; }
+  }
+  return { won: alive(mine) && !alive(theirs), turns: turns, left: mine.filter(function(x){ return !x.fainted; }).length };
+}
+function simRun(teamIds_, li, n, smartPlayer){ var w = 0; for (var i = 0; i < n; i++) if (simBattle(teamIds_, li, smartPlayer).won) w++; return w / n; }
+
 /* test hook */
-window.__PB = { S:S, state:function(){ return B; }, start:startBattle, leaders:LEADERS, data:function(){ return DATA; }, calc:calcDamage, effect:effect, makeMon:makeMon,
+window.__PB = {
+  sim: simBattle, simRun: simRun, bestSix: bestSix, verdict: verdict, matchup: matchup, leaderEnemies: leaderEnemies, usePotion: usePotion, S:S, state:function(){ return B; }, start:startBattle, leaders:LEADERS, data:function(){ return DATA; }, calc:calcDamage, effect:effect, makeMon:makeMon,
   auto:function(){ if (!B || B.busy || B.over) return false; var m = me(), best = 0; m.moves.forEach(function(mv, i){ if (mv.pp > 0 && effect(mv.t, foe().types)*mv.p > effect(m.moves[best].t, foe().types)*m.moves[best].p) best = i; }); playerMove(best); return true; },
   gain:gainCard, pack:makePack, team:teamIds, caught:caughtIds, cards:function(){ return CARDS; }, dex:function(){ return DEXS; } };
 })();
